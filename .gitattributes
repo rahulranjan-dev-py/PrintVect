@@ -1,0 +1,14 @@
+# Normalise line endings: LF in the repository, native on checkout (CRLF on Windows).
+* text=auto
+
+# Windows tooling expects these with CRLF.
+*.sln text eol=crlf
+*.resx text eol=crlf
+*.Designer.cs text eol=crlf
+
+# Binary files.
+*.ico binary
+*.png binary
+*.pdf binary
+*.exe binary
+*.dll binary

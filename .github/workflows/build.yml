@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  TESTINGPLATFORM_TELEMETRY_OPTOUT: 1
+
+jobs:
+  build:
+    name: Build and test (.NET Framework 4.8, Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: msbuild PrintVect.sln /t:Restore /p:Configuration=Release /v:minimal /nologo
+
+      - name: Build (Release, AnyCPU)
+        run: msbuild PrintVect.sln /p:Configuration=Release /v:minimal /nologo
+
+      - name: Unit tests
+        run: tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
+
+      - name: Collect the program files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts\PrintVect | Out-Null
+          Copy-Item -Path src\PrintVect.App\bin\Release\net48\*     -Destination artifacts\PrintVect -Recurse -Force
+          Copy-Item -Path src\PrintVect.Elevate\bin\Release\net48\* -Destination artifacts\PrintVect -Recurse -Force
+          Copy-Item -Path README.md, LICENSE -Destination artifacts\PrintVect
+          Get-ChildItem artifacts\PrintVect | Format-Table Name, Length
+
+      - name: Upload the program files
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrintVect-build-${{ github.run_number }}
+          path: artifacts/PrintVect
+          if-no-files-found: error

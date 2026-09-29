@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit tests for the parts that do not need a printer: config, logging, diagnostics text,
+    and (from M1) protocol framing and discovery JSON. Built as a self-running MSTest exe so it
+    runs the same way on the Windows CI runner and under Mono on Linux/macOS:
+        tests/PrintVect.Tests/bin/Release/net48/PrintVect.Tests.exe
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PrintVect.Tests</RootNamespace>
+    <AssemblyName>PrintVect.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="3.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PrintVect.Core\PrintVect.Core.csproj" />
+  </ItemGroup>
+
+</Project>

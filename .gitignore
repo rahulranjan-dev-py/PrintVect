@@ -1,0 +1,19 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+
+# Installer output (built locally with Inno Setup)
+installer/Output/
+
+# The offline .NET Framework 4.8 installer is kept beside setup.exe, never in the repo
+ndp48-*.exe
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
+*.swp
