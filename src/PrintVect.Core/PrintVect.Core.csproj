@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Protocol, discovery, spool watcher, printing, config and logging. No UI references. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>PrintVect.Core</RootNamespace>
+    <AssemblyName>PrintVect.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The only NuGet package allowed in shipped code (brief, section 3). -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
