@@ -134,6 +134,43 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void Initialize_WhenTodaysFileCannotBeOpened_FallsBackToPerUserFile()
+        {
+            using (var temp = new TempFolder())
+            {
+                // A folder with the log file's name makes the open fail the same way another
+                // user's read-only file does under %ProgramData%.
+                string blocked = temp.File(Log.FileNameFor("PrintVect", DateTime.Now));
+                Directory.CreateDirectory(blocked);
+
+                Log.Initialize(temp.Path, "PrintVect");
+                Log.Info("fallback works");
+
+                Assert.IsTrue(Log.IsInitialized);
+                Assert.AreNotEqual(blocked, Log.CurrentFile);
+                StringAssert.StartsWith(Path.GetFileName(Log.CurrentFile), Log.FallbackPrefix("PrintVect") + "-");
+                Assert.IsTrue(File.Exists(Log.CurrentFile));
+                IList<string> tail = Log.TailLines(5);
+                Assert.IsTrue(tail.Any(l => l.Contains("fallback works")), string.Join("|", tail));
+                Assert.IsTrue(tail.Any(l => l.Contains("instead")), string.Join("|", tail));
+            }
+        }
+
+        [TestMethod]
+        public void CurrentFile_IsNullBeforeInitializeAndAfterShutdown()
+        {
+            Log.Shutdown();
+            Assert.IsNull(Log.CurrentFile);
+            using (var temp = new TempFolder())
+            {
+                Log.Initialize(temp.Path, "PrintVect");
+                Assert.AreEqual(temp.File(Log.FileNameFor("PrintVect", DateTime.Now)), Log.CurrentFile);
+                Log.Shutdown();
+                Assert.IsNull(Log.CurrentFile);
+            }
+        }
+
+        [TestMethod]
         public void Initialize_DeletesOldFilesAndReportsIt()
         {
             using (var temp = new TempFolder())
