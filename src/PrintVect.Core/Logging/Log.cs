@@ -30,6 +30,7 @@ namespace PrintVect.Core.Logging
         private static int _retentionDays = DefaultRetentionDays;
         private static DateTime _openDay;
         private static StreamWriter _writer;
+        private static string _currentPath;
 
         /// <summary>Folder the log files live in, or null before Initialize.</summary>
         public static string Directory
@@ -47,16 +48,20 @@ namespace PrintVect.Core.Logging
             get { lock (Gate) { return _writer != null; } }
         }
 
-        /// <summary>Full path of today's file, or null before Initialize.</summary>
+        /// <summary>Full path of the file being written, or null before Initialize.</summary>
         public static string CurrentFile
         {
-            get
-            {
-                lock (Gate)
-                {
-                    return _directory == null ? null : Path.Combine(_directory, FileNameFor(_prefix, DateTime.Now));
-                }
-            }
+            get { lock (Gate) { return _currentPath; } }
+        }
+
+        /// <summary>
+        /// Files under %ProgramData% belong to the user who created them. When today's file was
+        /// created by another user (or is locked), this program writes to a per-user file instead,
+        /// e.g. "PrintVect-spm-2026-09-29.log", so PrintVect still starts.
+        /// </summary>
+        public static string FallbackPrefix(string prefix)
+        {
+            return prefix + "-" + SafeUserName();
         }
 
         /// <summary>Opens today's file in <paramref name="directory"/> and deletes files older than the retention.</summary>
@@ -202,7 +207,8 @@ namespace PrintVect.Core.Logging
             {
                 string filePrefix;
                 DateTime day;
-                if (TryParseFileName(Path.GetFileName(file), out filePrefix, out day) && filePrefix == prefix)
+                if (TryParseFileName(Path.GetFileName(file), out filePrefix, out day)
+                    && (filePrefix == prefix || filePrefix == FallbackPrefix(prefix)))
                 {
                     files.Add(new KeyValuePair<DateTime, string>(day, file));
                 }
@@ -233,11 +239,10 @@ namespace PrintVect.Core.Logging
             return result;
         }
 
-        private static void Write(string level, string jobId, string message, Exception ex)
+        private static string Stamp(string level, string jobId, string message)
         {
-            DateTime now = DateTime.Now;
             var sb = new StringBuilder(160);
-            sb.Append(now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture));
+            sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture));
             sb.Append(' ').Append(level.PadRight(5));
             sb.Append(" [t").Append(Thread.CurrentThread.ManagedThreadId.ToString(CultureInfo.InvariantCulture)).Append(']');
             if (!string.IsNullOrEmpty(jobId))
@@ -245,12 +250,17 @@ namespace PrintVect.Core.Logging
                 sb.Append(" [job ").Append(jobId).Append(']');
             }
             sb.Append(' ').Append(message ?? "");
+            return sb.ToString();
+        }
+
+        private static void Write(string level, string jobId, string message, Exception ex)
+        {
+            DateTime now = DateTime.Now;
+            string line = Stamp(level, jobId, message);
             if (ex != null)
             {
-                sb.AppendLine();
-                sb.Append("    ").Append(ex.ToString().Replace("\n", "\n    "));
+                line += Environment.NewLine + "    " + ex.ToString().Replace("\n", "\n    ");
             }
-            string line = sb.ToString();
 
             lock (Gate)
             {
@@ -281,9 +291,37 @@ namespace PrintVect.Core.Logging
         private static void OpenWriter(DateTime day)
         {
             string path = Path.Combine(_directory, FileNameFor(_prefix, day));
-            var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            _writer = new StreamWriter(stream, Utf8NoBom) { AutoFlush = true };
+            try
+            {
+                _writer = CreateWriter(path);
+                _currentPath = path;
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+            {
+                string fallback = Path.Combine(_directory, FileNameFor(FallbackPrefix(_prefix), day));
+                _writer = CreateWriter(fallback);
+                _currentPath = fallback;
+                _writer.WriteLine(Stamp("WARN", null,
+                    "Could not open " + path + " (" + ex.Message + "); writing to " + fallback + " instead."));
+            }
             _openDay = day.Date;
+        }
+
+        private static StreamWriter CreateWriter(string path)
+        {
+            var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            return new StreamWriter(stream, Utf8NoBom) { AutoFlush = true };
+        }
+
+        private static string SafeUserName()
+        {
+            string name = Environment.UserName ?? "";
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(c, '_');
+            }
+            name = name.Replace('-', '_').Trim();
+            return name.Length == 0 ? "user" : name;
         }
 
         private static void CloseWriter()
@@ -302,6 +340,7 @@ namespace PrintVect.Core.Logging
                 System.Diagnostics.Trace.WriteLine("PrintVect log close failed: " + ex.Message);
             }
             _writer = null;
+            _currentPath = null;
         }
 
         /// <summary>Reads a file that another process (or this one) may still be appending to.</summary>
