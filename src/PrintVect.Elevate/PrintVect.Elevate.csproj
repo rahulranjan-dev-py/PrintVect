@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The only part of PrintVect that runs as administrator (brief, section 11.4).
+    It creates and removes virtual printers, printer ports and firewall rules, and nothing else.
+    The main app launches it with ShellExecute "runas" and reads spool\elevate-result.json.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PrintVect.Elevate</RootNamespace>
+    <AssemblyName>PrintVect.Elevate</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\PrintVect.App\PrintVect.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PrintVect.Core\PrintVect.Core.csproj" />
+  </ItemGroup>
+
+</Project>

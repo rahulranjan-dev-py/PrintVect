@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Every user-visible string of PrintVect lives here (brief, section 3).
+    Hindi comes as Strings.hi.resx in Phase 2. After editing, regenerate Strings.Designer.cs
+    with Visual Studio (automatic) or: python3 tools/generate_strings.py
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve">
+    <value>PrintVect</value>
+  </data>
+  <data name="DiagCollecting" xml:space="preserve">
+    <value>Collecting information about this PC, please wait...</value>
+  </data>
+  <data name="DiagCopied" xml:space="preserve">
+    <value>Copied. You can now paste it into an email or chat.</value>
+  </data>
+  <data name="DiagCopy" xml:space="preserve">
+    <value>Copy to clipboard</value>
+  </data>
+  <data name="DiagCopyFailed" xml:space="preserve">
+    <value>Could not copy to the clipboard. Select the text with the mouse and press Ctrl+C instead.</value>
+  </data>
+  <data name="DiagDefaultPrinterSuffix" xml:space="preserve">
+    <value> (default)</value>
+  </data>
+  <data name="DiagFailed" xml:space="preserve">
+    <value>Could not collect the information: {0}</value>
+  </data>
+  <data name="DiagIntro" xml:space="preserve">
+    <value>If printing does not work, press "Copy to clipboard" and paste the text into an email or chat to the person who supports PrintVect. Nothing is sent anywhere automatically.</value>
+  </data>
+  <data name="DiagNoPrinters" xml:space="preserve">
+    <value>No printers are installed on this PC.</value>
+  </data>
+  <data name="DiagOpenLogs" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="DiagOpenLogsFailed" xml:space="preserve">
+    <value>Could not open the log folder. It is here: {0}</value>
+  </data>
+  <data name="DiagPrintersError" xml:space="preserve">
+    <value>Could not read the printer list: {0}</value>
+  </data>
+  <data name="DiagPrintersSection" xml:space="preserve">
+    <value>Printers on this PC</value>
+  </data>
+  <data name="DiagRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>OFF</value>
+  </data>
+  <data name="On" xml:space="preserve">
+    <value>ON</value>
+  </data>
+  <data name="PinNotSet" xml:space="preserve">
+    <value>not set (open to the office network)</value>
+  </data>
+  <data name="PinSet" xml:space="preserve">
+    <value>set</value>
+  </data>
+  <data name="SettingsConfigFile" xml:space="preserve">
+    <value>Settings file: {0}</value>
+  </data>
+  <data name="SettingsIntro" xml:space="preserve">
+    <value>These settings are read from the file shown below. Changing them from this screen comes in a later update. Until then, ask the person who set up PrintVect if something needs to change.</value>
+  </data>
+  <data name="SettingsKeepFiles" xml:space="preserve">
+    <value>Keep sent files for: {0} hour(s)</value>
+  </data>
+  <data name="SettingsPin" xml:space="preserve">
+    <value>Shared PIN: {0}</value>
+  </data>
+  <data name="SettingsPorts" xml:space="preserve">
+    <value>Discovery port (UDP): {0}     Job port (TCP): {1}</value>
+  </data>
+  <data name="SettingsSharing" xml:space="preserve">
+    <value>Sharing my printers: {0}</value>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Start with Windows: {0}</value>
+  </data>
+  <data name="SharePlaceholder" xml:space="preserve">
+    <value>This part is not ready yet. It will list the printers connected to this PC so you can share them with the other PCs in the office.</value>
+  </data>
+  <data name="StartupFolderError" xml:space="preserve">
+    <value>PrintVect could not create its data folder:
+{0}
+
+{1}
+
+Ask the person who installed PrintVect to check that this folder can be written to, then start PrintVect again.</value>
+  </data>
+  <data name="StatusSharingOff" xml:space="preserve">
+    <value>Sharing is OFF</value>
+  </data>
+  <data name="StatusSharingOn" xml:space="preserve">
+    <value>Sharing is ON</value>
+  </data>
+  <data name="StatusVersion" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="TabDiagnostics" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="TabSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="TabShare" xml:space="preserve">
+    <value>Share my printers</value>
+  </data>
+  <data name="TabUse" xml:space="preserve">
+    <value>Use shared printers</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Open PrintVect</value>
+  </data>
+  <data name="TrayStillRunningText" xml:space="preserve">
+    <value>PrintVect keeps running in the tray so that printing keeps working. To close it completely, right-click the tray icon and choose Exit.</value>
+  </data>
+  <data name="TrayStillRunningTitle" xml:space="preserve">
+    <value>PrintVect is still running</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Something went wrong inside PrintVect. The details have been written to the log file. If it happens again, open Diagnostics, press "Copy to clipboard" and send the text to the person who supports PrintVect.
+
+Details: {0}</value>
+  </data>
+  <data name="UsePlaceholder" xml:space="preserve">
+    <value>This part is not ready yet. It will show the printers shared by other PCs in the office so you can add them to this PC.</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+</root>

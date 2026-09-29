@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The tray application (host and client roles). Runs as a standard user (asInvoker). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>PrintVect.App</RootNamespace>
+    <AssemblyName>PrintVect.App</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>PrintVect.ico</ApplicationIcon>
+    <StartupObject>PrintVect.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Framework assemblies that ship with .NET Framework 4.8 (no NuGet needed). -->
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PrintVect.Core\PrintVect.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Strings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Compile Update="Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+    <!-- The same icon is used for the tray; embedding it avoids depending on the EXE's own icon. -->
+    <None Remove="PrintVect.ico" />
+    <EmbeddedResource Include="PrintVect.ico" LogicalName="PrintVect.App.PrintVect.ico" />
+  </ItemGroup>
+
+</Project>
