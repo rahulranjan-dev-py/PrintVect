@@ -125,7 +125,8 @@ netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action
 | Antivirus on Windows 7 quarantines the EXE | Add the PrintVect folder and `C:\ProgramData\PrintVect` to its exclusions; the program is unsigned for now. |
 | "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
 | "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
-| The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host; the job stays there until the printer is ready. |
+| The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host (Settings, Printers & scanners, the printer, Open print queue). PrintVect keeps waiting for Windows; after 10 minutes it marks the job as stuck and later jobs for that printer use a fresh print thread. |
+| Microsoft Print to PDF: the job shows Printing until you answer the Save window | That is how Windows works: choose a file name and the job becomes Printed. |
 | Something else | Diagnostics tab, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
 
 ## For developers
