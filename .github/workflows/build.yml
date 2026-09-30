@@ -40,6 +40,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path artifacts\PrintVect | Out-Null
           Copy-Item -Path src\PrintVect.App\bin\Release\net48\*     -Destination artifacts\PrintVect -Recurse -Force
           Copy-Item -Path src\PrintVect.Elevate\bin\Release\net48\* -Destination artifacts\PrintVect -Recurse -Force
+          Copy-Item -Path src\PrintVect.Send\bin\Release\net48\*    -Destination artifacts\PrintVect -Recurse -Force
+          Copy-Item -Path docs\samples\PrintVect-test-page.xps        -Destination artifacts\PrintVect
           Copy-Item -Path README.md, LICENSE -Destination artifacts\PrintVect
           Get-ChildItem artifacts\PrintVect | Format-Table Name, Length
 

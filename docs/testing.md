@@ -43,6 +43,50 @@ What to paste back after M0:
 3. If the program did not start at all: the newest file in `C:\ProgramData\PrintVect\logs\`, or
    the exact text of any error box.
 
-## M1 and later
+## M1: host role (share a printer, receive and print jobs)
+
+Host PC = the Windows 11 PC from M0 (it has the HP Laser printers and Microsoft Print to PDF).
+`pvct-send.exe` is the test sender; it lives in the same folder as PrintVect.App.exe.
+The test file `PrintVect-test-page.xps` is in that folder too (also in `docs/samples/`).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | Download the latest `PrintVect-build-<n>` artifact, unzip it over `C:\PrintVect` (replace all files). Start `PrintVect.App.exe`. | The window opens as before. The **Share my printers** tab now shows a table of the printers on this PC with columns Share, Printer, Friendly name, Status. |
+| 2 | Tick **Share** for `Microsoft Print to PDF` and for the HP Laser you want to test. Double-click the Friendly name cell of each, type a short name (for example `PDF test` and `Counter laser`), press Enter. | The names stay after pressing Refresh. `C:\ProgramData\PrintVect\config.json` now lists them under `SharedPrinters`. |
+| 3 | Tick **Share the ticked printers with the office**. | The line under it reads "Sharing is ON. Other PCs can send print jobs to this PC on port 9151." The status bar says "Sharing is ON". If Windows shows a "Windows Security Alert" for PrintVect.App, tick Private networks and click **Allow access**. |
+| 4 | Open a Command Prompt (no admin needed): `cd C:\PrintVect` then `pvct-send list 127.0.0.1` | It prints "Host DESKTOP-... shares 2 printer(s)" and the two friendly names with their status. |
+| 5 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "PDF test"` | A **Save Print Output As** window appears (from Microsoft Print to PDF). Save it as `C:\PrintVect\test.pdf`. The command prints "printed - Printed on PDF test". Two balloons appear from the tray: Printing... and Printed... The Share tab lists the job with state Printed and "Jobs printed today: 1". Open test.pdf: the PrintVect test page with a blue frame and five grey boxes. |
+| 6 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "Counter laser"` | Paper comes out of the HP Laser within about 10 s and the command says printed. |
+| 7 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "No such printer"` | "The host refused: No shared printer called ... Shared printers: ..." and errorlevel 1. |
+| 8 | Untick **Share the ticked printers with the office**, then run `pvct-send list 127.0.0.1` | "127.0.0.1 is reachable but nothing is listening on port 9151..." and errorlevel 3. Tick sharing ON again. |
+| 9 | Second PC (Windows 7, 10 or 11 with .NET 4.8; a laptop on the office network is fine): copy the whole `C:\PrintVect` folder there. On the host, open **Diagnostics** and note the IPv4 address under Network (for you: `10.169.183.66` or `10.148.93.218`, whichever network the second PC is on). On the second PC: `pvct-send list <host-ip>`. | The same printer list as in step 4. If it says the host is not reachable, add the firewall rule on the host (command below) and try again. |
+| 10 | On the second PC: `pvct-send PrintVect-test-page.xps <host-ip> "Counter laser"` | Paper comes out of the host's printer; balloons appear on the host; the job is listed in the host's Share tab with "From" = the second PC's name. |
+| 11 | On the host, right-click the tray icon, Exit, then start PrintVect again. | Sharing is ON again without touching anything (the status bar says so), because config.json remembers it. |
+| 12 | Optional PIN test: on the host, Exit PrintVect, open `C:\ProgramData\PrintVect\config.json` in Notepad, change `"Pin": ""` to `"Pin": "1234"`, save, start PrintVect. From the second PC: send without `/pin`, then with `/pin 1234`. | The first is refused with a message about the PIN; the second prints. Set the PIN back to `""` afterwards. |
+| 13 | Diagnostics tab, Copy to clipboard. | The new section "Printer sharing (host role)" shows sharing ON, the shared printers with ids, today's counts and the last jobs. |
+
+Firewall rule for the host (only needed if step 9 cannot reach the host; run in a Command
+Prompt **as administrator**, adjust the path if PrintVect is elsewhere):
+
+```
+netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action=allow protocol=TCP localport=9151 program="C:\PrintVect\PrintVect.App.exe" profile=private,domain
+```
+
+Afterwards the Diagnostics tab shows "PrintVect Jobs (TCP-In) for TCP 9151: present". The
+installer (M5) will add this rule itself.
+
+Known limits at M1, by design: copies and duplex chosen on the sending side are not applied
+(one copy prints); a Windows 7 host cannot print `.oxps` files; there is no Settings screen for
+the PIN yet.
+
+What to paste back after M1:
+
+1. The Diagnostics text from step 13 (host).
+2. The Command Prompt output of steps 4 to 8 and, if you had a second PC, 9 and 10.
+3. If a job did not print: the host log `C:\ProgramData\PrintVect\logs\PrintVect-<date>.log`
+   and, from the sending PC, `C:\ProgramData\PrintVect\logs\PrintVect-Send-<date>.log`. Both
+   contain the job id, so the two sides can be matched.
+
+## M2 and later
 
 Steps are added here when each milestone is delivered.

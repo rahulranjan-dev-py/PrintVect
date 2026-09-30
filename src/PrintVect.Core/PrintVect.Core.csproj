@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Framework assemblies that ship with .NET Framework 4.8 (printing). -->
+    <Reference Include="System.Printing" />
+    <Reference Include="ReachFramework" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The only NuGet package allowed in shipped code (brief, section 3). -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>

@@ -66,6 +66,18 @@
   <data name="AppName" xml:space="preserve">
     <value>PrintVect</value>
   </data>
+  <data name="BalloonJobFailed" xml:space="preserve">
+    <value>Could not print "{0}" from {1}: {2}</value>
+  </data>
+  <data name="BalloonJobPrinted" xml:space="preserve">
+    <value>Printed "{0}" from {1} on {2}</value>
+  </data>
+  <data name="BalloonJobReceived" xml:space="preserve">
+    <value>Printing "{0}" from {1} on {2}</value>
+  </data>
+  <data name="BalloonSharingFailedTitle" xml:space="preserve">
+    <value>Printer sharing did not start</value>
+  </data>
   <data name="DiagCollecting" xml:space="preserve">
     <value>Collecting information about this PC, please wait...</value>
   </data>
@@ -83,6 +95,9 @@
   </data>
   <data name="DiagFailed" xml:space="preserve">
     <value>Could not collect the information: {0}</value>
+  </data>
+  <data name="DiagHostSection" xml:space="preserve">
+    <value>Printer sharing (host role)</value>
   </data>
   <data name="DiagIntro" xml:space="preserve">
     <value>If printing does not work, press "Copy to clipboard" and paste the text into an email or chat to the person who supports PrintVect. Nothing is sent anywhere automatically.</value>
@@ -105,6 +120,36 @@
   <data name="DiagRefresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
+  <data name="JobColDocument" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="JobColFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="JobColMessage" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="JobColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="JobColState" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="JobColTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="JobState_error" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="JobState_printed" xml:space="preserve">
+    <value>Printed</value>
+  </data>
+  <data name="JobState_printing" xml:space="preserve">
+    <value>Printing</value>
+  </data>
+  <data name="JobState_queued" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
   <data name="No" xml:space="preserve">
     <value>No</value>
   </data>
@@ -119,6 +164,27 @@
   </data>
   <data name="PinSet" xml:space="preserve">
     <value>set</value>
+  </data>
+  <data name="PrinterStatus_busy" xml:space="preserve">
+    <value>Busy</value>
+  </data>
+  <data name="PrinterStatus_error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="PrinterStatus_offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="PrinterStatus_paper_out" xml:space="preserve">
+    <value>Paper out</value>
+  </data>
+  <data name="PrinterStatus_paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="PrinterStatus_ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="PrinterStatus_unknown" xml:space="preserve">
+    <value>Unknown</value>
   </data>
   <data name="SettingsConfigFile" xml:space="preserve">
     <value>Settings file: {0}</value>
@@ -141,8 +207,56 @@
   <data name="SettingsStartWithWindows" xml:space="preserve">
     <value>Start with Windows: {0}</value>
   </data>
-  <data name="SharePlaceholder" xml:space="preserve">
-    <value>This part is not ready yet. It will list the printers connected to this PC so you can share them with the other PCs in the office.</value>
+  <data name="ShareColFriendly" xml:space="preserve">
+    <value>Friendly name</value>
+  </data>
+  <data name="ShareColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="ShareColShare" xml:space="preserve">
+    <value>Share</value>
+  </data>
+  <data name="ShareColStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ShareIntro" xml:space="preserve">
+    <value>Tick each printer you want other PCs to use. The friendly name is what people on the other PCs will see, so use something like "Counter 1 Laser" (double-click it to change it).</value>
+  </data>
+  <data name="ShareJobsToday" xml:space="preserve">
+    <value>Jobs printed today: {0}</value>
+  </data>
+  <data name="ShareLoading" xml:space="preserve">
+    <value>Reading the printer list...</value>
+  </data>
+  <data name="ShareNoPrinters" xml:space="preserve">
+    <value>No printers are installed on this PC. Install the printer in Windows first, then press Refresh.</value>
+  </data>
+  <data name="SharePrintersError" xml:space="preserve">
+    <value>Could not read the printer list: {0}</value>
+  </data>
+  <data name="ShareRecentJobs" xml:space="preserve">
+    <value>Recent jobs received from other PCs</value>
+  </data>
+  <data name="ShareRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ShareStatusOff" xml:space="preserve">
+    <value>Sharing is OFF. Other PCs cannot print here.</value>
+  </data>
+  <data name="ShareStatusOn" xml:space="preserve">
+    <value>Sharing is ON. Other PCs can send print jobs to this PC on port {0}.</value>
+  </data>
+  <data name="ShareToggle" xml:space="preserve">
+    <value>Share the ticked printers with the office</value>
+  </data>
+  <data name="SharingPortError" xml:space="preserve">
+    <value>PrintVect could not open port {0} for incoming print jobs. Another program (or a second copy of PrintVect) is using it. Close that program, or change the job port in {1} and start PrintVect again.</value>
+  </data>
+  <data name="SharingSaveError" xml:space="preserve">
+    <value>Your change could not be saved to {0}, so it will be lost when PrintVect closes. Ask the person who installed PrintVect to check that folder.</value>
+  </data>
+  <data name="SharingStartError" xml:space="preserve">
+    <value>PrintVect could not start sharing: {0}</value>
   </data>
   <data name="StartupFolderError" xml:space="preserve">
     <value>PrintVect could not create its data folder:
