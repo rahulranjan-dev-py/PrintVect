@@ -55,8 +55,9 @@ The test file `PrintVect-test-page.xps` is in that folder too (also in `docs/sam
 | 2 | Tick **Share** for `Microsoft Print to PDF` and for the HP Laser you want to test. Double-click the Friendly name cell of each, type a short name, press Enter. **Write the two names down: every `pvct-send` command below must use them exactly** (the examples use `PDF` and `Mail Branch`). | The names stay after pressing Refresh. `C:\ProgramData\PrintVect\config.json` now lists them under `SharedPrinters`. |
 | 3 | Tick **Share the ticked printers with the office**. | The line under it reads "Sharing is ON. Other PCs can send print jobs to this PC on port 9151." The status bar says "Sharing is ON". If Windows shows a "Windows Security Alert" for PrintVect.App, tick Private networks and click **Allow access**. |
 | 4 | Open a Command Prompt (no admin needed): `cd C:\PrintVect` then `pvct-send list 127.0.0.1` | It prints "Host DESKTOP-... shares 2 printer(s)" and the two friendly names with their status. These are the names to use in the next steps. |
-| 5 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "PDF"` (use your name for the PDF printer from step 2) | A **Save Print Output As** window appears (from Microsoft Print to PDF). Save it as `C:\PrintVect\test.pdf`. The command prints "printed - Printed on ...". Two balloons appear from the tray: Printing... and Printed... The Share tab lists the job with state Printed and "Jobs printed today: 1". Open test.pdf: the PrintVect test page with a blue frame and five grey boxes. |
+| 5 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "PDF"` (use your name for the PDF printer from step 2) | A **Save Print Output As** window appears (from Microsoft Print to PDF). Save it as `C:\PrintVect\test.pdf` **within a minute**; PrintVect waits for Windows, and Windows waits for you. The command prints "printed - Printed on ..." (if you took longer than a minute it first says "printing", then "printed" a moment after you save). Two balloons appear from the tray: Printing... and Printed... The Share tab lists the job with state Printed and "Jobs printed today: 1". Open test.pdf: the PrintVect test page with a blue frame and five grey boxes. |
 | 6 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "Mail Branch"` (your name for the laser from step 2) | Paper comes out of the HP Laser within about 10 s and the command says printed. |
+| 6a | **Only if nothing came out in step 6:** on the host open Settings, Bluetooth & devices, Printers & scanners, the HP Laser, **Open print queue**. Also print any page from Notepad straight to the HP Laser. | Report what the queue window shows for the job named "PrintVect: PrintVect-test-page from ..." (Printing, Error, Sent to printer, or nothing), whether the Notepad page printed, and whether the printer is connected by USB or Wi-Fi (Printer properties, Ports tab). |
 | 7 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "No such printer"` | "The host refused: No shared printer called ... Shared printers: ..." and errorlevel 1. |
 | 8 | Untick **Share the ticked printers with the office**, then run `pvct-send list 127.0.0.1` | "127.0.0.1 is reachable but nothing is listening on port 9151..." and errorlevel 3. **Now tick sharing ON again and check the status bar says "Sharing is ON"; steps 9 to 11 need it.** |
 | 9 | Second PC (Windows 7, 10 or 11 with .NET 4.8; a laptop on the office network is fine): copy the whole `C:\PrintVect` folder there. On the host, open **Diagnostics** and note the IPv4 address under Network (for you: `10.169.183.66` or `10.148.93.218`, whichever network the second PC is on). On the second PC: `pvct-send list <host-ip>`. | The same printer list as in step 4. If it says the host is not reachable, add the firewall rule on the host (command below) and try again. |
@@ -74,6 +75,13 @@ netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action
 
 Afterwards the Diagnostics tab shows "PrintVect Jobs (TCP-In) for TCP 9151: present". The
 installer (M5) will add this rule itself.
+
+Second run on 2026-09-30: the PDF printer worked (test.pdf shows the test page) but PrintVect reported
+it as removed from the queue: Windows' AddJob only returns after the Save dialog is answered, and by
+then the job has already left the queue. Fixed. The HP Laser job never came back from Windows and,
+with a single print thread, every later job queued behind it ("2 job(s) ahead of it"). Now each printer
+has its own print thread and a stuck job is reported after 10 minutes; step 6a was added to find out
+why the HP Laser did not take the job.
 
 First run on 2026-09-30: steps 1 to 4, 7 and 8 passed. Steps 5, 6, 9 and 10 did not print only because
 the commands used the example names instead of the names set in step 2, and because sharing had been left

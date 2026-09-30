@@ -70,6 +70,12 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
   10.148.x). Discovery (M3) must send the broadcast on every interface, not only to
   255.255.255.255 once, and the host must listen on all IPv4 addresses.
+- Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) returns only when the
+  printer port has taken the whole job (Microsoft Print to PDF: after the Save dialog), and the job
+  has usually left the queue by then; a job gone after AddJob returned is printed. A printer that
+  never takes the job blocks AddJob forever, so PrintDispatcher runs one STA worker per printer and
+  HostService reports a job stuck after 10 min and retires that worker. "Ethernet 2" on that PC is
+  a phone tethered by USB (address changes per session); "Ethernet" 10.148.93.x is the office LAN.
 - Ask before: new dependency, framework change, port change, data-folder change, anything
   needing admin outside the Elevate helper, anything needing internet, a Windows Service.
 - When the owner pastes an error or log: restate what happened in one sentence, then propose

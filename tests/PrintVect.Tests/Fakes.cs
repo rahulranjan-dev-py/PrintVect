@@ -15,6 +15,9 @@ namespace PrintVect.Tests
         public byte[] LastFileBytes;
         public TimeSpan Delay = TimeSpan.Zero;
 
+        /// <summary>Printers whose jobs block inside Print until the event is set (a printer that never answers).</summary>
+        public readonly Dictionary<string, ManualResetEventSlim> Blocked = new Dictionary<string, ManualResetEventSlim>(StringComparer.OrdinalIgnoreCase);
+
         public PrintOutcome Print(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
         {
             lock (Requests)
@@ -27,7 +30,26 @@ namespace PrintVect.Tests
             {
                 Thread.Sleep(Delay);
             }
+            ManualResetEventSlim gate;
+            lock (Blocked)
+            {
+                Blocked.TryGetValue(request.PrinterName, out gate);
+            }
+            if (gate != null && !gate.Wait(TimeSpan.FromSeconds(30)))
+            {
+                return PrintOutcome.Error("test gate was never released");
+            }
             return Outcome;
+        }
+
+        public ManualResetEventSlim Block(string printerName)
+        {
+            var gate = new ManualResetEventSlim(false);
+            lock (Blocked)
+            {
+                Blocked[printerName] = gate;
+            }
+            return gate;
         }
     }
 
