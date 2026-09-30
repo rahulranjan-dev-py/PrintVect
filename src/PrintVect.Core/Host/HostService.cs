@@ -83,10 +83,11 @@ namespace PrintVect.Core.Host
         public TimeSpan ReplyWait { get; set; } = ProtocolConstants.ReplyWait;
 
         /// <summary>
-        /// After this long inside Windows, a job is reported as stuck and later jobs for that printer
-        /// get a fresh print thread (Windows' AddJob never returns for a printer that does not answer).
+        /// After this long inside the print engine, a job is reported as stuck and later jobs for that
+        /// printer get a fresh print thread. Longer than XpsPrintEngine.CompletionWait, so it only fires
+        /// when a Windows call itself never returns (seen with System.Printing's AddJob).
         /// </summary>
-        public TimeSpan StuckTimeout { get; set; } = TimeSpan.FromMinutes(10);
+        public TimeSpan StuckTimeout { get; set; } = TimeSpan.FromMinutes(20);
 
         public IList<SharedPrinter> SharedPrinters
         {

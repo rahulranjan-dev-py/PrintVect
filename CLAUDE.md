@@ -36,8 +36,8 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 
 Client: virtual printer (Microsoft XPS Document Writer driver, Local Port -> file in spool\<id>\)
 -> FileSystemWatcher + 2 s polling fallback -> rename to job-<guid>.xps -> TCP send.
-Host: receive into spool\incoming\ -> verify size -> PrintQueue.AddJob(path, fastCopy:false)
--> reply JSON -> poll job state up to 60 s. One job at a time, arrival order, on one STA
+Host: receive into spool\incoming\ -> verify size -> XPS Print API (StartXpsPrintJob) for .xps,
+PrintQueue.AddJob for .oxps -> reply JSON -> watch the job (up to 60 s before replying). One job at a time, arrival order, on one STA
 print-worker thread (System.Printing needs STA; never the UI thread). Printer statuses and
 printing sit behind IPrinterStatusSource / IPrintEngine so HostService is unit-tested with fakes
 over loopback TCP (tests never load System.Printing, which Mono lacks).
@@ -70,12 +70,15 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
   10.148.x). Discovery (M3) must send the broadcast on every interface, not only to
   255.255.255.255 once, and the host must listen on all IPv4 addresses.
-- Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) returns only when the
-  printer port has taken the whole job (Microsoft Print to PDF: after the Save dialog), and the job
-  has usually left the queue by then; a job gone after AddJob returned is printed. A printer that
-  never takes the job blocks AddJob forever, so PrintDispatcher runs one STA worker per printer and
-  HostService reports a job stuck after 10 min and retires that worker. "Ethernet 2" on that PC is
-  a phone tethered by USB (address changes per session); "Ethernet" 10.148.93.x is the office LAN.
+- Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) worked for Microsoft
+  Print to PDF (returning only after the Save dialog, job already gone from the queue) but hung
+  forever for the USB "HP Laser 103 107 108" without ever creating a spooler job. The host therefore
+  prints .xps with the XPS Print API (XpsPrintEngine: xpsprint.dll, any printer, non-blocking,
+  page progress, completion event) and keeps System.Printing (SystemPrintingEngine) only for
+  .oxps and as a fallback when the API refuses to start a job (HostPrintEngine decides).
+  PrintDispatcher runs one STA worker per printer; HostService reports a job stuck after 20 min
+  and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
+  per session); "Ethernet" 10.148.93.x is the office LAN; the HP Laser is on USB001.
 - Ask before: new dependency, framework change, port change, data-folder change, anything
   needing admin outside the Elevate helper, anything needing internet, a Windows Service.
 - When the owner pastes an error or log: restate what happened in one sentence, then propose
