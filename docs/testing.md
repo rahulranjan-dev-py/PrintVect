@@ -85,7 +85,7 @@ why the HP Laser did not take the job.
 
 Third check on 2026-09-30 (part A): the HP Laser prints from Notepad, is on USB001, and both queues
 were empty, so the earlier hang happened inside .NET's printing library before any spooler job
-existed. Build 8 prints .xps files through the Windows XPS Print API instead (the job shows in the
+existed. Build 9 prints .xps files through the Windows XPS Print API instead (the job shows in the
 Windows print queue immediately, with page progress in the Share tab).
 
 First run on 2026-09-30: steps 1 to 4, 7 and 8 passed. Steps 5, 6, 9 and 10 did not print only because
