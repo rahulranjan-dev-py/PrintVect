@@ -64,6 +64,42 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Could not print "{0}" from {1}: {2}.
+        /// </summary>
+        internal static string BalloonJobFailed {
+            get {
+                return ResourceManager.GetString("BalloonJobFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printed "{0}" from {1} on {2}.
+        /// </summary>
+        internal static string BalloonJobPrinted {
+            get {
+                return ResourceManager.GetString("BalloonJobPrinted", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printing "{0}" from {1} on {2}.
+        /// </summary>
+        internal static string BalloonJobReceived {
+            get {
+                return ResourceManager.GetString("BalloonJobReceived", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer sharing did not start.
+        /// </summary>
+        internal static string BalloonSharingFailedTitle {
+            get {
+                return ResourceManager.GetString("BalloonSharingFailedTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Collecting information about this PC, please wait....
         /// </summary>
         internal static string DiagCollecting {
@@ -114,6 +150,15 @@ namespace PrintVect.App {
         internal static string DiagFailed {
             get {
                 return ResourceManager.GetString("DiagFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer sharing (host role).
+        /// </summary>
+        internal static string DiagHostSection {
+            get {
+                return ResourceManager.GetString("DiagHostSection", resourceCulture);
             }
         }
 
@@ -181,6 +226,96 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Document.
+        /// </summary>
+        internal static string JobColDocument {
+            get {
+                return ResourceManager.GetString("JobColDocument", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to From.
+        /// </summary>
+        internal static string JobColFrom {
+            get {
+                return ResourceManager.GetString("JobColFrom", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Message.
+        /// </summary>
+        internal static string JobColMessage {
+            get {
+                return ResourceManager.GetString("JobColMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer.
+        /// </summary>
+        internal static string JobColPrinter {
+            get {
+                return ResourceManager.GetString("JobColPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        internal static string JobColState {
+            get {
+                return ResourceManager.GetString("JobColState", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Time.
+        /// </summary>
+        internal static string JobColTime {
+            get {
+                return ResourceManager.GetString("JobColTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed.
+        /// </summary>
+        internal static string JobState_error {
+            get {
+                return ResourceManager.GetString("JobState_error", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printed.
+        /// </summary>
+        internal static string JobState_printed {
+            get {
+                return ResourceManager.GetString("JobState_printed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printing.
+        /// </summary>
+        internal static string JobState_printing {
+            get {
+                return ResourceManager.GetString("JobState_printing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting.
+        /// </summary>
+        internal static string JobState_queued {
+            get {
+                return ResourceManager.GetString("JobState_queued", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
         internal static string No {
@@ -222,6 +357,69 @@ namespace PrintVect.App {
         internal static string PinSet {
             get {
                 return ResourceManager.GetString("PinSet", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Busy.
+        /// </summary>
+        internal static string PrinterStatus_busy {
+            get {
+                return ResourceManager.GetString("PrinterStatus_busy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        internal static string PrinterStatus_error {
+            get {
+                return ResourceManager.GetString("PrinterStatus_error", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Offline.
+        /// </summary>
+        internal static string PrinterStatus_offline {
+            get {
+                return ResourceManager.GetString("PrinterStatus_offline", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Paper out.
+        /// </summary>
+        internal static string PrinterStatus_paper_out {
+            get {
+                return ResourceManager.GetString("PrinterStatus_paper_out", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Paused.
+        /// </summary>
+        internal static string PrinterStatus_paused {
+            get {
+                return ResourceManager.GetString("PrinterStatus_paused", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Ready.
+        /// </summary>
+        internal static string PrinterStatus_ready {
+            get {
+                return ResourceManager.GetString("PrinterStatus_ready", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown.
+        /// </summary>
+        internal static string PrinterStatus_unknown {
+            get {
+                return ResourceManager.GetString("PrinterStatus_unknown", resourceCulture);
             }
         }
 
@@ -289,11 +487,155 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to This part is not ready yet. It will list the printers connected to this PC so you can share them wit [rest of string was truncated].
+        ///   Looks up a localized string similar to Friendly name.
         /// </summary>
-        internal static string SharePlaceholder {
+        internal static string ShareColFriendly {
             get {
-                return ResourceManager.GetString("SharePlaceholder", resourceCulture);
+                return ResourceManager.GetString("ShareColFriendly", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer.
+        /// </summary>
+        internal static string ShareColPrinter {
+            get {
+                return ResourceManager.GetString("ShareColPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Share.
+        /// </summary>
+        internal static string ShareColShare {
+            get {
+                return ResourceManager.GetString("ShareColShare", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        internal static string ShareColStatus {
+            get {
+                return ResourceManager.GetString("ShareColStatus", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tick each printer you want other PCs to use. The friendly name is what people on the other PCs will  [rest of string was truncated].
+        /// </summary>
+        internal static string ShareIntro {
+            get {
+                return ResourceManager.GetString("ShareIntro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jobs printed today: {0}.
+        /// </summary>
+        internal static string ShareJobsToday {
+            get {
+                return ResourceManager.GetString("ShareJobsToday", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reading the printer list....
+        /// </summary>
+        internal static string ShareLoading {
+            get {
+                return ResourceManager.GetString("ShareLoading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No printers are installed on this PC. Install the printer in Windows first, then press Refresh..
+        /// </summary>
+        internal static string ShareNoPrinters {
+            get {
+                return ResourceManager.GetString("ShareNoPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not read the printer list: {0}.
+        /// </summary>
+        internal static string SharePrintersError {
+            get {
+                return ResourceManager.GetString("SharePrintersError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recent jobs received from other PCs.
+        /// </summary>
+        internal static string ShareRecentJobs {
+            get {
+                return ResourceManager.GetString("ShareRecentJobs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        internal static string ShareRefresh {
+            get {
+                return ResourceManager.GetString("ShareRefresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing is OFF. Other PCs cannot print here..
+        /// </summary>
+        internal static string ShareStatusOff {
+            get {
+                return ResourceManager.GetString("ShareStatusOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing is ON. Other PCs can send print jobs to this PC on port {0}..
+        /// </summary>
+        internal static string ShareStatusOn {
+            get {
+                return ResourceManager.GetString("ShareStatusOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Share the ticked printers with the office.
+        /// </summary>
+        internal static string ShareToggle {
+            get {
+                return ResourceManager.GetString("ShareToggle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect could not open port {0} for incoming print jobs. Another program (or a second copy of Prin [rest of string was truncated].
+        /// </summary>
+        internal static string SharingPortError {
+            get {
+                return ResourceManager.GetString("SharingPortError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your change could not be saved to {0}, so it will be lost when PrintVect closes. Ask the person who  [rest of string was truncated].
+        /// </summary>
+        internal static string SharingSaveError {
+            get {
+                return ResourceManager.GetString("SharingSaveError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect could not start sharing: {0}.
+        /// </summary>
+        internal static string SharingStartError {
+            get {
+                return ResourceManager.GetString("SharingStartError", resourceCulture);
             }
         }
 

@@ -26,6 +26,9 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 - src/PrintVect.App      WinForms tray exe. Tabs: Share my printers, Use shared printers, Settings,
                          Diagnostics. Closing the window minimises to tray; Exit is in the tray menu.
                          `/tray` switch starts hidden (used by the autostart entry).
+- src/PrintVect.Send     pvct-send.exe, the M1 command-line test sender (list / send / status).
+                         docs/samples/PrintVect-test-page.xps is a ready-made one-page test file
+                         (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Only creates/removes printers,
                          ports and firewall rules. Results come back as exit code + JSON file.
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability.
@@ -34,7 +37,10 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 Client: virtual printer (Microsoft XPS Document Writer driver, Local Port -> file in spool\<id>\)
 -> FileSystemWatcher + 2 s polling fallback -> rename to job-<guid>.xps -> TCP send.
 Host: receive into spool\incoming\ -> verify size -> PrintQueue.AddJob(path, fastCopy:false)
--> reply JSON -> poll job state up to 60 s. One job at a time per printer, arrival order.
+-> reply JSON -> poll job state up to 60 s. One job at a time, arrival order, on one STA
+print-worker thread (System.Printing needs STA; never the UI thread). Printer statuses and
+printing sit behind IPrinterStatusSource / IPrintEngine so HostService is unit-tested with fakes
+over loopback TCP (tests never load System.Printing, which Mono lacks).
 
 ## Protocol v1 (docs/protocol.md has the JSON)
 - Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the
@@ -42,6 +48,8 @@ Host: receive into spool\incoming\ -> verify size -> PrintQueue.AddJob(path, fas
 - Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header
   + file bytes. Host answers one JSON line ({ok, jobId, state, message}) and closes.
 - Status: same framing, header {"type":"status","jobId":...}, no body.
+- List: same framing, header {"type":"list"}, no body; reply = discovery JSON + ok. Added in M1 for
+  pvct-send and for manual "Add by IP" (M3). Refused jobs are drained, then answered with ok=false.
 - Optional PIN: header carries SHA-256 hex of the PIN; empty = open on the LAN.
 - Limits: file 200 MB, connect 5 s, transfer 5 min, discovery 2 s. Manual IP/name entry always exists.
 

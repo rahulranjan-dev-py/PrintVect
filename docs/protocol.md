@@ -26,6 +26,7 @@ relay) and **631** are never allowed.
 | Discovery reply   | UDP unicast back to the sender            | One JSON object, see below. |
 | Job transfer      | TCP 9151, one job per connection          | `PVCT` (4 ASCII bytes), 4-byte little-endian header length, UTF-8 JSON header, then the raw file bytes. The host answers one JSON line, then closes. |
 | Status query      | TCP 9151                                  | Same framing with header `{"type":"status","jobId":"guid"}` and no body. Same reply format. |
+| Printer list      | TCP 9151                                  | Same framing with header `{"type":"list","v":1}` and no body. The host answers the discovery-reply JSON below plus `"ok":true`. Used by `pvct-send list` and by manual "Add by IP" (M3), which cannot rely on UDP broadcast. |
 
 ## Discovery reply
 
@@ -70,6 +71,17 @@ relay) and **631** are never allowed.
 
 `state` is one of `queued`, `printing`, `printed`, `error`.
 
+## Refusals
+
+A refused request (wrong PIN, unknown printer, unsupported format, wrong protocol version,
+file too large, not an XPS file) is answered with `{"ok":false,"state":"error","message":"..."}`
+in plain language. The host reads and discards the rest of a refused job body first, so the
+sender always receives the reason instead of a broken connection. A job whose body ends early
+gets no reply; the host logs it and stays up.
+
+Ids sent as `printerId` are matched first by id, then by friendly name, then by the Windows
+printer name (case-insensitive), so a person can type a name into `pvct-send`.
+
 ## Rules
 
 - Optional shared PIN, set in Settings on both sides. The header carries the
@@ -84,9 +96,10 @@ relay) and **631** are never allowed.
 
 ## Milestone status
 
-| Part                    | Milestone | State        |
-|-------------------------|-----------|--------------|
-| Framing + JSON classes  | M1        | not started  |
-| TCP job listener (host) | M1        | not started  |
-| UDP discovery           | M3        | not started  |
-| PIN check               | M6        | not started  |
+| Part                                   | Milestone | State                       |
+|----------------------------------------|-----------|-----------------------------|
+| Framing + JSON classes (`Core/Protocol`) | M1      | done                        |
+| TCP job, status and list requests (host) | M1      | done                        |
+| Client sender (`JobClient`, pvct-send)   | M1      | done                        |
+| PIN check on the host                    | M1      | done (PIN set in config.json until the Settings UI arrives) |
+| UDP discovery                            | M3      | not started                 |

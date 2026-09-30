@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Printing;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using PrintVect.App.Host;
 using PrintVect.Core;
 using PrintVect.Core.Config;
 using PrintVect.Core.Diagnostics;
@@ -23,8 +25,10 @@ namespace PrintVect.App.Forms
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
         private readonly AppConfig _config;
+        private readonly HostController _controller;
 
         private TabControl _tabs;
+        private ShareTab _shareTab;
         private TabPage _diagnosticsTab;
         private TextBox _settingsText;
         private TextBox _diagnosticsText;
@@ -37,14 +41,21 @@ namespace PrintVect.App.Forms
         private bool _diagnosticsLoaded;
         private bool _collecting;
 
-        public MainForm(AppPaths paths, ConfigStore store, AppConfig config)
+        public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController controller)
         {
+            if (controller == null) throw new ArgumentNullException(nameof(controller));
             _paths = paths;
             _store = store;
             _config = config;
+            _controller = controller;
             BuildLayout();
             FillSettings();
-            UpdateSharingStatus(_config.SharingEnabled);
+            UpdateSharingStatus(_controller.IsSharing);
+            _controller.SharingChanged += (s, e) =>
+            {
+                UpdateSharingStatus(_controller.IsSharing);
+                FillSettings();
+            };
         }
 
         public void UpdateSharingStatus(bool sharingOn)
@@ -73,7 +84,7 @@ namespace PrintVect.App.Forms
             status.Items.AddRange(new ToolStripItem[] { _sharingLabel, _messageLabel, versionLabel });
 
             _tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 6) };
-            _tabs.TabPages.Add(CreatePlaceholderTab(Strings.TabShare, Strings.SharePlaceholder));
+            _tabs.TabPages.Add(CreateShareTab());
             _tabs.TabPages.Add(CreatePlaceholderTab(Strings.TabUse, Strings.UsePlaceholder));
             _tabs.TabPages.Add(CreateSettingsTab());
             _diagnosticsTab = CreateDiagnosticsTab();
@@ -96,6 +107,14 @@ namespace PrintVect.App.Forms
             Controls.Add(_tabs);
             Controls.Add(status);
             ResumeLayout(true);
+        }
+
+        private TabPage CreateShareTab()
+        {
+            var page = new TabPage(Strings.TabShare) { Padding = new Padding(16), UseVisualStyleBackColor = true };
+            _shareTab = new ShareTab(_controller) { Dock = DockStyle.Fill };
+            page.Controls.Add(_shareTab);
+            return page;
         }
 
         private static TabPage CreatePlaceholderTab(string title, string text)
@@ -238,7 +257,8 @@ namespace PrintVect.App.Forms
 
             AppPaths paths = _paths;
             AppConfig config = _config;
-            Task.Factory.StartNew(() => CollectDiagnosticsText(paths, config))
+            string[] hostLines = _controller.DescribeForDiagnostics().ToArray();
+            Task.Factory.StartNew(() => CollectDiagnosticsText(paths, config, hostLines))
                 .ContinueWith(task =>
                 {
                     string text;
@@ -268,10 +288,13 @@ namespace PrintVect.App.Forms
         }
 
         /// <summary>Runs on a background thread: never touches controls.</summary>
-        private static string CollectDiagnosticsText(AppPaths paths, AppConfig config)
+        private static string CollectDiagnosticsText(AppPaths paths, AppConfig config, string[] hostLines)
         {
-            DiagnosticsReport report = DiagnosticsReport.Collect(paths, config,
-                r => r.AddSection(Strings.DiagPrintersSection, DescribePrinters()));
+            DiagnosticsReport report = DiagnosticsReport.Collect(paths, config, r =>
+            {
+                r.AddSection(Strings.DiagHostSection, hostLines);
+                r.AddSection(Strings.DiagPrintersSection, DescribePrinters());
+            });
             return report.ToString();
         }
 
