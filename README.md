@@ -49,8 +49,16 @@ was the working name before PrintVect was chosen).
 3. Run `PrintVect.App.exe`. A PrintVect icon appears in the tray (bottom-right, near the clock)
    and the PrintVect window opens.
 
-Windows SmartScreen may warn because the program is not yet signed: click **More info**, then
-**Run anyway**.
+Because the program is new and not yet signed, browsers and Windows treat it with suspicion:
+
+- Chrome may say "Chrome blocked this download because the file is dangerous". Open the
+  downloads list (Ctrl+J), click the three-dot menu on the blocked entry and choose **Download
+  dangerous file** (or **Keep**), then confirm. Microsoft Edge shows a similar warning with
+  **Keep** under its menu. The digest shown next to the artifact on the Actions page identifies
+  the exact file GitHub built from this repository's source.
+- Windows SmartScreen may warn when you first run it: click **More info**, then **Run anyway**.
+- If Windows Defender removes `PrintVect.App.exe` from the folder, add `C:\PrintVect` to its
+  exclusions (Windows Security, Virus & threat protection, Manage settings, Exclusions).
 
 Or build it yourself: install Visual Studio 2022 Build Tools with the ".NET Framework 4.8
 targeting pack", then run in the repo folder:
@@ -122,6 +130,7 @@ netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action
 |---------|------------|
 | "PrintVect could not create its data folder" at start | Ask whoever installed PrintVect to check that `C:\ProgramData\PrintVect` can be written to. |
 | No tray icon after starting | Check the hidden icons arrow next to the clock. If still nothing, look for the newest file in `C:\ProgramData\PrintVect\logs\`. |
+| Chrome or Edge blocks the download as dangerous | Unsigned new program; use **Download dangerous file** / **Keep** from the download's menu (see above). |
 | Antivirus on Windows 7 quarantines the EXE | Add the PrintVect folder and `C:\ProgramData\PrintVect` to its exclusions; the program is unsigned for now. |
 | "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
 | "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
