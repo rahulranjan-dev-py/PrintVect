@@ -76,8 +76,11 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   prints .xps with the XPS Print API (XpsPrintEngine: xpsprint.dll, any printer, non-blocking,
   page progress, completion event) and keeps System.Printing (SystemPrintingEngine) only for
   .oxps and as a fallback when the API refuses to start a job (HostPrintEngine decides).
-  The XPS Print API works only from an MTA thread (E_NOINTERFACE from STA, seen on the owner's
-  PC) while System.Printing's XPS path needs STA: each engine runs its call through
+  On the owner's PC the API's job object refused .NET's QueryInterface for IXpsPrintJob
+  (E_NOINTERFACE) from STA and MTA alike although the job had started, so XpsPrintEngine keeps
+  raw IUnknown pointers and calls Write/Close/GetJobStatus through the COM function table
+  (no interface cast); it runs on an MTA thread with an explicit CoInitializeEx and logs an
+  interface probe once. System.Printing's XPS path needs STA: each engine runs its call through
   ApartmentRunner on the apartment it needs. PrintDispatcher runs one worker per printer;
   HostService reports a job stuck after 20 min and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
   per session); "Ethernet" 10.148.93.x is the office LAN; the HP Laser is on USB001.
