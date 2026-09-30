@@ -95,7 +95,10 @@ namespace PrintVect.Core.Diagnostics
             lines.Add(AppInfo.ProductName + " " + AppInfo.Version);
             try
             {
-                lines.Add("Program file: " + typeof(DiagnosticsReport).Assembly.Location);
+                // The EXE that is running (PrintVect.App.exe or PrintVect.Elevate.exe), not this DLL.
+                System.Reflection.Assembly program = System.Reflection.Assembly.GetEntryAssembly()
+                                                     ?? typeof(DiagnosticsReport).Assembly;
+                lines.Add("Program file: " + program.Location);
             }
             catch (Exception ex)
             {
