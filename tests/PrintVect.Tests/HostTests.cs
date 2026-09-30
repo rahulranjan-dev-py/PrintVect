@@ -113,7 +113,8 @@ namespace PrintVect.Tests
             _host = new HostService(_paths, _engine, new FakePrinters(), new JobTracker());
             _host.UpdateSharedPrinters(new[]
             {
-                new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" }
+                new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" },
+                new SharedPrinter { Id = "def456", LocalName = "Other Printer", FriendlyName = "Back Office" }
             });
             _host.Start(0);
         }
@@ -152,11 +153,12 @@ namespace PrintVect.Tests
             Assert.AreEqual(Environment.MachineName, reply.Host);
             Assert.AreEqual(_host.Port, reply.Port);
             Assert.AreEqual("127.0.0.1", reply.Ip);
-            Assert.AreEqual(1, reply.Printers.Count);
+            Assert.AreEqual(2, reply.Printers.Count);
             Assert.AreEqual("abc123", reply.Printers[0].Id);
             Assert.AreEqual("Fake Printer", reply.Printers[0].Name);
             Assert.AreEqual("Counter 1 Laser", reply.Printers[0].Friendly);
             Assert.AreEqual("ready", reply.Printers[0].Status);
+            Assert.AreEqual("offline", reply.Printers[1].Status);
         }
 
         [TestMethod]
@@ -238,6 +240,7 @@ namespace PrintVect.Tests
             Assert.AreEqual(JobStates.Error, reply.State);
             StringAssert.Contains(reply.Message, "No shared printer called \"Canon\"");
             StringAssert.Contains(reply.Message, "Counter 1 Laser");
+            StringAssert.Contains(reply.Message, "Back Office");
         }
 
         [TestMethod]
@@ -378,6 +381,84 @@ namespace PrintVect.Tests
             catch (HostUnreachableException ex)
             {
                 StringAssert.Contains(ex.Message, "sharing ON");
+            }
+        }
+
+        [TestMethod]
+        public async Task StuckPrinter_DoesNotHoldUpAnotherPrinter()
+        {
+            _host.ReplyWait = TimeSpan.FromMilliseconds(500);
+            ManualResetEventSlim gate = _engine.Block("Fake Printer");
+            string file = WriteXps(2000);
+            RequestHeader stuck = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "stuck", null);
+
+            JobReply stuckReply = await Client().SendJobAsync(stuck, file, null, CancellationToken.None);
+            JobReply otherReply = await Client().SendJobAsync(RequestHeader.ForJob("def456", "b.xps", "xps", 0, "other", null), file, null, CancellationToken.None);
+
+            Assert.IsTrue(stuckReply.Ok, stuckReply.Message);
+            Assert.AreEqual(JobStates.Printing, stuckReply.State, "the reply after the wait says printing, not queued");
+            Assert.IsTrue(otherReply.Ok, otherReply.Message);
+            Assert.AreEqual(JobStates.Printed, otherReply.State, "the other printer must not wait behind the stuck one");
+            Assert.AreEqual(1, _host.PendingPrintCount);
+
+            gate.Set();
+            await WaitUntilAsync(() => StateOf(stuck.JobId) == JobStates.Printed, TimeSpan.FromSeconds(5));
+            Assert.AreEqual(0, _host.PendingPrintCount);
+        }
+
+        [TestMethod]
+        public async Task StuckJob_IsReportedAndLaterJobsForThatPrinterStillPrint()
+        {
+            _host.ReplyWait = TimeSpan.FromMilliseconds(300);
+            _host.StuckTimeout = TimeSpan.FromMilliseconds(800);
+            var finished = new List<JobRecord>();
+            _host.JobFinished += (s, r) => { lock (finished) finished.Add(r); };
+            ManualResetEventSlim gate = _engine.Block("Fake Printer");
+            string file = WriteXps(2000);
+            RequestHeader stuck = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "stuck", null);
+
+            JobReply stuckReply = await Client().SendJobAsync(stuck, file, null, CancellationToken.None);
+            Assert.AreEqual(JobStates.Printing, stuckReply.State);
+
+            await WaitUntilAsync(() => StateOf(stuck.JobId) == JobStates.Error, TimeSpan.FromSeconds(5));
+            JobRecord record;
+            _host.Jobs.TryGet(stuck.JobId, out record);
+            StringAssert.Contains(record.Message, "has not finished");
+            StringAssert.Contains(record.Message, "Counter 1 Laser");
+
+            // The stuck thread still holds the first job, but the printer now has a fresh thread.
+            lock (_engine.Blocked) { _engine.Blocked.Remove("Fake Printer"); }
+            JobReply next = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "b.xps", "xps", 0, "next", null), file, null, CancellationToken.None);
+            Assert.IsTrue(next.Ok, next.Message);
+            Assert.AreEqual(JobStates.Printed, next.State);
+            Assert.AreEqual(2, _engine.Requests.Count);
+
+            // When Windows finally lets go, the record is corrected.
+            gate.Set();
+            await WaitUntilAsync(() => StateOf(stuck.JobId) == JobStates.Printed, TimeSpan.FromSeconds(5));
+            lock (finished)
+            {
+                Assert.IsTrue(finished.Any(r => r.JobId == stuck.JobId && r.State == JobStates.Error), "stuck report raised");
+                Assert.IsTrue(finished.Any(r => r.JobId == stuck.JobId && r.State == JobStates.Printed), "late print raised");
+            }
+        }
+
+        private string StateOf(string jobId)
+        {
+            JobRecord record;
+            return _host.Jobs.TryGet(jobId, out record) ? record.State : null;
+        }
+
+        private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+        {
+            DateTime deadline = DateTime.UtcNow + timeout;
+            while (!condition())
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    Assert.Fail("condition not met within " + timeout);
+                }
+                await Task.Delay(50);
             }
         }
 

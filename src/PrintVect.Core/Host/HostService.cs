@@ -33,7 +33,7 @@ namespace PrintVect.Core.Host
         private string _pin = "";
         private TcpListener _listener;
         private CancellationTokenSource _stopping;
-        private PrintWorker _worker;
+        private PrintDispatcher _dispatcher;
 
         public HostService(AppPaths paths, IPrintEngine engine, IPrinterStatusSource printers, JobTracker tracker)
         {
@@ -76,8 +76,17 @@ namespace PrintVect.Core.Host
 
         public int PendingPrintCount
         {
-            get { PrintWorker worker = _worker; return worker == null ? 0 : worker.PendingCount; }
+            get { PrintDispatcher dispatcher = _dispatcher; return dispatcher == null ? 0 : dispatcher.PendingCountAll; }
         }
+
+        /// <summary>How long a job connection waits for "printed" before answering with the current state.</summary>
+        public TimeSpan ReplyWait { get; set; } = ProtocolConstants.ReplyWait;
+
+        /// <summary>
+        /// After this long inside Windows, a job is reported as stuck and later jobs for that printer
+        /// get a fresh print thread (Windows' AddJob never returns for a printer that does not answer).
+        /// </summary>
+        public TimeSpan StuckTimeout { get; set; } = TimeSpan.FromMinutes(10);
 
         public IList<SharedPrinter> SharedPrinters
         {
@@ -125,8 +134,7 @@ namespace PrintVect.Core.Host
                 _listener = listener;
                 Port = ((IPEndPoint)listener.LocalEndpoint).Port;
                 _stopping = new CancellationTokenSource();
-                _worker = new PrintWorker(_engine);
-                _worker.Start();
+                _dispatcher = new PrintDispatcher(_engine);
                 StartedAt = DateTime.Now;
 
                 CancellationToken token = _stopping.Token;
@@ -142,7 +150,7 @@ namespace PrintVect.Core.Host
         {
             TcpListener listener;
             CancellationTokenSource stopping;
-            PrintWorker worker;
+            PrintDispatcher dispatcher;
             lock (_lifecycle)
             {
                 if (_listener == null)
@@ -151,10 +159,10 @@ namespace PrintVect.Core.Host
                 }
                 listener = _listener;
                 stopping = _stopping;
-                worker = _worker;
+                dispatcher = _dispatcher;
                 _listener = null;
                 _stopping = null;
-                _worker = null;
+                _dispatcher = null;
                 StartedAt = null;
             }
 
@@ -172,7 +180,7 @@ namespace PrintVect.Core.Host
             {
                 SafeClose(client);
             }
-            worker.Stop();
+            dispatcher.Stop();
         }
 
         public void Dispose()
@@ -432,15 +440,16 @@ namespace PrintVect.Core.Host
 
             Log.Info(jobId, string.Format(CultureInfo.InvariantCulture, "File received: {0} ({1:N0} bytes in {2} ms).", path, actual, watch.ElapsedMilliseconds));
 
-            PrintWorker worker = _worker;
-            if (worker == null)
+            PrintDispatcher dispatcher = _dispatcher;
+            CancellationTokenSource stopping = _stopping;
+            if (dispatcher == null || stopping == null)
             {
                 string message = "Sharing was turned off on " + Environment.MachineName + " before the job could print.";
                 RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
                 return JobReply.Error(jobId, message);
             }
 
-            int ahead = worker.PendingCount;
+            int ahead = dispatcher.PendingCount(printer.LocalName);
             RaiseReceived(_tracker.Update(jobId, JobStates.Queued,
                 ahead == 0 ? "Received on " + Environment.MachineName + "; sending to the printer." : "Received on " + Environment.MachineName + "; " + ahead + " job(s) ahead of it."));
 
@@ -456,13 +465,14 @@ namespace PrintVect.Core.Host
                 UserName = record.User
             };
 
-            Task<PrintOutcome> printing = worker.EnqueueAsync(request, (state, message) => _tracker.Update(jobId, state, message));
+            Task<PrintOutcome> printing = dispatcher.EnqueueAsync(request, (state, message) => _tracker.Update(jobId, state, message));
             Task finished = printing.ContinueWith(t => OnPrintFinished(jobId, path, t), TaskScheduler.Default);
+            Task watchdog = WatchForStuckJobAsync(jobId, printer, finished, dispatcher, stopping.Token);
 
-            Task first = await Task.WhenAny(finished, Task.Delay(ProtocolConstants.ReplyWait, ct)).ConfigureAwait(false);
+            Task first = await Task.WhenAny(finished, Task.Delay(ReplyWait, ct)).ConfigureAwait(false);
             if (first != finished)
             {
-                Log.Info(jobId, "Still not finished after " + ProtocolConstants.ReplyWait.TotalSeconds + " s; answering with the current state.");
+                Log.Info(jobId, "Still not finished after " + ReplyWait.TotalSeconds + " s; answering with the current state.");
             }
 
             JobRecord current;
@@ -506,6 +516,35 @@ namespace PrintVect.Core.Host
                        + string.Join(", ", shared.Select(p => "\"" + p.FriendlyName + "\"")) + ".";
             }
             return null;
+        }
+
+        /// <summary>
+        /// Windows' AddJob does not return for a printer that never takes the job. After StuckTimeout the
+        /// job is reported as stuck, and the printer's stuck print thread is retired so later jobs get a
+        /// fresh one. If Windows finishes the job later after all, OnPrintFinished corrects the record.
+        /// </summary>
+        private async Task WatchForStuckJobAsync(string jobId, SharedPrinter printer, Task finished, PrintDispatcher dispatcher, CancellationToken stopping)
+        {
+            try
+            {
+                Task first = await Task.WhenAny(finished, Task.Delay(StuckTimeout, stopping)).ConfigureAwait(false);
+                if (first == finished || stopping.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                string host = Environment.MachineName;
+                string message = "Windows on " + host + " has not finished sending this job to " + printer.FriendlyName + " after "
+                                 + StuckTimeout.TotalMinutes.ToString(CultureInfo.InvariantCulture) + " minutes. Check the printer and open its "
+                                 + "Windows print queue on " + host + ". Later jobs for this printer use a new print thread.";
+                Log.Warn(jobId, message);
+                RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
+                dispatcher.RetireStuckWorker(printer.LocalName, jobId);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(jobId, "The stuck-job watchdog failed.", ex);
+            }
         }
 
         private void OnPrintFinished(string jobId, string path, Task<PrintOutcome> task)

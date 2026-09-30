@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Printing;
 using System.Threading;
@@ -11,8 +12,11 @@ namespace PrintVect.Core.Printing
     /// <summary>
     /// Prints a received XPS file with the host's own driver:
     /// PrintQueue.AddJob(name, path, fastCopy:false) lets Windows convert XPS for non-XPS drivers
-    /// (brief 5.3). Then the Windows job is watched for up to 60 s to report printed or error.
-    /// Runs on the print worker's STA thread only.
+    /// (brief 5.3). Seen on the owner's Windows 11 PC: this call only returns once the printer port
+    /// has taken the whole job (Microsoft Print to PDF: after the Save dialog is answered), and the
+    /// job has usually already left the Windows queue by then. So: state "printing" is reported
+    /// before the call, a job that is gone afterwards counts as printed, and a job still in the
+    /// queue is watched for up to 60 s. Runs on a print worker's STA thread only.
     /// </summary>
     public sealed class SystemPrintingEngine : IPrintEngine
     {
@@ -23,6 +27,7 @@ namespace PrintVect.Core.Printing
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             string jobId = request.JobId;
+            string host = Environment.MachineName;
             bool openXps = request.Format == JobFormats.Oxps;
 
             if (openXps && !WindowsInfo.IsWindows8OrLater)
@@ -36,22 +41,28 @@ namespace PrintVect.Core.Printing
             using (var server = new LocalPrintServer())
             using (PrintQueue queue = server.GetPrintQueue(request.PrinterName))
             {
+                onProgress(JobStates.Printing, "Windows is sending the job to " + request.FriendlyName + " on " + host
+                                               + ". If nothing comes out, check that printer.");
+
                 PrintSystemJobInfo job;
                 bool fastCopy = openXps;
+                var watch = Stopwatch.StartNew();
                 try
                 {
-                    Log.Info(jobId, "Submitting to \"" + queue.FullName + "\" as \"" + jobName + "\" (fastCopy=" + fastCopy + ").");
+                    Log.Info(jobId, "Submitting to \"" + queue.FullName + "\" as \"" + jobName + "\" (fastCopy=" + fastCopy
+                                    + "). AddJob returns when the printer port has taken the whole job.");
                     job = queue.AddJob(jobName, request.FilePath, fastCopy);
                 }
                 catch (Exception ex) when (!fastCopy)
                 {
-                    Log.Warn(jobId, "AddJob with conversion failed (" + ex.GetType().Name + ": " + ex.Message + "); retrying as a raw XPS copy.");
+                    Log.Warn(jobId, "AddJob with conversion failed after " + watch.ElapsedMilliseconds + " ms (" + ex.GetType().Name
+                                    + ": " + ex.Message + "); retrying as a raw XPS copy.");
                     job = queue.AddJob(jobName, request.FilePath, true);
                     fastCopy = true;
                 }
 
-                Log.Info(jobId, "Spooler accepted the job: Windows job " + job.JobIdentifier + " on \"" + queue.FullName + "\" (fastCopy=" + fastCopy + ").");
-                onProgress(JobStates.Printing, "Printing on " + request.FriendlyName + " (" + Environment.MachineName + ").");
+                Log.Info(jobId, "AddJob returned after " + watch.ElapsedMilliseconds + " ms: Windows job " + job.JobIdentifier
+                                + " on \"" + queue.FullName + "\" (fastCopy=" + fastCopy + ").");
                 return WaitForJob(job, request);
             }
         }
@@ -67,6 +78,8 @@ namespace PrintVect.Core.Printing
         private static PrintOutcome WaitForJob(PrintSystemJobInfo job, PrintRequest request)
         {
             string jobId = request.JobId;
+            string host = Environment.MachineName;
+            string printedMessage = "Printed on " + request.FriendlyName + " (" + host + ").";
             DateTime deadline = DateTime.UtcNow + StatusWait;
             string lastStatus = null;
             string lastProblem = null;
@@ -79,11 +92,12 @@ namespace PrintVect.Core.Printing
                 }
                 catch (Exception ex)
                 {
-                    // Windows removes finished jobs from the queue; Refresh then fails. No error seen means it printed.
-                    Log.Info(jobId, "The job left the Windows print queue (" + ex.GetType().Name + ": " + ex.Message + ").");
-                    return lastProblem == null
-                        ? PrintOutcome.Printed("Printed on " + request.FriendlyName + " (" + Environment.MachineName + ").")
-                        : PrintOutcome.Printed("Printed on " + request.FriendlyName + " after the printer reported: " + lastProblem + ".");
+                    // Windows removes finished jobs from the queue; Refresh then fails. AddJob returned
+                    // normally, so the port took the whole job: that is a print, not a loss.
+                    Log.Info(jobId, "The job has left the Windows print queue (" + ex.GetType().Name + ": " + ex.Message + "); counting it as printed.");
+                    return PrintOutcome.Printed(lastProblem == null
+                        ? printedMessage
+                        : "Printed on " + request.FriendlyName + " after the printer reported " + lastProblem + ".");
                 }
 
                 string status = job.JobStatus.ToString();
@@ -95,12 +109,7 @@ namespace PrintVect.Core.Printing
 
                 if (job.IsCompleted || job.IsPrinted)
                 {
-                    return PrintOutcome.Printed("Printed on " + request.FriendlyName + " (" + Environment.MachineName + ").");
-                }
-                if (job.IsDeleted)
-                {
-                    return PrintOutcome.Error("The job was removed from the Windows print queue before it printed"
-                                              + (lastProblem == null ? "." : " (the printer reported: " + lastProblem + ")."));
+                    return PrintOutcome.Printed(printedMessage);
                 }
 
                 string problem = DescribeProblem(job);
@@ -110,6 +119,19 @@ namespace PrintVect.Core.Printing
                     Log.Warn(jobId, "Printer problem reported by Windows: " + problem);
                 }
 
+                if (job.IsDeleted || job.IsDeleting)
+                {
+                    // Finished jobs pass through Deleting/Deleted without ever showing Printed (seen with
+                    // Microsoft Print to PDF). Only a job that had a problem is reported as lost.
+                    if (lastProblem == null)
+                    {
+                        Log.Info(jobId, "Windows is removing the finished job from the queue; counting it as printed.");
+                        return PrintOutcome.Printed(printedMessage);
+                    }
+                    return PrintOutcome.Error("The job was removed from the Windows print queue on " + host
+                                              + " after the printer reported " + lastProblem + ".");
+                }
+
                 Thread.Sleep(PollInterval);
             }
 
@@ -117,9 +139,9 @@ namespace PrintVect.Core.Printing
             {
                 return PrintOutcome.Error("Not printed after " + StatusWait.TotalSeconds.ToString(CultureInfo.InvariantCulture)
                                           + " seconds: the printer reports " + lastProblem
-                                          + ". Fix the printer on " + Environment.MachineName + "; the job stays in its Windows print queue.");
+                                          + ". Fix the printer on " + host + "; the job stays in its Windows print queue.");
             }
-            return PrintOutcome.StillPrinting("Still in the Windows print queue on " + Environment.MachineName + " after "
+            return PrintOutcome.StillPrinting("Still in the Windows print queue on " + host + " after "
                                               + StatusWait.TotalSeconds.ToString(CultureInfo.InvariantCulture)
                                               + " seconds. It prints when the printer is ready.");
         }
