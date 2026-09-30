@@ -26,7 +26,7 @@ was the working name before PrintVect was chosen).
 | Milestone | What it delivers | State |
 |-----------|------------------|-------|
 | M0 | Solution scaffold, CI build, empty tray app with Diagnostics tab | **done, verified on Windows 11** |
-| M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | next |
+| M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done, awaiting test** |
 | M2 | Client role on Windows 10/11: virtual printer, job watcher, status balloons | |
 | M3 | Discovery, Add/Remove printers UI, manual IP entry, job history | |
 | M4 | Windows 7 pass (32-bit, v3 XPS driver, .oxps handling) | |
@@ -67,7 +67,9 @@ tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
 
 The window has four tabs:
 
-- **Share my printers**: the printers on this PC and whether they are offered to the office (M1).
+- **Share my printers**: the printers on this PC. Tick the ones to offer to the office, give
+  each a friendly name such as "Counter 1 Laser", and switch sharing on. The tab shows today's
+  job count and the last jobs received.
 - **Use shared printers**: printers found on other PCs; add them to this PC (M3).
 - **Settings**: shared PIN, ports, start with Windows, how long to keep sent files.
 - **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when
@@ -78,14 +80,38 @@ Closing the window only hides it; PrintVect keeps running in the tray. To stop i
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
 autostart entry uses this).
 
+### Sending a test job with pvct-send (until the client role exists)
+
+`pvct-send.exe` sits next to `PrintVect.App.exe`. From a Command Prompt on any PC that has
+.NET Framework 4.8:
+
+```
+pvct-send list 192.168.1.5
+pvct-send PrintVect-test-page.xps 192.168.1.5 "Counter 1 Laser"
+pvct-send status 192.168.1.5 <job id>
+```
+
+`192.168.1.5` is the host PC's address (shown in its Diagnostics tab under Network); a PC
+name works too. `PrintVect-test-page.xps` is a ready-made one-page test file. Any other
+`.xps` file works: print a document to "Microsoft XPS Document Writer" to make one. Options:
+`/pin 1234` when the host has a PIN, `/doc "title"`, `/port 9151`, `/nowait`.
+
+If another PC cannot reach the host, the Windows Firewall on the host is blocking port 9151.
+Until the installer adds the rule (M5), run this once on the host as administrator:
+
+```
+netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action=allow protocol=TCP localport=9151 program="C:\PrintVect\PrintVect.App.exe" profile=private,domain
+```
+
 ## Where things are
 
 | Item | Location |
 |------|----------|
 | Settings | `C:\ProgramData\PrintVect\config.json` |
-| Job files in transit | `C:\ProgramData\PrintVect\spool\` |
+| Job files in transit | `C:\ProgramData\PrintVect\spool\` (received files: `spool\incoming\`, deleted once printed) |
 | Logs (one per day, kept 14 days) | `C:\ProgramData\PrintVect\logs\PrintVect-<date>.log` |
 | Admin helper log | `C:\ProgramData\PrintVect\logs\PrintVect-Elevate-<date>.log` |
+| pvct-send log | `C:\ProgramData\PrintVect\logs\PrintVect-Send-<date>.log` |
 | Ports | UDP 9150 (finding printers), TCP 9151 (sending jobs) |
 
 `ProgramData` is a hidden folder; type the path into the Explorer address bar.
@@ -97,6 +123,9 @@ autostart entry uses this).
 | "PrintVect could not create its data folder" at start | Ask whoever installed PrintVect to check that `C:\ProgramData\PrintVect` can be written to. |
 | No tray icon after starting | Check the hidden icons arrow next to the clock. If still nothing, look for the newest file in `C:\ProgramData\PrintVect\logs\`. |
 | Antivirus on Windows 7 quarantines the EXE | Add the PrintVect folder and `C:\ProgramData\PrintVect` to its exclusions; the program is unsigned for now. |
+| "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
+| "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
+| The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host; the job stays there until the printer is ready. |
 | Something else | Diagnostics tab, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
 
 ## For developers

@@ -4,18 +4,26 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using PrintVect.App.Forms;
+using PrintVect.App.Host;
 using PrintVect.Core.Config;
+using PrintVect.Core.Host;
 using PrintVect.Core.Logging;
+using PrintVect.Core.Protocol;
 
 namespace PrintVect.App.Tray
 {
     /// <summary>
-    /// Owns the tray icon and the main window. Closing the window only hides it; Exit lives in the
-    /// tray menu (brief, section 7). The message loop ends when ExitApplication is called.
+    /// Owns the tray icon, the host controller and the main window. Closing the window only hides
+    /// it; Exit lives in the tray menu (brief, section 7). Balloons announce received, printed
+    /// and failed jobs. The message loop ends when ExitApplication is called.
     /// </summary>
     internal sealed class TrayApplicationContext : ApplicationContext
     {
+        private const int BalloonMilliseconds = 5000;
+        private const int MaxBalloonText = 240;
+
         private readonly NotifyIcon _trayIcon;
+        private readonly HostController _host;
         private readonly MainForm _form;
         private readonly SynchronizationContext _ui;
         private readonly EventWaitHandle _showEvent;
@@ -29,11 +37,21 @@ namespace PrintVect.App.Tray
             if (store == null) throw new ArgumentNullException(nameof(store));
             if (config == null) throw new ArgumentNullException(nameof(config));
 
-            _form = new MainForm(paths, store, config);
-            _form.FormClosing += OnFormClosing;
+            // Make sure background threads can post to this (the UI) thread before anything else exists.
+            SynchronizationContext current = SynchronizationContext.Current;
+            if (!(current is WindowsFormsSynchronizationContext))
+            {
+                current = new WindowsFormsSynchronizationContext();
+                SynchronizationContext.SetSynchronizationContext(current);
+            }
+            _ui = current;
 
-            // Creating the first control installs the WinForms synchronization context.
-            _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+            _host = new HostController(paths, store, config, _ui);
+            _host.JobReceived += OnJobReceived;
+            _host.JobFinished += OnJobFinished;
+
+            _form = new MainForm(paths, store, config, _host);
+            _form.FormClosing += OnFormClosing;
 
             var menu = new ContextMenuStrip();
             var open = new ToolStripMenuItem(Strings.TrayOpen, null, (s, e) => ShowWindow());
@@ -71,6 +89,12 @@ namespace PrintVect.App.Tray
             {
                 ShowWindow();
             }
+
+            _host.StartIfConfigured();
+            if (_host.LastError != null)
+            {
+                Balloon(Strings.BalloonSharingFailedTitle, _host.LastError, ToolTipIcon.Warning);
+            }
         }
 
         public void ShowWindow()
@@ -100,11 +124,49 @@ namespace PrintVect.App.Tray
             _exiting = true;
             Log.Info("Exit chosen; closing the tray icon and the window.");
             _trayIcon.Visible = false;
+            _host.Dispose();
             if (!_form.IsDisposed)
             {
                 _form.Close();
             }
             ExitThread();
+        }
+
+        private void OnJobReceived(object sender, JobRecord record)
+        {
+            Balloon(Strings.AppName, string.Format(Strings.BalloonJobReceived, record.Doc, record.Client, record.PrinterFriendly), ToolTipIcon.Info);
+        }
+
+        private void OnJobFinished(object sender, JobRecord record)
+        {
+            if (record.State == JobStates.Printed)
+            {
+                Balloon(Strings.AppName, string.Format(Strings.BalloonJobPrinted, record.Doc, record.Client, record.PrinterFriendly), ToolTipIcon.Info);
+            }
+            else if (record.State == JobStates.Error)
+            {
+                Balloon(Strings.AppName, string.Format(Strings.BalloonJobFailed, record.Doc, record.Client, record.Message), ToolTipIcon.Warning);
+            }
+        }
+
+        private void Balloon(string title, string text, ToolTipIcon icon)
+        {
+            if (_exiting || string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+            if (text.Length > MaxBalloonText)
+            {
+                text = text.Substring(0, MaxBalloonText - 3) + "...";
+            }
+            try
+            {
+                _trayIcon.ShowBalloonTip(BalloonMilliseconds, title, text, icon);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Balloon could not be shown: " + ex.Message);
+            }
         }
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
@@ -120,7 +182,7 @@ namespace PrintVect.App.Tray
             if (!_hideHintShown)
             {
                 _hideHintShown = true;
-                _trayIcon.ShowBalloonTip(5000, Strings.TrayStillRunningTitle, Strings.TrayStillRunningText, ToolTipIcon.Info);
+                Balloon(Strings.TrayStillRunningTitle, Strings.TrayStillRunningText, ToolTipIcon.Info);
             }
         }
 
@@ -147,6 +209,10 @@ namespace PrintVect.App.Tray
                 {
                     _trayIcon.Visible = false;
                     _trayIcon.Dispose();
+                }
+                if (_host != null)
+                {
+                    _host.Dispose();
                 }
                 if (_form != null && !_form.IsDisposed)
                 {
