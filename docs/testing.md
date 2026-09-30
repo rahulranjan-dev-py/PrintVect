@@ -89,7 +89,9 @@ OFF after step 8; the wording above was tightened accordingly.
 
 Known limits at M1, by design: copies and duplex chosen on the sending side are not applied
 (one copy prints); a Windows 7 host cannot print `.oxps` files; there is no Settings screen for
-the PIN yet.
+the PIN yet; the "Recent jobs" list and today's count are cleared when PrintVect exits (job
+history that survives a restart comes with M3), and a job Windows had not finished at exit is not
+re-printed after the restart (its file stays in `spool\incoming` for a day).
 
 What to paste back after M1:
 
