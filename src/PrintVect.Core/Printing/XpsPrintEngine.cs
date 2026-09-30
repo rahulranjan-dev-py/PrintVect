@@ -9,7 +9,7 @@ using PrintVect.Core.Protocol;
 
 namespace PrintVect.Core.Printing
 {
-    /// <summary>The XPS Print API refused to start the job (no spooler job exists); the caller may fall back.</summary>
+    /// <summary>The XPS Print API refused to start the job, or failed before any data was sent; the caller may fall back.</summary>
     public sealed class XpsPrintStartException : Exception
     {
         public XpsPrintStartException(string message, Exception inner) : base(message, inner) { }
@@ -21,8 +21,11 @@ namespace PrintVect.Core.Printing
     /// as needed. Unlike System.Printing's AddJob, nothing blocks inside a driver conversion: the job
     /// is visible in the Windows print queue at once, and progress and completion are reported by
     /// the API. Chosen after AddJob hung for the owner's HP Laser without ever creating a spooler job.
-    /// The API only works from a multi-threaded apartment: from an STA thread its interfaces come
-    /// back as E_NOINTERFACE (seen on the owner's PC), so the call always runs on an MTA thread.
+    ///
+    /// The job and stream objects are used through their raw COM function tables. On the owner's
+    /// Windows 11 PC the objects refused .NET's automatic QueryInterface for IXpsPrintJob
+    /// (E_NOINTERFACE) from both STA and MTA threads although the job had been started, so no
+    /// interface cast is attempted; the function-table layout is fixed by the API definition.
     /// </summary>
     public sealed class XpsPrintEngine : IPrintEngine
     {
@@ -31,6 +34,7 @@ namespace PrintVect.Core.Printing
         private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan SettleWait = TimeSpan.FromSeconds(5);
         private const int CopyBufferSize = 64 * 1024;
+        private static int _probeLogged;
 
         public PrintOutcome Print(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
         {
@@ -45,11 +49,30 @@ namespace PrintVect.Core.Printing
             string host = Environment.MachineName;
             string jobName = BuildJobName(request);
 
-            IXpsPrintJob job = null;
-            IXpsPrintJobStream documentStream = null;
-            IXpsPrintJobStream printTicketStream = null;
+            int comInit = NativeMethods.CoInitializeEx(IntPtr.Zero, NativeMethods.COINIT_MULTITHREADED);
+            Log.Info(jobId, "COM on the print thread: CoInitializeEx(MTA) returned 0x" + comInit.ToString("X8")
+                            + " (0 = initialised now, 1 = already MTA, 0x80010106 = thread is STA).");
+            try
+            {
+                return PrintWithApi(request, onProgress, jobId, host, jobName);
+            }
+            finally
+            {
+                if (comInit == 0 || comInit == 1)
+                {
+                    NativeMethods.CoUninitialize();
+                }
+            }
+        }
+
+        private static PrintOutcome PrintWithApi(PrintRequest request, Action<string, string> onProgress, string jobId, string host, string jobName)
+        {
             using (var completion = new ManualResetEvent(false))
             {
+                IntPtr jobPtr = IntPtr.Zero;
+                IntPtr documentPtr = IntPtr.Zero;
+                IntPtr ticketPtr = IntPtr.Zero;
+                bool dataSent = false;
                 try
                 {
                     onProgress(JobStates.Printing, "Windows is sending the job to " + request.FriendlyName + " on " + host
@@ -59,7 +82,7 @@ namespace PrintVect.Core.Printing
                     try
                     {
                         hr = NativeMethods.StartXpsPrintJob(request.PrinterName, jobName, null, IntPtr.Zero,
-                            completion.SafeWaitHandle.DangerousGetHandle(), null, 0, out job, out documentStream, out printTicketStream);
+                            completion.SafeWaitHandle.DangerousGetHandle(), null, 0, out jobPtr, out documentPtr, out ticketPtr);
                     }
                     catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
                     {
@@ -67,14 +90,31 @@ namespace PrintVect.Core.Printing
                     }
                     if (hr != 0)
                     {
-                        Exception reason = Marshal.GetExceptionForHR(hr);
                         throw new XpsPrintStartException("Windows refused to start a print job on \"" + request.PrinterName + "\": "
-                                                         + (reason == null ? "HRESULT 0x" + hr.ToString("X8") : reason.Message), reason);
+                                                         + DescribeHResult(hr), Marshal.GetExceptionForHR(hr));
                     }
-                    Log.Info(jobId, "XPS Print API opened a job on \"" + request.PrinterName + "\" as \"" + jobName + "\".");
+                    if (jobPtr == IntPtr.Zero || documentPtr == IntPtr.Zero)
+                    {
+                        throw new XpsPrintStartException("Windows started the print job on \"" + request.PrinterName
+                                                         + "\" but returned no job object.", null);
+                    }
+                    Log.Info(jobId, "XPS Print API opened a job on \"" + request.PrinterName + "\" as \"" + jobName + "\" after "
+                                    + watch.ElapsedMilliseconds + " ms.");
+                    LogInterfaceProbeOnce(jobId, jobPtr, documentPtr);
 
-                    long total = CopyDocument(request.FilePath, documentStream);
-                    documentStream.Close();
+                    var job = new XpsJob(jobPtr);
+                    var document = new XpsStream(documentPtr);
+                    long total;
+                    try
+                    {
+                        total = CopyDocument(request.FilePath, document);
+                        dataSent = true;
+                        document.Close();
+                    }
+                    catch (Exception ex) when (!dataSent)
+                    {
+                        throw new XpsPrintStartException("The document could not be handed to the spooler: " + ex.Message, ex);
+                    }
                     Log.Info(jobId, string.Format(CultureInfo.InvariantCulture,
                         "Document handed to the Windows spooler ({0:N0} bytes in {1} ms); waiting for Windows to finish it.", total, watch.ElapsedMilliseconds));
 
@@ -82,14 +122,14 @@ namespace PrintVect.Core.Printing
                 }
                 finally
                 {
-                    Release(printTicketStream);
-                    Release(documentStream);
-                    Release(job);
+                    Release(ticketPtr);
+                    Release(documentPtr);
+                    Release(jobPtr);
                 }
             }
         }
 
-        private static long CopyDocument(string path, IXpsPrintJobStream documentStream)
+        private static long CopyDocument(string path, XpsStream documentStream)
         {
             var buffer = new byte[CopyBufferSize];
             long total = 0;
@@ -98,8 +138,7 @@ namespace PrintVect.Core.Printing
                 int read;
                 while ((read = file.Read(buffer, 0, buffer.Length)) > 0)
                 {
-                    uint written;
-                    documentStream.Write(buffer, (uint)read, out written);
+                    uint written = documentStream.Write(buffer, (uint)read);
                     if (written != read)
                     {
                         throw new IOException("The spooler took " + written + " of " + read + " bytes.");
@@ -110,7 +149,7 @@ namespace PrintVect.Core.Printing
             return total;
         }
 
-        private static PrintOutcome WaitForCompletion(IXpsPrintJob job, ManualResetEvent completion, PrintRequest request, Action<string, string> onProgress)
+        private static PrintOutcome WaitForCompletion(XpsJob job, ManualResetEvent completion, PrintRequest request, Action<string, string> onProgress)
         {
             string jobId = request.JobId;
             string host = Environment.MachineName;
@@ -127,8 +166,7 @@ namespace PrintVect.Core.Printing
                     signalledAt = DateTime.UtcNow;
                 }
 
-                XPS_JOB_STATUS status;
-                job.GetJobStatus(out status);
+                XPS_JOB_STATUS status = job.GetStatus();
                 windowsJobId = status.jobId;
 
                 if (status.currentPage != lastPage && status.currentPage > 0)
@@ -156,7 +194,6 @@ namespace PrintVect.Core.Printing
 
                 if (signalledAt != null && DateTime.UtcNow - signalledAt.Value > SettleWait)
                 {
-                    // Windows signalled completion but the status never changed: the job is out of our hands.
                     Log.Info(jobId, "Windows signalled completion for job " + status.jobId + " without a final status; counting it as printed.");
                     return PrintOutcome.Printed("Printed on " + request.FriendlyName + " (" + host + ").");
                 }
@@ -169,6 +206,38 @@ namespace PrintVect.Core.Printing
                                                       + " minutes (Windows job " + windowsJobId + "). It prints when the printer is ready; check the printer.");
                 }
             }
+        }
+
+        /// <summary>Logs, once per run, which interface ids the job and stream objects admit to, for the record.</summary>
+        private static void LogInterfaceProbeOnce(string jobId, IntPtr jobPtr, IntPtr documentPtr)
+        {
+            if (Interlocked.Exchange(ref _probeLogged, 1) != 0)
+            {
+                return;
+            }
+            try
+            {
+                Log.Info(jobId, "XPS Print API interface probe: job object -> IXpsPrintJob " + Probe(jobPtr, NativeMethods.IID_IXpsPrintJob)
+                                + ", IXpsPrintJobStream " + Probe(jobPtr, NativeMethods.IID_IXpsPrintJobStream)
+                                + "; document stream -> IXpsPrintJobStream " + Probe(documentPtr, NativeMethods.IID_IXpsPrintJobStream)
+                                + ", ISequentialStream " + Probe(documentPtr, NativeMethods.IID_ISequentialStream) + ".");
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(jobId, "Interface probe failed: " + ex.Message);
+            }
+        }
+
+        private static string Probe(IntPtr unknown, Guid iid)
+        {
+            IntPtr result;
+            int hr = Marshal.QueryInterface(unknown, ref iid, out result);
+            if (hr == 0 && result != IntPtr.Zero)
+            {
+                Marshal.Release(result);
+                return "yes";
+            }
+            return "no (0x" + hr.ToString("X8") + ")";
         }
 
         private static string DescribeHResult(int hresult)
@@ -186,15 +255,15 @@ namespace PrintVect.Core.Printing
             return name.Length > 120 ? name.Substring(0, 120) : name;
         }
 
-        private static void Release(object comObject)
+        private static void Release(IntPtr unknown)
         {
-            if (comObject == null)
+            if (unknown == IntPtr.Zero)
             {
                 return;
             }
             try
             {
-                Marshal.ReleaseComObject(comObject);
+                Marshal.Release(unknown);
             }
             catch (Exception ex)
             {
@@ -202,8 +271,85 @@ namespace PrintVect.Core.Printing
             }
         }
 
+        /// <summary>Calls a method through a COM object's function table: slot 0..2 are IUnknown.</summary>
+        private static T Method<T>(IntPtr unknown, int slot) where T : class
+        {
+            IntPtr vtable = Marshal.ReadIntPtr(unknown);
+            IntPtr function = Marshal.ReadIntPtr(vtable, slot * IntPtr.Size);
+            return Marshal.GetDelegateForFunctionPointer(function, typeof(T)) as T;
+        }
+
+        private static void Check(int hr, string what)
+        {
+            if (hr != 0)
+            {
+                throw new COMException(what + " failed: " + DescribeHResult(hr), hr);
+            }
+        }
+
+        /// <summary>IXpsPrintJob: IUnknown + Cancel (slot 3) + GetJobStatus (slot 4).</summary>
+        private sealed class XpsJob
+        {
+            private readonly IntPtr _self;
+            private readonly GetJobStatusFn _getJobStatus;
+
+            public XpsJob(IntPtr self)
+            {
+                _self = self;
+                _getJobStatus = Method<GetJobStatusFn>(self, 4);
+            }
+
+            public XPS_JOB_STATUS GetStatus()
+            {
+                XPS_JOB_STATUS status;
+                Check(_getJobStatus(_self, out status), "IXpsPrintJob.GetJobStatus");
+                return status;
+            }
+        }
+
+        /// <summary>IXpsPrintJobStream: IUnknown + Read (3) + Write (4) + Close (5).</summary>
+        private sealed class XpsStream
+        {
+            private readonly IntPtr _self;
+            private readonly WriteFn _write;
+            private readonly CloseFn _close;
+
+            public XpsStream(IntPtr self)
+            {
+                _self = self;
+                _write = Method<WriteFn>(self, 4);
+                _close = Method<CloseFn>(self, 5);
+            }
+
+            public uint Write(byte[] buffer, uint count)
+            {
+                uint written;
+                Check(_write(_self, buffer, count, out written), "IXpsPrintJobStream.Write");
+                return written;
+            }
+
+            public void Close()
+            {
+                Check(_close(_self), "IXpsPrintJobStream.Close");
+            }
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int GetJobStatusFn(IntPtr self, out XPS_JOB_STATUS status);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int WriteFn(IntPtr self, [MarshalAs(UnmanagedType.LPArray)] byte[] buffer, uint count, out uint written);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int CloseFn(IntPtr self);
+
         private static class NativeMethods
         {
+            public const int COINIT_MULTITHREADED = 0x0;
+            public static readonly Guid IID_IXpsPrintJob = new Guid("5ab89b06-8a3d-4c09-92b8-ba5a4caa3cc7");
+            public static readonly Guid IID_IXpsPrintJobStream = new Guid("7a77dc5f-45d6-4dff-9307-d8cb846347ca");
+            public static readonly Guid IID_ISequentialStream = new Guid("0c733a30-2a1c-11ce-ade5-00aa0044773d");
+
             [DllImport("XpsPrint.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
             internal static extern int StartXpsPrintJob(
                 string printerName,
@@ -213,26 +359,15 @@ namespace PrintVect.Core.Printing
                 IntPtr completionEvent,
                 [MarshalAs(UnmanagedType.LPArray)] byte[] printablePagesOn,
                 uint printablePagesOnCount,
-                out IXpsPrintJob xpsPrintJob,
-                out IXpsPrintJobStream documentStream,
-                out IXpsPrintJobStream printTicketStream);
-        }
+                out IntPtr xpsPrintJob,
+                out IntPtr documentStream,
+                out IntPtr printTicketStream);
 
-        [ComImport, Guid("5ab89b06-8a3d-4c09-92b8-ba5a4caa3cc7"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IXpsPrintJob
-        {
-            void Cancel();
-            void GetJobStatus(out XPS_JOB_STATUS jobStatus);
-        }
+            [DllImport("ole32.dll", ExactSpelling = true)]
+            internal static extern int CoInitializeEx(IntPtr reserved, int coInit);
 
-        [ComImport, Guid("7a77dc5f-45d6-4dff-9307-d8cb846347ca"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IXpsPrintJobStream
-        {
-            // ISequentialStream
-            void Read([MarshalAs(UnmanagedType.LPArray)] byte[] pv, uint cb, out uint pcbRead);
-            void Write([MarshalAs(UnmanagedType.LPArray)] byte[] pv, uint cb, out uint pcbWritten);
-            // IXpsPrintJobStream
-            void Close();
+            [DllImport("ole32.dll", ExactSpelling = true)]
+            internal static extern void CoUninitialize();
         }
 
         [StructLayout(LayoutKind.Sequential)]
