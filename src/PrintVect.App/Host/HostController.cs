@@ -34,7 +34,7 @@ namespace PrintVect.App.Host
             _config = config;
             _ui = ui;
 
-            _service = new HostService(paths, new SystemPrintingEngine(), new LocalPrinters(), new JobTracker());
+            _service = new HostService(paths, new HostPrintEngine(), new LocalPrinters(), new JobTracker());
             _service.Pin = config.Pin;
             _service.UpdateSharedPrinters(config.SharedPrinters);
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));

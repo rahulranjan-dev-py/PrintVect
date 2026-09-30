@@ -83,6 +83,11 @@ with a single print thread, every later job queued behind it ("2 job(s) ahead of
 has its own print thread and a stuck job is reported after 10 minutes; step 6a was added to find out
 why the HP Laser did not take the job.
 
+Third check on 2026-09-30 (part A): the HP Laser prints from Notepad, is on USB001, and both queues
+were empty, so the earlier hang happened inside .NET's printing library before any spooler job
+existed. Build 8 prints .xps files through the Windows XPS Print API instead (the job shows in the
+Windows print queue immediately, with page progress in the Share tab).
+
 First run on 2026-09-30: steps 1 to 4, 7 and 8 passed. Steps 5, 6, 9 and 10 did not print only because
 the commands used the example names instead of the names set in step 2, and because sharing had been left
 OFF after step 8; the wording above was tightened accordingly.
