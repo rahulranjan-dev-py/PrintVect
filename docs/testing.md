@@ -83,6 +83,10 @@ with a single print thread, every later job queued behind it ("2 job(s) ahead of
 has its own print thread and a stuck job is reported after 10 minutes; step 6a was added to find out
 why the HP Laser did not take the job.
 
+Build 9 failed on both printers with "Unable to cast COM object ... IXpsPrintJob ... E_NOINTERFACE":
+the XPS Print API refuses to work from a single-threaded (STA) thread. Build 12 runs it on a
+multi-threaded (MTA) thread. The PDF test also left an empty test.pdf; delete it before retrying.
+
 Third check on 2026-09-30 (part A): the HP Laser prints from Notepad, is on USB001, and both queues
 were empty, so the earlier hang happened inside .NET's printing library before any spooler job
 existed. Build 9 prints .xps files through the Windows XPS Print API instead (the job shows in the

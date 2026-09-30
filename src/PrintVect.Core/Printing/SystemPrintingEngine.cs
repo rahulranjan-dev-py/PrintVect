@@ -16,7 +16,8 @@ namespace PrintVect.Core.Printing
     /// has taken the whole job (Microsoft Print to PDF: after the Save dialog is answered), and the
     /// job has usually already left the Windows queue by then. So: state "printing" is reported
     /// before the call, a job that is gone afterwards counts as printed, and a job still in the
-    /// queue is watched for up to 60 s. Runs on a print worker's STA thread only.
+    /// queue is watched for up to 60 s. The XPS path of System.Printing needs a single-threaded
+    /// apartment, so the call always runs on an STA thread.
     /// </summary>
     public sealed class SystemPrintingEngine : IPrintEngine
     {
@@ -26,6 +27,12 @@ namespace PrintVect.Core.Printing
         public PrintOutcome Print(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+            return ApartmentRunner.Run(ApartmentState.STA, "PrintVect System.Printing: " + request.JobId,
+                () => PrintOnStaThread(request, onProgress));
+        }
+
+        private static PrintOutcome PrintOnStaThread(PrintRequest request, Action<string, string> onProgress)
+        {
             string jobId = request.JobId;
             string host = Environment.MachineName;
             bool openXps = request.Format == JobFormats.Oxps;
