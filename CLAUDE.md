@@ -59,6 +59,9 @@ Host: receive into spool\incoming\ -> verify size -> PrintQueue.AddJob(path, fas
 - Files under %ProgramData% belong to the user who created them. The M5 installer must grant
   Users modify rights on %ProgramData%\PrintVect; until then the logger falls back to a
   per-user file name (PrintVect-<user>-<date>.log) so a second user can still start the app.
+- The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
+  10.148.x). Discovery (M3) must send the broadcast on every interface, not only to
+  255.255.255.255 once, and the host must listen on all IPv4 addresses.
 - Ask before: new dependency, framework change, port change, data-folder change, anything
   needing admin outside the Elevate helper, anything needing internet, a Windows Service.
 - When the owner pastes an error or log: restate what happened in one sentence, then propose

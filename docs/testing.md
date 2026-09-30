@@ -28,10 +28,13 @@ Test on one Windows 10 or 11 PC first. Windows 7 is optional at this milestone.
 | 8 | Left-click the tray icon. | The window comes back. Right-click shows a menu with **Open PrintVect** and **Exit**. |
 | 9 | With the window open, start `PrintVect.App.exe` a second time. | No second icon or window; the existing window comes to the front. |
 | 10 | Right-click the tray icon, **Exit**. | Icon and window disappear. Task Manager shows no PrintVect.App.exe. |
-| 11 | Start with `PrintVect.App.exe /tray` (Win+R, or a shortcut with the switch). | Only the tray icon appears, no window. Left-click opens it. Then Exit. |
+| 11 | Press Win+R and type exactly `C:\PrintVect\PrintVect.App.exe /tray` (the folder must be part of the command), then Enter. Or open a Command Prompt and run `cd C:\PrintVect` followed by `PrintVect.App.exe /tray`. | Only the tray icon appears, no window. Left-click opens it. Then Exit. |
 | 12 | Open a Command Prompt **as administrator**, run: `C:\PrintVect\PrintVect.Elevate.exe ping` then `echo %errorlevel%`. | It prints "PrintVect.Elevate is working and running as administrator on Windows ...", and `%errorlevel%` is 0. `C:\ProgramData\PrintVect\spool\elevate-result.json` and `logs\PrintVect-Elevate-<date>.log` exist. |
 | 13 | In the same prompt run `C:\PrintVect\PrintVect.Elevate.exe nonsense` then `echo %errorlevel%`. | "Unknown command", errorlevel 2. |
 | 14 | Optional, Windows 7 SP1 PC with .NET 4.8 installed: repeat steps 2, 4, 5, 10. | Same results. The Windows line should say "Windows 7 ... Service Pack 1 (build 7601)". |
+
+Result on 2026-09-30, Windows 11 Pro 25H2: steps 1 to 10 and 12 to 13 as expected. Step 11 failed only
+because the earlier text omitted the folder in the Win+R command; the step above is corrected.
 
 What to paste back after M0:
 
