@@ -420,7 +420,8 @@ namespace PrintVect.Tests
             JobReply stuckReply = await Client().SendJobAsync(stuck, file, null, CancellationToken.None);
             Assert.AreEqual(JobStates.Printing, stuckReply.State);
 
-            await WaitUntilAsync(() => StateOf(stuck.JobId) == JobStates.Error, TimeSpan.FromSeconds(5));
+            // The tracker is updated first and the event raised a moment later, so wait for the event.
+            await WaitUntilAsync(() => Raised(finished, stuck.JobId, JobStates.Error), TimeSpan.FromSeconds(5));
             JobRecord record;
             _host.Jobs.TryGet(stuck.JobId, out record);
             StringAssert.Contains(record.Message, "has not finished");
@@ -433,13 +434,17 @@ namespace PrintVect.Tests
             Assert.AreEqual(JobStates.Printed, next.State);
             Assert.AreEqual(2, _engine.Requests.Count);
 
-            // When Windows finally lets go, the record is corrected.
+            // When Windows finally lets go, the record is corrected and reported again.
             gate.Set();
-            await WaitUntilAsync(() => StateOf(stuck.JobId) == JobStates.Printed, TimeSpan.FromSeconds(5));
-            lock (finished)
+            await WaitUntilAsync(() => Raised(finished, stuck.JobId, JobStates.Printed), TimeSpan.FromSeconds(5));
+            Assert.AreEqual(JobStates.Printed, StateOf(stuck.JobId));
+        }
+
+        private static bool Raised(List<JobRecord> records, string jobId, string state)
+        {
+            lock (records)
             {
-                Assert.IsTrue(finished.Any(r => r.JobId == stuck.JobId && r.State == JobStates.Error), "stuck report raised");
-                Assert.IsTrue(finished.Any(r => r.JobId == stuck.JobId && r.State == JobStates.Printed), "late print raised");
+                return records.Any(r => r.JobId == jobId && r.State == state);
             }
         }
 
