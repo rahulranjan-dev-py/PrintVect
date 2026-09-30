@@ -37,8 +37,8 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 Client: virtual printer (Microsoft XPS Document Writer driver, Local Port -> file in spool\<id>\)
 -> FileSystemWatcher + 2 s polling fallback -> rename to job-<guid>.xps -> TCP send.
 Host: receive into spool\incoming\ -> verify size -> XPS Print API (StartXpsPrintJob) for .xps,
-PrintQueue.AddJob for .oxps -> reply JSON -> watch the job (up to 60 s before replying). One job at a time, arrival order, on one STA
-print-worker thread (System.Printing needs STA; never the UI thread). Printer statuses and
+PrintQueue.AddJob for .oxps -> reply JSON -> watch the job (up to 60 s before replying). One job at a time per printer, arrival
+order, on that printer's worker thread (never the UI thread). Printer statuses and
 printing sit behind IPrinterStatusSource / IPrintEngine so HostService is unit-tested with fakes
 over loopback TCP (tests never load System.Printing, which Mono lacks).
 
@@ -76,8 +76,10 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   prints .xps with the XPS Print API (XpsPrintEngine: xpsprint.dll, any printer, non-blocking,
   page progress, completion event) and keeps System.Printing (SystemPrintingEngine) only for
   .oxps and as a fallback when the API refuses to start a job (HostPrintEngine decides).
-  PrintDispatcher runs one STA worker per printer; HostService reports a job stuck after 20 min
-  and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
+  The XPS Print API works only from an MTA thread (E_NOINTERFACE from STA, seen on the owner's
+  PC) while System.Printing's XPS path needs STA: each engine runs its call through
+  ApartmentRunner on the apartment it needs. PrintDispatcher runs one worker per printer;
+  HostService reports a job stuck after 20 min and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
   per session); "Ethernet" 10.148.93.x is the office LAN; the HP Laser is on USB001.
 - Ask before: new dependency, framework change, port change, data-folder change, anything
   needing admin outside the Elevate helper, anything needing internet, a Windows Service.

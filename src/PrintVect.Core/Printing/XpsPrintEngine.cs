@@ -21,6 +21,8 @@ namespace PrintVect.Core.Printing
     /// as needed. Unlike System.Printing's AddJob, nothing blocks inside a driver conversion: the job
     /// is visible in the Windows print queue at once, and progress and completion are reported by
     /// the API. Chosen after AddJob hung for the owner's HP Laser without ever creating a spooler job.
+    /// The API only works from a multi-threaded apartment: from an STA thread its interfaces come
+    /// back as E_NOINTERFACE (seen on the owner's PC), so the call always runs on an MTA thread.
     /// </summary>
     public sealed class XpsPrintEngine : IPrintEngine
     {
@@ -33,6 +35,12 @@ namespace PrintVect.Core.Printing
         public PrintOutcome Print(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+            return ApartmentRunner.Run(ApartmentState.MTA, "PrintVect XPS print: " + request.JobId,
+                () => PrintOnMtaThread(request, onProgress));
+        }
+
+        private static PrintOutcome PrintOnMtaThread(PrintRequest request, Action<string, string> onProgress)
+        {
             string jobId = request.JobId;
             string host = Environment.MachineName;
             string jobName = BuildJobName(request);

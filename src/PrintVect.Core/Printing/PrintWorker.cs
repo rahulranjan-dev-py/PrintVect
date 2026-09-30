@@ -16,10 +16,10 @@ namespace PrintVect.Core.Printing
 
     /// <summary>
     /// One background thread that prints the jobs for ONE printer, one at a time, in arrival
-    /// order (brief 5.3). It is an STA thread because System.Printing's XPS path needs one, and it
-    /// is never the UI thread. Windows' AddJob only returns when the printer port has taken the
-    /// whole job, so a printer that never answers keeps this thread busy; the dispatcher then
-    /// retires the worker and starts a fresh one for later jobs.
+    /// order (brief 5.3). It is a multi-threaded-apartment thread (what the XPS Print API needs);
+    /// an engine that needs a single-threaded apartment runs its call on one via ApartmentRunner.
+    /// It is never the UI thread. A Windows call that never returns keeps this thread busy; the
+    /// dispatcher then retires the worker and starts a fresh one for later jobs.
     /// </summary>
     public sealed class PrintWorker
     {
@@ -65,7 +65,7 @@ namespace PrintVect.Core.Printing
                 return;
             }
             _thread = new Thread(Run) { IsBackground = true, Name = "PrintVect print worker: " + PrinterName };
-            _thread.SetApartmentState(ApartmentState.STA);
+            _thread.SetApartmentState(ApartmentState.MTA);
             _thread.Start();
         }
 
