@@ -140,8 +140,15 @@ namespace PrintVect.Core.Client
             if (!File.Exists(sourcePath)) throw new FileNotFoundException("The file to send does not exist.", sourcePath);
             string folder = ClientPrinterNames.SpoolFolder(_paths, printerId);
             Directory.CreateDirectory(folder);
-            string target = Path.Combine(folder, "manual-" + DateTime.Now.ToString("HHmmss-fff") + Path.GetExtension(sourcePath));
-            File.Copy(sourcePath, target, true);
+            // Keep the file's own name so the host's job list and the balloons show it (e.g. "PrintVect-test-page").
+            string baseName = Path.GetFileNameWithoutExtension(sourcePath);
+            string extension = Path.GetExtension(sourcePath);
+            string target = Path.Combine(folder, baseName + extension);
+            for (int n = 2; File.Exists(target); n++)
+            {
+                target = Path.Combine(folder, baseName + "-" + n + extension);
+            }
+            File.Copy(sourcePath, target, false);
             Log.Info("Copied " + sourcePath + " to " + target + " for \"" + printer.FriendlyName + "\"; the watcher will send it.");
         }
 
