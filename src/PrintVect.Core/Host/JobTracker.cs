@@ -21,6 +21,8 @@ namespace PrintVect.Core.Host
         public string State { get; set; }
         public string Message { get; set; }
         public DateTime ReceivedAt { get; set; }
+        /// <summary>Insertion order inside the tracker: breaks ties when two jobs arrive within the same clock tick.</summary>
+        public long Sequence { get; set; }
         public DateTime? FinishedAt { get; set; }
         public string FilePath { get; set; }
 
@@ -37,6 +39,7 @@ namespace PrintVect.Core.Host
 
         private readonly object _gate = new object();
         private readonly Dictionary<string, JobRecord> _byId = new Dictionary<string, JobRecord>(StringComparer.OrdinalIgnoreCase);
+        private long _sequence;
         private readonly Queue<string> _order = new Queue<string>();
 
         /// <summary>Raised with a snapshot after every add or update, on the caller's thread.</summary>
@@ -50,6 +53,7 @@ namespace PrintVect.Core.Host
             JobRecord snapshot;
             lock (_gate)
             {
+                record.Sequence = ++_sequence;
                 if (!_byId.ContainsKey(record.JobId))
                 {
                     _order.Enqueue(record.JobId);
@@ -107,7 +111,7 @@ namespace PrintVect.Core.Host
         {
             lock (_gate)
             {
-                return _byId.Values.OrderByDescending(r => r.ReceivedAt).Take(count).Select(r => r.Clone()).ToList();
+                return _byId.Values.OrderByDescending(r => r.ReceivedAt).ThenByDescending(r => r.Sequence).Take(count).Select(r => r.Clone()).ToList();
             }
         }
 
