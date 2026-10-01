@@ -61,7 +61,10 @@ relay) and **631** are never allowed.
 }
 ```
 
-`format` is `xps` or `oxps` (the Windows 8+ v4 XPS writer produces OpenXPS).
+`format` is `xps` or `oxps` (the Windows 8+ v4 XPS writer produces OpenXPS). The host does not trust
+the field blindly: it looks inside the package (the OpenXPS namespace `schemas.openxps.org/oxps/v1.0`
+versus the XPS namespace `schemas.microsoft.com/xps/2005/06`) and prints by what it finds, logging a
+mismatch. The client sets `doc` from the package's `docProps/core.xml` title when the XPS writer stored one.
 
 ## Job reply
 

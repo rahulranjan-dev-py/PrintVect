@@ -3,8 +3,10 @@ using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using PrintVect.App.Client;
 using PrintVect.App.Forms;
 using PrintVect.App.Host;
+using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Host;
 using PrintVect.Core.Logging;
@@ -15,7 +17,7 @@ namespace PrintVect.App.Tray
     /// <summary>
     /// Owns the tray icon, the host controller and the main window. Closing the window only hides
     /// it; Exit lives in the tray menu (brief, section 7). Balloons announce received, printed
-    /// and failed jobs. The message loop ends when ExitApplication is called.
+    /// and failed jobs on both sides. The message loop ends when ExitApplication is called.
     /// </summary>
     internal sealed class TrayApplicationContext : ApplicationContext
     {
@@ -24,6 +26,7 @@ namespace PrintVect.App.Tray
 
         private readonly NotifyIcon _trayIcon;
         private readonly HostController _host;
+        private readonly ClientController _client;
         private readonly MainForm _form;
         private readonly SynchronizationContext _ui;
         private readonly EventWaitHandle _showEvent;
@@ -50,7 +53,10 @@ namespace PrintVect.App.Tray
             _host.JobReceived += OnJobReceived;
             _host.JobFinished += OnJobFinished;
 
-            _form = new MainForm(paths, store, config, _host);
+            _client = new ClientController(paths, store, config, _ui);
+            _client.JobFinished += OnClientJobFinished;
+
+            _form = new MainForm(paths, store, config, _host, _client);
             _form.FormClosing += OnFormClosing;
 
             var menu = new ContextMenuStrip();
@@ -95,6 +101,11 @@ namespace PrintVect.App.Tray
             {
                 Balloon(Strings.BalloonSharingFailedTitle, _host.LastError, ToolTipIcon.Warning);
             }
+            _client.StartIfConfigured();
+            if (_client.LastError != null)
+            {
+                Balloon(Strings.BalloonClientStartFailedTitle, _client.LastError, ToolTipIcon.Warning);
+            }
         }
 
         public void ShowWindow()
@@ -124,6 +135,7 @@ namespace PrintVect.App.Tray
             _exiting = true;
             Log.Info("Exit chosen; closing the tray icon and the window.");
             _trayIcon.Visible = false;
+            _client.Dispose();
             _host.Dispose();
             if (!_form.IsDisposed)
             {
@@ -146,6 +158,22 @@ namespace PrintVect.App.Tray
             else if (record.State == JobStates.Error)
             {
                 Balloon(Strings.AppName, string.Format(Strings.BalloonJobFailed, record.Doc, record.Client, record.Message), ToolTipIcon.Warning);
+            }
+        }
+
+        private void OnClientJobFinished(object sender, ClientJobRecord record)
+        {
+            if (record.State == ClientJobStates.Printed)
+            {
+                Balloon(Strings.AppName, string.Format(Strings.BalloonClientPrinted, record.Doc, record.HostName), ToolTipIcon.Info);
+            }
+            else if (record.State == ClientJobStates.Error)
+            {
+                Balloon(Strings.AppName, string.Format(Strings.BalloonClientFailed, record.Doc, record.Message), ToolTipIcon.Warning);
+            }
+            else if (record.State == ClientJobStates.Pending)
+            {
+                Balloon(Strings.AppName, string.Format(Strings.BalloonClientPending, record.Doc, record.Message), ToolTipIcon.Warning);
             }
         }
 
@@ -209,6 +237,10 @@ namespace PrintVect.App.Tray
                 {
                     _trayIcon.Visible = false;
                     _trayIcon.Dispose();
+                }
+                if (_client != null)
+                {
+                    _client.Dispose();
                 }
                 if (_host != null)
                 {
