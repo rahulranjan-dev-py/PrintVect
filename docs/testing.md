@@ -91,6 +91,11 @@ Windows had started the job (the Save window appeared). Build 13 calls the job a
 their COM function tables without that check and logs a probe of the interface ids. The PDF test
 also left an empty test.pdf; delete it before retrying.
 
+Build 16 on 2026-10-01: **M1 accepted.** Steps 5, 6, 9, 10, 11 and 13 passed: the PDF printer showed the
+Save window again (System.Printing, port PORTPROMPT:), the HP Laser printed through the direct spooler path
+(port USB001, XPS2GDI), the Windows 10 PC DESKTOP-CTQLFOK printed on the host's laser over the office LAN,
+and sharing was ON again after Exit and restart.
+
 Build 15 on 2026-10-01: paper came out of the HP Laser for the first time (the direct spooler path with
 the XPS2GDI data type). Microsoft Print to PDF, on the same direct path (XPS_PASS), did not show the Save
 window: Windows saved the file to the Documents folder on its own and the PDF does not open. Build 16

@@ -26,7 +26,7 @@ was the working name before PrintVect was chosen).
 | Milestone | What it delivers | State |
 |-----------|------------------|-------|
 | M0 | Solution scaffold, CI build, empty tray app with Diagnostics tab | **done, verified on Windows 11** |
-| M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done; HP Laser verified on the host, remote PC test pending** |
+| M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done, verified on Windows 11 host with a Windows 10 sender** |
 | M2 | Client role on Windows 10/11: virtual printer, job watcher, status balloons | |
 | M3 | Discovery, Add/Remove printers UI, manual IP entry, job history | |
 | M4 | Windows 7 pass (32-bit, v3 XPS driver, .oxps handling) | |
