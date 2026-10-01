@@ -43,8 +43,7 @@ namespace PrintVect.App.Forms
             BuildLayout();
 
             _controller.SharingChanged += OnSharingChanged;
-            _controller.JobReceived += OnJobChanged;
-            _controller.JobFinished += OnJobChanged;
+            _controller.JobChanged += OnJobChanged;
 
             IList<JobRecord> recent = _controller.Jobs.Recent(MaxJobRows);
             for (int i = recent.Count - 1; i >= 0; i--)
@@ -384,8 +383,7 @@ namespace PrintVect.App.Forms
             if (disposing)
             {
                 _controller.SharingChanged -= OnSharingChanged;
-                _controller.JobReceived -= OnJobChanged;
-                _controller.JobFinished -= OnJobChanged;
+                _controller.JobChanged -= OnJobChanged;
             }
             base.Dispose(disposing);
         }
