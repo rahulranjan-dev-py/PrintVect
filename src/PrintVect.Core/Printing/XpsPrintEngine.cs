@@ -23,9 +23,11 @@ namespace PrintVect.Core.Printing
     /// the API. Chosen after AddJob hung for the owner's HP Laser without ever creating a spooler job.
     ///
     /// The job and stream objects are used through their raw COM function tables. On the owner's
-    /// Windows 11 PC the objects refused .NET's automatic QueryInterface for IXpsPrintJob
-    /// (E_NOINTERFACE) from both STA and MTA threads although the job had been started, so no
-    /// interface cast is attempted; the function-table layout is fixed by the API definition.
+    /// Windows 11 PC the job object refused .NET's automatic QueryInterface for IXpsPrintJob
+    /// (E_NOINTERFACE) from both STA and MTA threads although the job had been started (the stream
+    /// object does answer to IXpsPrintJobStream), so no interface cast is attempted; the
+    /// function-table layout is fixed by the API definition. The print ticket stream is closed
+    /// empty straight away: Windows does not start the job until both streams are closed.
     /// </summary>
     public sealed class XpsPrintEngine : IPrintEngine
     {
@@ -102,6 +104,13 @@ namespace PrintVect.Core.Printing
                                     + watch.ElapsedMilliseconds + " ms.");
                     LogInterfaceProbeOnce(jobId, jobPtr, documentPtr);
 
+                    // No print ticket: the ticket stream must still be closed, or Windows never starts the job.
+                    if (ticketPtr != IntPtr.Zero)
+                    {
+                        new XpsStream(ticketPtr).Close();
+                        Log.Info(jobId, "Print ticket stream closed empty (printer defaults apply).");
+                    }
+
                     var job = new XpsJob(jobPtr);
                     var document = new XpsStream(documentPtr);
                     long total;
@@ -155,6 +164,7 @@ namespace PrintVect.Core.Printing
             string host = Environment.MachineName;
             DateTime deadline = DateTime.UtcNow + CompletionWait;
             DateTime? signalledAt = null;
+            DateTime nextHeartbeat = DateTime.UtcNow + TimeSpan.FromSeconds(10);
             int lastPage = -1;
             uint windowsJobId = 0;
 
@@ -164,10 +174,17 @@ namespace PrintVect.Core.Printing
                 if (signalled && signalledAt == null)
                 {
                     signalledAt = DateTime.UtcNow;
+                    Log.Info(jobId, "Windows signalled the completion event.");
                 }
 
                 XPS_JOB_STATUS status = job.GetStatus();
                 windowsJobId = status.jobId;
+                if (DateTime.UtcNow >= nextHeartbeat)
+                {
+                    nextHeartbeat = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+                    Log.Info(jobId, "Windows job " + status.jobId + " status: " + status.completion + ", document " + status.currentDocument
+                                    + ", page " + status.currentPage + " of " + status.currentPageTotal + ", hr 0x" + status.jobStatus.ToString("X8") + ".");
+                }
 
                 if (status.currentPage != lastPage && status.currentPage > 0)
                 {
