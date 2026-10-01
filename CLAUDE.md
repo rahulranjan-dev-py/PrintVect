@@ -79,7 +79,9 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   GetPrinterDriver level 8 to pick XPS_PASS for XPS-based drivers (v4 / attribute 0x2) or XPS2GDI
   for GDI drivers, StartDocPrinter, WritePrinter, EndDocPrinter, GetJob level 2 polling with the
   Windows status text in the log). XpsPrintEngine and SystemPrintingEngine remain as fallbacks for
-  start failures only; .oxps uses System.Printing (HostPrintEngine decides). docs/samples has
+  start failures only; .oxps uses System.Printing (HostPrintEngine decides). Printers on the PORTPROMPT: or FILE:
+  port (Microsoft Print to PDF) also use System.Printing: under XPS_PASS the PDF driver saved an
+  unreadable file to Documents with no Save window, while AddJob showed the window and made a good PDF. docs/samples has
   PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a
   printer problem.
   On the owner's PC the API's job object refused .NET's QueryInterface for IXpsPrintJob
