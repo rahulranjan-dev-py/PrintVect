@@ -89,6 +89,10 @@ Windows had started the job (the Save window appeared). Build 13 calls the job a
 their COM function tables without that check and logs a probe of the interface ids. The PDF test
 also left an empty test.pdf; delete it before retrying.
 
+Build 13 on 2026-10-01: the job opened and the document reached the spooler, but nothing printed
+and the PDF stayed empty, because the empty print ticket stream was never closed and Windows waits
+for it. Build 14 closes it. The Share tab now also shows a job's progress while it prints.
+
 Third check on 2026-09-30 (part A): the HP Laser prints from Notepad, is on USB001, and both queues
 were empty, so the earlier hang happened inside .NET's printing library before any spooler job
 existed. Build 9 prints .xps files through the Windows XPS Print API instead (the job shows in the

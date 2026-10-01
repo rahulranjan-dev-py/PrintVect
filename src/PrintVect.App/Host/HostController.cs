@@ -39,6 +39,7 @@ namespace PrintVect.App.Host
             _service.UpdateSharedPrinters(config.SharedPrinters);
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
+            _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
         }
 
         public JobTracker Jobs
@@ -69,6 +70,9 @@ namespace PrintVect.App.Host
 
         /// <summary>Raised on the UI thread.</summary>
         public event EventHandler<JobRecord> JobFinished;
+
+        /// <summary>Raised on the UI thread for every change of a job's state or message, progress included.</summary>
+        public event EventHandler<JobRecord> JobChanged;
 
         /// <summary>Raised on the UI thread after sharing was turned on or off.</summary>
         public event EventHandler SharingChanged;
