@@ -132,15 +132,10 @@ namespace PrintVect.Tests
             return new JobClient("127.0.0.1", _host.Port) { ConnectTimeout = TimeSpan.FromSeconds(5), TransferTimeout = TimeSpan.FromSeconds(20) };
         }
 
+        /// <summary>A real (tiny) XPS package, padded with random bytes to roughly the requested size.</summary>
         private string WriteXps(int size)
         {
-            var data = new byte[size];
-            new Random(7).NextBytes(data);
-            data[0] = (byte)'P';
-            data[1] = (byte)'K';
-            string path = _temp.File("test.xps");
-            File.WriteAllBytes(path, data);
-            return path;
+            return XpsPackages.Write(_temp.File("test.xps"), false, "Host test", size);
         }
 
         [TestMethod]

@@ -64,6 +64,42 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to "{0}" was not printed: {1}.
+        /// </summary>
+        internal static string BalloonClientFailed {
+            get {
+                return ResourceManager.GetString("BalloonClientFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" is waiting: {1}.
+        /// </summary>
+        internal static string BalloonClientPending {
+            get {
+                return ResourceManager.GetString("BalloonClientPending", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" printed on {1}..
+        /// </summary>
+        internal static string BalloonClientPrinted {
+            get {
+                return ResourceManager.GetString("BalloonClientPrinted", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect printers need attention.
+        /// </summary>
+        internal static string BalloonClientStartFailedTitle {
+            get {
+                return ResourceManager.GetString("BalloonClientStartFailedTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Could not print "{0}" from {1}: {2}.
         /// </summary>
         internal static string BalloonJobFailed {
@@ -96,6 +132,15 @@ namespace PrintVect.App {
         internal static string BalloonSharingFailedTitle {
             get {
                 return ResourceManager.GetString("BalloonSharingFailedTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printers from other PCs (client role).
+        /// </summary>
+        internal static string DiagClientSection {
+            get {
+                return ResourceManager.GetString("DiagClientSection", resourceCulture);
             }
         }
 
@@ -244,6 +289,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Host PC.
+        /// </summary>
+        internal static string JobColHost {
+            get {
+                return ResourceManager.GetString("JobColHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Message.
         /// </summary>
         internal static string JobColMessage {
@@ -289,6 +343,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Waiting.
+        /// </summary>
+        internal static string JobState_pending {
+            get {
+                return ResourceManager.GetString("JobState_pending", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Printed.
         /// </summary>
         internal static string JobState_printed {
@@ -312,6 +375,15 @@ namespace PrintVect.App {
         internal static string JobState_queued {
             get {
                 return ResourceManager.GetString("JobState_queued", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sending.
+        /// </summary>
+        internal static string JobState_sending {
+            get {
+                return ResourceManager.GetString("JobState_sending", resourceCulture);
             }
         }
 
@@ -757,11 +829,317 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to This part is not ready yet. It will show the printers shared by other PCs in the office so you can a [rest of string was truncated].
+        ///   Looks up a localized string similar to Add to this PC.
         /// </summary>
-        internal static string UsePlaceholder {
+        internal static string UseAdd {
             get {
-                return ResourceManager.GetString("UsePlaceholder", resourceCulture);
+                return ResourceManager.GetString("UseAdd", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The printer could not be added. {0}.
+        /// </summary>
+        internal static string UseAddFailed {
+            get {
+                return ResourceManager.GetString("UseAddFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" is ready. Print to it from any program; the pages come out on {1}..
+        /// </summary>
+        internal static string UseAdded {
+            get {
+                return ResourceManager.GetString("UseAdded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Creating "{0}" on this PC. If Windows asks for permission, choose Yes..
+        /// </summary>
+        internal static string UseAdding {
+            get {
+                return ResourceManager.GetString("UseAdding", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" is already on this PC..
+        /// </summary>
+        internal static string UseAlreadyAdded {
+            get {
+                return ResourceManager.GetString("UseAlreadyAdded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Address.
+        /// </summary>
+        internal static string UseColAddress {
+            get {
+                return ResourceManager.GetString("UseColAddress", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Host PC.
+        /// </summary>
+        internal static string UseColHost {
+            get {
+                return ResourceManager.GetString("UseColHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer on this PC.
+        /// </summary>
+        internal static string UseColLocalPrinter {
+            get {
+                return ResourceManager.GetString("UseColLocalPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer.
+        /// </summary>
+        internal static string UseColPrinter {
+            get {
+                return ResourceManager.GetString("UseColPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        internal static string UseColStatus {
+            get {
+                return ResourceManager.GetString("UseColStatus", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting jobs.
+        /// </summary>
+        internal static string UseColWaiting {
+            get {
+                return ResourceManager.GetString("UseColWaiting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} shares {1} printer(s):.
+        /// </summary>
+        internal static string UseFoundPrinters {
+            get {
+                return ResourceManager.GetString("UseFoundPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PC name or IP address:.
+        /// </summary>
+        internal static string UseHostLabel {
+            get {
+                return ResourceManager.GetString("UseHostLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Use a printer that another PC in the office shares. Type that PC's name or IP address, press Look up [rest of string was truncated].
+        /// </summary>
+        internal static string UseIntro {
+            get {
+                return ResourceManager.GetString("UseIntro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printed today: {0}.
+        /// </summary>
+        internal static string UseJobsToday {
+            get {
+                return ResourceManager.GetString("UseJobsToday", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Asking {0}....
+        /// </summary>
+        internal static string UseLookingUp {
+            get {
+                return ResourceManager.GetString("UseLookingUp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Look up.
+        /// </summary>
+        internal static string UseLookup {
+            get {
+                return ResourceManager.GetString("UseLookup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}.
+        /// </summary>
+        internal static string UseLookupFailed {
+            get {
+                return ResourceManager.GetString("UseLookupFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printers from other PCs on this PC:.
+        /// </summary>
+        internal static string UseMyPrinters {
+            get {
+                return ResourceManager.GetString("UseMyPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} shares no printers. On that PC, open PrintVect, tick a printer and turn sharing ON..
+        /// </summary>
+        internal static string UseNoPrintersShared {
+            get {
+                return ResourceManager.GetString("UseNoPrintersShared", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No printer from another PC has been added yet..
+        /// </summary>
+        internal static string UseNoRemotePrinters {
+            get {
+                return ResourceManager.GetString("UseNoRemotePrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No jobs are waiting for "{0}"..
+        /// </summary>
+        internal static string UseNothingWaiting {
+            get {
+                return ResourceManager.GetString("UseNothingWaiting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jobs sent from this PC:.
+        /// </summary>
+        internal static string UseRecentJobs {
+            get {
+                return ResourceManager.GetString("UseRecentJobs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        internal static string UseRemove {
+            get {
+                return ResourceManager.GetString("UseRemove", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove "{0}" from this PC? Windows asks for permission..
+        /// </summary>
+        internal static string UseRemoveConfirm {
+            get {
+                return ResourceManager.GetString("UseRemoveConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The printer could not be removed. {0}.
+        /// </summary>
+        internal static string UseRemoveFailed {
+            get {
+                return ResourceManager.GetString("UseRemoveFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" was removed from this PC..
+        /// </summary>
+        internal static string UseRemoved {
+            get {
+                return ResourceManager.GetString("UseRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} waiting job(s) are being sent again..
+        /// </summary>
+        internal static string UseRetried {
+            get {
+                return ResourceManager.GetString("UseRetried", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry waiting jobs.
+        /// </summary>
+        internal static string UseRetry {
+            get {
+                return ResourceManager.GetString("UseRetry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Choose a printer in the list first..
+        /// </summary>
+        internal static string UseSelectFound {
+            get {
+                return ResourceManager.GetString("UseSelectFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Choose one of your printers first..
+        /// </summary>
+        internal static string UseSelectMine {
+            get {
+                return ResourceManager.GetString("UseSelectMine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Send test page.
+        /// </summary>
+        internal static string UseTestPage {
+            get {
+                return ResourceManager.GetString("UseTestPage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The test page {0} is missing. Copy the whole PrintVect folder again..
+        /// </summary>
+        internal static string UseTestPageMissing {
+            get {
+                return ResourceManager.GetString("UseTestPageMissing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The test page was handed to "{0}"; watch the job list below..
+        /// </summary>
+        internal static string UseTestPageSent {
+            get {
+                return ResourceManager.GetString("UseTestPageSent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "{0}" cannot be watched for jobs: {1}.
+        /// </summary>
+        internal static string UseWatcherError {
+            get {
+                return ResourceManager.GetString("UseWatcherError", resourceCulture);
             }
         }
 

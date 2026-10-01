@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Printing;
@@ -430,13 +431,24 @@ namespace PrintVect.Core.Host
                 RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
                 return JobReply.Error(jobId, message);
             }
-            if (!LooksLikeXps(path))
+            string format = header.Format;
+            XpsFileInfo content = XpsFormatSniffer.Inspect(path);
+            if (!content.IsXpsPackage)
             {
-                string message = "The file is not an XPS document (it does not start with a ZIP signature). It was kept at "
+                string message = "The file is not an XPS document (" + content.Problem + "). It was kept at "
                                  + path + " on " + Environment.MachineName + " for diagnosis.";
                 Log.Warn(jobId, message);
                 RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
                 return JobReply.Error(jobId, message);
+            }
+            if (content.Format != format)
+            {
+                Log.Warn(jobId, "The sender called the file " + format + " but its content is " + content.Format + "; printing it as " + content.Format + ".");
+                format = content.Format;
+            }
+            if (content.Title != null)
+            {
+                Log.Info(jobId, "Document title inside the file: \"" + content.Title + "\".");
             }
 
             Log.Info(jobId, string.Format(CultureInfo.InvariantCulture, "File received: {0} ({1:N0} bytes in {2} ms).", path, actual, watch.ElapsedMilliseconds));
@@ -460,7 +472,7 @@ namespace PrintVect.Core.Host
                 PrinterName = printer.LocalName,
                 FriendlyName = printer.FriendlyName,
                 FilePath = path,
-                Format = header.Format,
+                Format = format,
                 DocumentName = record.Doc,
                 ClientName = record.Client,
                 UserName = record.User
@@ -607,22 +619,6 @@ namespace PrintVect.Core.Host
             catch (Exception ex)
             {
                 Log.Warn(reply.JobId, "The error reply could not be delivered: " + ex.Message);
-            }
-        }
-
-        private static bool LooksLikeXps(string path)
-        {
-            try
-            {
-                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    return file.Length >= 4 && file.ReadByte() == 'P' && file.ReadByte() == 'K';
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("Could not inspect " + path + ": " + ex.Message);
-                return false;
             }
         }
 

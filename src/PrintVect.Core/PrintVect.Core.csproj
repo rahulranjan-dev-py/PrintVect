@@ -11,6 +11,7 @@
     <!-- Framework assemblies that ship with .NET Framework 4.8 (printing). -->
     <Reference Include="System.Printing" />
     <Reference Include="ReachFramework" />
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
   <ItemGroup>

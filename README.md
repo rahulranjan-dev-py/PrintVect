@@ -27,7 +27,7 @@ was the working name before PrintVect was chosen).
 |-----------|------------------|-------|
 | M0 | Solution scaffold, CI build, empty tray app with Diagnostics tab | **done, verified on Windows 11** |
 | M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done, verified on Windows 11 host with a Windows 10 sender** |
-| M2 | Client role on Windows 10/11: virtual printer, job watcher, status balloons | |
+| M2 | Client role: virtual printer through the Elevate helper, spool watcher, status balloons, Use tab | **done, awaiting test** |
 | M3 | Discovery, Add/Remove printers UI, manual IP entry, job history | |
 | M4 | Windows 7 pass (32-bit, v3 XPS driver, .oxps handling) | |
 | M5 | Installer (Inno Setup): .NET 4.8 check, firewall rules, autostart, clean uninstall | |
@@ -78,7 +78,9 @@ The window has four tabs:
 - **Share my printers**: the printers on this PC. Tick the ones to offer to the office, give
   each a friendly name such as "Counter 1 Laser", and switch sharing on. The tab shows today's
   job count and the last jobs received.
-- **Use shared printers**: printers found on other PCs; add them to this PC (M3).
+- **Use shared printers**: type a host PC's name or IP, look its printers up, add one to this PC
+  (Windows asks once for permission), send a test page, retry waiting jobs, see the jobs sent. Hosts are
+  found automatically from M3.
 - **Settings**: shared PIN, ports, start with Windows, how long to keep sent files.
 - **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when
   something does not work. It contains the Windows version, .NET version, network addresses,
@@ -88,7 +90,18 @@ Closing the window only hides it; PrintVect keeps running in the tray. To stop i
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
 autostart entry uses this).
 
-### Sending a test job with pvct-send (until the client role exists)
+### Using a shared printer from another PC (client role, M2)
+
+On the PC that should print: open PrintVect, **Use shared printers**, type the host PC's name or IP
+address, **Look up**, select the printer, **Add to this PC** and answer **Yes** to the Windows
+permission window. A printer named `PrintVect - <printer> @<host PC>` appears in every program's
+print window; what you print on it comes out of the host's printer. `PrintVect.Elevate.exe` is the
+only part that runs as administrator: it creates the printer, its port and its spool folder
+(`C:\ProgramData\PrintVect\spool\<id>`), and removes them again (**Remove**, or
+`PrintVect.Elevate.exe remove-all` from an administrator Command Prompt to remove every PrintVect
+printer at once).
+
+### Sending a test job with pvct-send (no virtual printer needed)
 
 `pvct-send.exe` sits next to `PrintVect.App.exe`. From a Command Prompt on any PC that has
 .NET Framework 4.8:

@@ -304,10 +304,136 @@ Ask the person who installed PrintVect to check that this folder can be written 
 
 Details: {0}</value>
   </data>
-  <data name="UsePlaceholder" xml:space="preserve">
-    <value>This part is not ready yet. It will show the printers shared by other PCs in the office so you can add them to this PC.</value>
-  </data>
   <data name="Yes" xml:space="preserve">
     <value>Yes</value>
+  </data>
+  <data name="UseIntro" xml:space="preserve">
+    <value>Use a printer that another PC in the office shares. Type that PC's name or IP address, press Look up, choose the printer and press Add to this PC. Windows asks once for permission. The printer then appears in every program's print window.</value>
+  </data>
+  <data name="UseHostLabel" xml:space="preserve">
+    <value>PC name or IP address:</value>
+  </data>
+  <data name="UseLookup" xml:space="preserve">
+    <value>Look up</value>
+  </data>
+  <data name="UseLookingUp" xml:space="preserve">
+    <value>Asking {0}...</value>
+  </data>
+  <data name="UseFoundPrinters" xml:space="preserve">
+    <value>{0} shares {1} printer(s):</value>
+  </data>
+  <data name="UseNoPrintersShared" xml:space="preserve">
+    <value>{0} shares no printers. On that PC, open PrintVect, tick a printer and turn sharing ON.</value>
+  </data>
+  <data name="UseLookupFailed" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="UseColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="UseColStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="UseAdd" xml:space="preserve">
+    <value>Add to this PC</value>
+  </data>
+  <data name="UseAdding" xml:space="preserve">
+    <value>Creating "{0}" on this PC. If Windows asks for permission, choose Yes.</value>
+  </data>
+  <data name="UseAdded" xml:space="preserve">
+    <value>"{0}" is ready. Print to it from any program; the pages come out on {1}.</value>
+  </data>
+  <data name="UseAddFailed" xml:space="preserve">
+    <value>The printer could not be added. {0}</value>
+  </data>
+  <data name="UseAlreadyAdded" xml:space="preserve">
+    <value>"{0}" is already on this PC.</value>
+  </data>
+  <data name="UseSelectFound" xml:space="preserve">
+    <value>Choose a printer in the list first.</value>
+  </data>
+  <data name="UseMyPrinters" xml:space="preserve">
+    <value>Printers from other PCs on this PC:</value>
+  </data>
+  <data name="UseNoRemotePrinters" xml:space="preserve">
+    <value>No printer from another PC has been added yet.</value>
+  </data>
+  <data name="UseColLocalPrinter" xml:space="preserve">
+    <value>Printer on this PC</value>
+  </data>
+  <data name="UseColHost" xml:space="preserve">
+    <value>Host PC</value>
+  </data>
+  <data name="UseColAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="UseColWaiting" xml:space="preserve">
+    <value>Waiting jobs</value>
+  </data>
+  <data name="UseRemove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="UseRemoveConfirm" xml:space="preserve">
+    <value>Remove "{0}" from this PC? Windows asks for permission.</value>
+  </data>
+  <data name="UseRemoved" xml:space="preserve">
+    <value>"{0}" was removed from this PC.</value>
+  </data>
+  <data name="UseRemoveFailed" xml:space="preserve">
+    <value>The printer could not be removed. {0}</value>
+  </data>
+  <data name="UseSelectMine" xml:space="preserve">
+    <value>Choose one of your printers first.</value>
+  </data>
+  <data name="UseTestPage" xml:space="preserve">
+    <value>Send test page</value>
+  </data>
+  <data name="UseTestPageSent" xml:space="preserve">
+    <value>The test page was handed to "{0}"; watch the job list below.</value>
+  </data>
+  <data name="UseTestPageMissing" xml:space="preserve">
+    <value>The test page {0} is missing. Copy the whole PrintVect folder again.</value>
+  </data>
+  <data name="UseRetry" xml:space="preserve">
+    <value>Retry waiting jobs</value>
+  </data>
+  <data name="UseRetried" xml:space="preserve">
+    <value>{0} waiting job(s) are being sent again.</value>
+  </data>
+  <data name="UseNothingWaiting" xml:space="preserve">
+    <value>No jobs are waiting for "{0}".</value>
+  </data>
+  <data name="UseRecentJobs" xml:space="preserve">
+    <value>Jobs sent from this PC:</value>
+  </data>
+  <data name="UseJobsToday" xml:space="preserve">
+    <value>Printed today: {0}</value>
+  </data>
+  <data name="UseWatcherError" xml:space="preserve">
+    <value>"{0}" cannot be watched for jobs: {1}</value>
+  </data>
+  <data name="JobColHost" xml:space="preserve">
+    <value>Host PC</value>
+  </data>
+  <data name="JobState_sending" xml:space="preserve">
+    <value>Sending</value>
+  </data>
+  <data name="JobState_pending" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="BalloonClientPrinted" xml:space="preserve">
+    <value>"{0}" printed on {1}.</value>
+  </data>
+  <data name="BalloonClientFailed" xml:space="preserve">
+    <value>"{0}" was not printed: {1}</value>
+  </data>
+  <data name="BalloonClientPending" xml:space="preserve">
+    <value>"{0}" is waiting: {1}</value>
+  </data>
+  <data name="BalloonClientStartFailedTitle" xml:space="preserve">
+    <value>PrintVect printers need attention</value>
+  </data>
+  <data name="DiagClientSection" xml:space="preserve">
+    <value>Printers from other PCs (client role)</value>
   </data>
 </root>
