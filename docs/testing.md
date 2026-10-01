@@ -57,6 +57,8 @@ The test file `PrintVect-test-page.xps` is in that folder too (also in `docs/sam
 | 4 | Open a Command Prompt (no admin needed): `cd C:\PrintVect` then `pvct-send list 127.0.0.1` | It prints "Host DESKTOP-... shares 2 printer(s)" and the two friendly names with their status. These are the names to use in the next steps. |
 | 5 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "PDF"` (use your name for the PDF printer from step 2) | A **Save Print Output As** window appears (from Microsoft Print to PDF). Save it as `C:\PrintVect\test.pdf` **within a minute**; PrintVect waits for Windows, and Windows waits for you. The command prints "printed - Printed on ..." (if you took longer than a minute it first says "printing", then "printed" a moment after you save). Two balloons appear from the tray: Printing... and Printed... The Share tab lists the job with state Printed and "Jobs printed today: 1". Open test.pdf: the PrintVect test page with a blue frame and five grey boxes. |
 | 6 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "Mail Branch"` (your name for the laser from step 2) | Paper comes out of the HP Laser within about 10 s and the command says printed. |
+| 6b | **Only if step 6 failed:** `pvct-send PrintVect-test-shapes.xps 127.0.0.1 "Mail Branch"` (same page without any text or font). | If this prints a blue cross and a grey diamond, the font in the text page is the problem. |
+| 6c | **Only if step 6 failed:** make a Windows-made XPS: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK. Print any page from Notepad to "Microsoft XPS Document Writer", choose Save as type **XPS Document (*.xps)**, save as `C:\PrintVect\notepad.xps`. Then `pvct-send notepad.xps 127.0.0.1 "Mail Branch"`. | If this prints, PrintVect's own test page is the problem; if it fails too, the printing path is. Report the host log lines "Driver ...", "Spooler job N opened ... data type ..." and "Windows job N status: ...". |
 | 6a | **Only if nothing came out in step 6:** on the host open Settings, Bluetooth & devices, Printers & scanners, the HP Laser, **Open print queue**. Also print any page from Notepad straight to the HP Laser. | Report what the queue window shows for the job named "PrintVect: PrintVect-test-page from ..." (Printing, Error, Sent to printer, or nothing), whether the Notepad page printed, and whether the printer is connected by USB or Wi-Fi (Printer properties, Ports tab). |
 | 7 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "No such printer"` | "The host refused: No shared printer called ... Shared printers: ..." and errorlevel 1. |
 | 8 | Untick **Share the ticked printers with the office**, then run `pvct-send list 127.0.0.1` | "127.0.0.1 is reachable but nothing is listening on port 9151..." and errorlevel 3. **Now tick sharing ON again and check the status bar says "Sharing is ON"; steps 9 to 11 need it.** |
@@ -88,6 +90,12 @@ the job object refused the .NET interface check on both thread kinds (build 12 t
 Windows had started the job (the Save window appeared). Build 13 calls the job and stream through
 their COM function tables without that check and logs a probe of the interface ids. The PDF test
 also left an empty test.pdf; delete it before retrying.
+
+Build 14 on 2026-10-01: with the ticket stream closed, the XPS Print API failed both jobs within a
+second with 0x80040003 (OLE_E_ADVISENOTSUPPORTED), for the HP before any spooler job existed. That is
+Windows' deprecated XPS Print API failing on its own. Build 15 hands the file to the spooler with the
+plain winspool calls instead (XPS_PASS or XPS2GDI data type by driver type) and logs the Windows job
+status; steps 6b and 6c below tell a document problem from a printer problem.
 
 Build 13 on 2026-10-01: the job opened and the document reached the spooler, but nothing printed
 and the PDF stayed empty, because the empty print ticket stream was never closed and Windows waits

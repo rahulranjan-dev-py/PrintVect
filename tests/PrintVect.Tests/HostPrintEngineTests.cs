@@ -29,52 +29,60 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
-        public void XpsGoesToTheXpsPrintApi()
+        public void XpsGoesToTheSpoolerFirst()
         {
+            var spooler = new RecordingEngine();
             var xps = new RecordingEngine();
             var system = new RecordingEngine();
 
-            PrintOutcome outcome = new HostPrintEngine(xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
+            PrintOutcome outcome = new HostPrintEngine(spooler, xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
 
             Assert.AreEqual(JobStates.Printed, outcome.State);
-            Assert.AreEqual(1, xps.Jobs.Count);
+            Assert.AreEqual(1, spooler.Jobs.Count);
+            Assert.AreEqual(0, xps.Jobs.Count);
             Assert.AreEqual(0, system.Jobs.Count);
         }
 
         [TestMethod]
         public void OpenXpsGoesToSystemPrinting()
         {
+            var spooler = new RecordingEngine();
             var xps = new RecordingEngine();
             var system = new RecordingEngine();
 
-            new HostPrintEngine(xps, system).Print(Request(JobFormats.Oxps), (s, m) => { }, CancellationToken.None);
+            new HostPrintEngine(spooler, xps, system).Print(Request(JobFormats.Oxps), (s, m) => { }, CancellationToken.None);
 
+            Assert.AreEqual(0, spooler.Jobs.Count);
             Assert.AreEqual(0, xps.Jobs.Count);
             Assert.AreEqual(1, system.Jobs.Count);
         }
 
         [TestMethod]
-        public void XpsPrintApiRefusal_FallsBackToSystemPrinting()
+        public void SpoolerRefusal_FallsBackToXpsPrintApi_ThenSystemPrinting()
         {
+            var spooler = new RecordingEngine { Throw = new SpoolerStartException("no printer", null) };
             var xps = new RecordingEngine { Throw = new XpsPrintStartException("no api", null) };
             var system = new RecordingEngine();
 
-            PrintOutcome outcome = new HostPrintEngine(xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
+            PrintOutcome outcome = new HostPrintEngine(spooler, xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
 
             Assert.AreEqual(JobStates.Printed, outcome.State);
+            Assert.AreEqual(1, spooler.Jobs.Count);
             Assert.AreEqual(1, xps.Jobs.Count);
             Assert.AreEqual(1, system.Jobs.Count);
         }
 
         [TestMethod]
-        public void OtherFailures_AreNotRetriedOnTheSecondEngine()
+        public void OtherFailures_AreNotRetriedOnAnotherEngine()
         {
-            var xps = new RecordingEngine { Throw = new InvalidOperationException("spooler said no") };
+            var spooler = new RecordingEngine { Throw = new InvalidOperationException("spooler said no") };
+            var xps = new RecordingEngine();
             var system = new RecordingEngine();
 
             Assert.ThrowsException<InvalidOperationException>(
-                () => new HostPrintEngine(xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None));
-            Assert.AreEqual(0, system.Jobs.Count, "a job that reached the spooler must not be printed twice");
+                () => new HostPrintEngine(spooler, xps, system).Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None));
+            Assert.AreEqual(0, xps.Jobs.Count, "a job that reached the spooler must not be printed twice");
+            Assert.AreEqual(0, system.Jobs.Count);
         }
     }
 }

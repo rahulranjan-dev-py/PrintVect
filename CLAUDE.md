@@ -72,10 +72,16 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   255.255.255.255 once, and the host must listen on all IPv4 addresses.
 - Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) worked for Microsoft
   Print to PDF (returning only after the Save dialog, job already gone from the queue) but hung
-  forever for the USB "HP Laser 103 107 108" without ever creating a spooler job. The host therefore
-  prints .xps with the XPS Print API (XpsPrintEngine: xpsprint.dll, any printer, non-blocking,
-  page progress, completion event) and keeps System.Printing (SystemPrintingEngine) only for
-  .oxps and as a fallback when the API refuses to start a job (HostPrintEngine decides).
+  forever for the USB "HP Laser 103 107 108" without ever creating a spooler job. The XPS Print API
+  (XpsPrintEngine) then failed every job on that PC with 0x80040003 OLE_E_ADVISENOTSUPPORTED
+  before a spooler job existed: it is deprecated and unreliable there. The host therefore prints
+  .xps by handing the file to the spooler with plain winspool calls (SpoolerXpsEngine: OpenPrinter,
+  GetPrinterDriver level 8 to pick XPS_PASS for XPS-based drivers (v4 / attribute 0x2) or XPS2GDI
+  for GDI drivers, StartDocPrinter, WritePrinter, EndDocPrinter, GetJob level 2 polling with the
+  Windows status text in the log). XpsPrintEngine and SystemPrintingEngine remain as fallbacks for
+  start failures only; .oxps uses System.Printing (HostPrintEngine decides). docs/samples has
+  PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a
+  printer problem.
   On the owner's PC the API's job object refused .NET's QueryInterface for IXpsPrintJob
   (E_NOINTERFACE) from STA and MTA alike although the job had started, so XpsPrintEngine keeps
   raw IUnknown pointers and calls Write/Close/GetJobStatus through the COM function table
