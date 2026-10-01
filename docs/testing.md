@@ -137,6 +137,46 @@ What to paste back after M1:
    and, from the sending PC, `C:\ProgramData\PrintVect\logs\PrintVect-Send-<date>.log`. Both
    contain the job id, so the two sides can be matched.
 
-## M2 and later
+## M2: client role (print from another PC through a virtual printer)
+
+Host PC = the Windows 11 PC from M1 (DESKTOP-JK66OQV, sharing ON, "Mail Branch" = the HP Laser).
+Client PC = the Windows 10 PC (DESKTOP-CTQLFOK). Both run the same build. The client needs no
+driver for the laser: PrintVect creates a printer that uses Windows' own XPS Document Writer and
+ships the file to the host.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On **both** PCs: Exit PrintVect from the tray, download the latest `PrintVect-build-<n>`, unzip it over `C:\PrintVect` (replace all), start `PrintVect.App.exe`. On the host check the status bar says "Sharing is ON". | Both windows open. On the client, the **Use shared printers** tab shows a "PC name or IP address" box, **Look up**, an empty printer list, **Add to this PC**, and the lists "Printers from other PCs on this PC" and "Jobs sent from this PC". |
+| 2 | On the client: Use tab, type the host's address `10.148.93.218` (its PC name `DESKTOP-JK66OQV` works too) and press **Look up**. | "DESKTOP-JK66OQV shares 2 printer(s):" and the list shows Mail Branch and Microsoft Print to PDF with their status. |
+| 3 | Select **Mail Branch** and press **Add to this PC**. Windows shows its permission window (UAC): choose **Yes** (if it asks for an administrator name and password, type them). | After a few seconds: "PrintVect - Mail Branch @DESKTOP-JK66OQV is ready. Print to it from any program; the pages come out on DESKTOP-JK66OQV." The printer is listed under "Printers from other PCs on this PC", and also in Windows Settings, Printers & scanners. |
+| 3a | **Only if step 3 failed:** paste the message shown and, from the client, both logs `C:\ProgramData\PrintVect\logs\PrintVect-<date>.log` and `PrintVect-Elevate-<date>.log`. The Elevate log lists the installed printer drivers; the printer needs "Microsoft XPS Document Writer" (any version). | |
+| 4 | Select the new printer in the list and press **Send test page**. | Within about 10 s the job appears under "Jobs sent from this PC" as Sending, then Printed; the PrintVect test page comes out of the host's laser; a balloon says "PrintVect-test-page printed on DESKTOP-JK66OQV". On the host, the Share tab lists the job from DESKTOP-CTQLFOK. |
+| 5 | **The real test.** On the client open Notepad, type a line, File, Print, choose "PrintVect - Mail Branch @DESKTOP-JK66OQV", Print. | Within 10 s the page comes out of the host's laser. The job list shows the document name (e.g. "Untitled - Notepad") with state Printed and a balloon appears. |
+| 6 | Print the same Notepad page twice quickly (Print, Print again straight away). | Two pages come out and two jobs are listed. |
+| 7 | Host-off test: on the host untick "Share the ticked printers with the office". On the client print from Notepad again. | Within about 30 s the job turns **Waiting** (orange) with "DESKTOP-JK66OQV could not be reached after 3 tries ... press Retry", a balloon says the same, and "Waiting jobs" shows 1 next to the printer. Turn sharing ON again on the host, then on the client select the printer and press **Retry waiting jobs**: the page prints. |
+| 8 | Exit PrintVect on the client (tray, Exit), start it again, print from Notepad. | It still prints: the printer and its folder are remembered in config.json. |
+| 9 | Optional: add "Microsoft Print to PDF" the same way and print to it from the client. | The **Save Print Output As** window appears on the **host** PC (that is where the PDF printer is); after saving there the job shows Printed on the client. |
+| 10 | Client: Diagnostics tab, Copy to clipboard. | The section "Printers from other PCs (client role)" lists the printer with its folder, "Elevate helper: present", and the last jobs. |
+| 11 | Client: select the printer, press **Remove**, Yes, then Yes in the Windows permission window. | The printer disappears from the list and from Windows Settings, and `C:\ProgramData\PrintVect\spool\<id>` is gone. Add it again afterwards if you want to keep using it. |
+
+What happens underneath (for reading the logs): the client's PrintVect.Elevate.exe creates the folder
+`spool\<printer id>`, gives Users modify rights on it, adds a Local Port whose name is that folder's
+`job.xps`, and creates the printer with the Windows XPS Document Writer driver (the older
+"Microsoft XPS Document Writer" when installed, else "... v4"). Each print writes `job.xps`; the watcher
+renames it to `job-<guid>.xps` (or `.oxps`, PrintVect looks inside the file to tell), sends it, and keeps it
+in `sent\` for an hour. The host prints `.oxps` through the spooler on Windows 8 or later.
+
+Known limits at M2, by design: the number of copies and duplex chosen in the print window are not
+applied (one copy prints, as the brief says); the paper size is whatever the XPS writer uses by default
+(A4 on an Indian Windows); a PDF printer's Save window appears on the host; hosts are typed by name
+or IP (automatic discovery is M3); the job list is cleared when PrintVect exits (M3).
+
+What to paste back after M2:
+
+1. For each step, whether it matched the Expect column.
+2. From the client: the Diagnostics text (step 10), `PrintVect-<date>.log` and `PrintVect-Elevate-<date>.log`.
+3. From the host: `PrintVect-<date>.log` (the job ids match the client's log).
+
+## M3 and later
 
 Steps are added here when each milestone is delivered.

@@ -78,7 +78,7 @@ namespace PrintVect.Tests
             var spooler = new RecordingEngine();
             var xps = new RecordingEngine();
             var system = new RecordingEngine();
-            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "PORTPROMPT:");
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "PORTPROMPT:", false);
 
             PrintOutcome outcome = engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
 
@@ -94,7 +94,7 @@ namespace PrintVect.Tests
             var spooler = new RecordingEngine();
             var xps = new RecordingEngine();
             var system = new RecordingEngine();
-            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => null);
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => null, false);
 
             engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
 
@@ -108,12 +108,40 @@ namespace PrintVect.Tests
             var spooler = new RecordingEngine();
             var xps = new RecordingEngine();
             var system = new RecordingEngine();
-            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "USB001");
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "USB001", false);
 
             engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
 
             Assert.AreEqual(1, spooler.Jobs.Count);
             Assert.AreEqual(0, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void OpenXps_GoesToTheSpoolerWhereWindowsConvertsIt()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "USB001", true);
+
+            engine.Print(Request(JobFormats.Oxps), (s, m) => { }, CancellationToken.None);
+
+            Assert.AreEqual(1, spooler.Jobs.Count, "Windows 8+ converts OpenXPS in the spooler");
+            Assert.AreEqual(0, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void OpenXps_OnAPromptingPort_StillGoesToSystemPrinting()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "PORTPROMPT:", true);
+
+            engine.Print(Request(JobFormats.Oxps), (s, m) => { }, CancellationToken.None);
+
+            Assert.AreEqual(0, spooler.Jobs.Count);
+            Assert.AreEqual(1, system.Jobs.Count);
         }
 
         [TestMethod]

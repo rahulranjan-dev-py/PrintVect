@@ -21,23 +21,29 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 - MIT licence (LICENSE in repo root).
 
 ## Architecture
-- src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, later Protocol/, Discovery/,
-                         Spool/, Printing/. No UI references, no System.Windows.Forms.
+- src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, Protocol/, Host/, Printing/,
+                         Client/ (spool watcher, sender), Elevation/; later Discovery/. No UI references.
 - src/PrintVect.App      WinForms tray exe. Tabs: Share my printers, Use shared printers, Settings,
                          Diagnostics. Closing the window minimises to tray; Exit is in the tray menu.
                          `/tray` switch starts hidden (used by the autostart entry).
 - src/PrintVect.Send     pvct-send.exe, the M1 command-line test sender (list / send / status).
                          docs/samples/PrintVect-test-page.xps is a ready-made one-page test file
                          (tools/make_test_page.py rebuilds it).
-- src/PrintVect.Elevate  tiny console exe, requireAdministrator. Only creates/removes printers,
-                         ports and firewall rules. Results come back as exit code + JSON file.
+- src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer,
+                         remove-all (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter,
+                         DeletePrinter, Users:Modify ACL on spool\<id>); M5 adds firewall rules. Results
+                         come back as exit code + JSON file (ElevateLauncher runs it with "runas").
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability.
 - installer/PrintVect.iss Inno Setup 6 (milestone M5).
 
-Client: virtual printer (Microsoft XPS Document Writer driver, Local Port -> file in spool\<id>\)
--> FileSystemWatcher + 2 s polling fallback -> rename to job-<guid>.xps -> TCP send.
-Host: receive into spool\incoming\ -> verify size -> XPS Print API (StartXpsPrintJob) for .xps,
-PrintQueue.AddJob for .oxps -> reply JSON -> watch the job (up to 60 s before replying). One job at a time per printer, arrival
+Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer driver, the v3 one when
+installed because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher
+(FileSystemWatcher + 2 s polling; file taken when exclusively openable and size stable 1 s) -> rename to
+job-<guid>.xps/.oxps (XpsFormatSniffer looks inside: namespace openxps.org = oxps; it also reads the
+docProps title) -> ClientService sends (3 tries over 30 s, then pending\ + Retry button; sent\ kept 1 h,
+failed\ last 20) and polls status while the host prints.
+Host: receive into spool\incoming\ -> verify size, sniff the real format -> HostPrintEngine -> reply JSON
+-> watch the job (up to 60 s before replying). One job at a time per printer, arrival
 order, on that printer's worker thread (never the UI thread). Printer statuses and
 printing sit behind IPrinterStatusSource / IPrintEngine so HostService is unit-tested with fakes
 over loopback TCP (tests never load System.Printing, which Mono lacks).
@@ -79,7 +85,8 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   GetPrinterDriver level 8 to pick XPS_PASS for XPS-based drivers (v4 / attribute 0x2) or XPS2GDI
   for GDI drivers, StartDocPrinter, WritePrinter, EndDocPrinter, GetJob level 2 polling with the
   Windows status text in the log). XpsPrintEngine and SystemPrintingEngine remain as fallbacks for
-  start failures only; .oxps uses System.Printing (HostPrintEngine decides). Printers on the PORTPROMPT: or FILE:
+  start failures only; .oxps goes the same way on Windows 8+ (the spooler converts OpenXPS; untested on
+  paper until M2's client test), System.Printing on Windows 7. Printers on the PORTPROMPT: or FILE:
   port (Microsoft Print to PDF) also use System.Printing: under XPS_PASS the PDF driver saved an
   unreadable file to Documents with no Save window, while AddJob showed the window and made a good PDF. docs/samples has
   PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a

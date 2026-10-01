@@ -19,7 +19,7 @@ namespace PrintVect.Core.Printing
     }
 
     /// <summary>
-    /// Hands an .xps file straight to the Windows spooler with the plain winspool functions:
+    /// Hands an .xps file (on Windows 8+ also an .oxps file) straight to the Windows spooler with the plain winspool functions:
     /// StartDocPrinter with the XPS_PASS data type for XPS-based drivers (v4 and XPSDrv) or
     /// XPS2GDI for older GDI drivers (Windows converts in the spooler), WritePrinter, EndDocPrinter,
     /// then GetJob polling. This is the route WPF uses for XPS printers. No COM, no apartments: the

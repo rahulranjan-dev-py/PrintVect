@@ -6,6 +6,7 @@ using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using PrintVect.App.Client;
 using PrintVect.App.Host;
 using PrintVect.Core;
 using PrintVect.Core.Config;
@@ -16,7 +17,7 @@ namespace PrintVect.App.Forms
 {
     /// <summary>
     /// The single window with four tabs (brief, section 7). Built in code rather than with the
-    /// designer so it stays readable in a diff. The Share and Use tabs fill up in M1 and M3.
+    /// designer so it stays readable in a diff. The Share tab arrived in M1, the Use tab in M2.
     /// </summary>
     internal sealed class MainForm : Form
     {
@@ -26,9 +27,11 @@ namespace PrintVect.App.Forms
         private readonly ConfigStore _store;
         private readonly AppConfig _config;
         private readonly HostController _controller;
+        private readonly ClientController _client;
 
         private TabControl _tabs;
         private ShareTab _shareTab;
+        private UseTab _useTab;
         private TabPage _diagnosticsTab;
         private TextBox _settingsText;
         private TextBox _diagnosticsText;
@@ -41,9 +44,11 @@ namespace PrintVect.App.Forms
         private bool _diagnosticsLoaded;
         private bool _collecting;
 
-        public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController controller)
+        public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController controller, ClientController client)
         {
             if (controller == null) throw new ArgumentNullException(nameof(controller));
+            if (client == null) throw new ArgumentNullException(nameof(client));
+            _client = client;
             _paths = paths;
             _store = store;
             _config = config;
@@ -85,7 +90,7 @@ namespace PrintVect.App.Forms
 
             _tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 6) };
             _tabs.TabPages.Add(CreateShareTab());
-            _tabs.TabPages.Add(CreatePlaceholderTab(Strings.TabUse, Strings.UsePlaceholder));
+            _tabs.TabPages.Add(CreateUseTab());
             _tabs.TabPages.Add(CreateSettingsTab());
             _diagnosticsTab = CreateDiagnosticsTab();
             _tabs.TabPages.Add(_diagnosticsTab);
@@ -117,18 +122,11 @@ namespace PrintVect.App.Forms
             return page;
         }
 
-        private static TabPage CreatePlaceholderTab(string title, string text)
+        private TabPage CreateUseTab()
         {
-            var page = new TabPage(title) { Padding = new Padding(16), UseVisualStyleBackColor = true };
-            var label = new Label
-            {
-                Text = text,
-                Dock = DockStyle.Top,
-                AutoSize = false,
-                Height = 64,
-                TextAlign = ContentAlignment.TopLeft
-            };
-            page.Controls.Add(label);
+            var page = new TabPage(Strings.TabUse) { Padding = new Padding(16), UseVisualStyleBackColor = true };
+            _useTab = new UseTab(_client) { Dock = DockStyle.Fill };
+            page.Controls.Add(_useTab);
             return page;
         }
 
@@ -258,7 +256,8 @@ namespace PrintVect.App.Forms
             AppPaths paths = _paths;
             AppConfig config = _config;
             string[] hostLines = _controller.DescribeForDiagnostics().ToArray();
-            Task.Factory.StartNew(() => CollectDiagnosticsText(paths, config, hostLines))
+            string[] clientLines = _client.DescribeForDiagnostics().ToArray();
+            Task.Factory.StartNew(() => CollectDiagnosticsText(paths, config, hostLines, clientLines))
                 .ContinueWith(task =>
                 {
                     string text;
@@ -288,11 +287,12 @@ namespace PrintVect.App.Forms
         }
 
         /// <summary>Runs on a background thread: never touches controls.</summary>
-        private static string CollectDiagnosticsText(AppPaths paths, AppConfig config, string[] hostLines)
+        private static string CollectDiagnosticsText(AppPaths paths, AppConfig config, string[] hostLines, string[] clientLines)
         {
             DiagnosticsReport report = DiagnosticsReport.Collect(paths, config, r =>
             {
                 r.AddSection(Strings.DiagHostSection, hostLines);
+                r.AddSection(Strings.DiagClientSection, clientLines);
                 r.AddSection(Strings.DiagPrintersSection, DescribePrinters());
             });
             return report.ToString();
