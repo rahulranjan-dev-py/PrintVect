@@ -91,6 +91,14 @@ Windows had started the job (the Save window appeared). Build 13 calls the job a
 their COM function tables without that check and logs a probe of the interface ids. The PDF test
 also left an empty test.pdf; delete it before retrying.
 
+Build 15 on 2026-10-01: paper came out of the HP Laser for the first time (the direct spooler path with
+the XPS2GDI data type). Microsoft Print to PDF, on the same direct path (XPS_PASS), did not show the Save
+window: Windows saved the file to the Documents folder on its own and the PDF does not open. Build 16
+sends printers whose port asks for a file name (PORTPROMPT: or FILE:, that is Microsoft Print to PDF and
+the XPS Document Writer) through System.Printing again, the path that showed the Save window and made a
+readable test.pdf in the second run; paper printers keep the direct path. The host log now names each
+printer's port ("is on port USB001"). Delete the stray PDFs from Documents before retrying step 5.
+
 Build 14 on 2026-10-01: with the ticket stream closed, the XPS Print API failed both jobs within a
 second with 0x80040003 (OLE_E_ADVISENOTSUPPORTED), for the HP before any spooler job existed. That is
 Windows' deprecated XPS Print API failing on its own. Build 15 hands the file to the spooler with the

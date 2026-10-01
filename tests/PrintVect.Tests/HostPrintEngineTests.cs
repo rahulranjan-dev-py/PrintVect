@@ -73,6 +73,62 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void PromptingPort_GoesToSystemPrinting()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "PORTPROMPT:");
+
+            PrintOutcome outcome = engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
+
+            Assert.AreEqual(JobStates.Printed, outcome.State);
+            Assert.AreEqual(0, spooler.Jobs.Count, "a printer that asks for a file name must not use the direct spooler path");
+            Assert.AreEqual(0, xps.Jobs.Count);
+            Assert.AreEqual(1, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void UnknownPort_GoesToTheSpooler()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => null);
+
+            engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
+
+            Assert.AreEqual(1, spooler.Jobs.Count);
+            Assert.AreEqual(0, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void PaperPort_GoesToTheSpooler()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var engine = new HostPrintEngine(spooler, xps, system, (printer, jobId) => "USB001");
+
+            engine.Print(Request(JobFormats.Xps), (s, m) => { }, CancellationToken.None);
+
+            Assert.AreEqual(1, spooler.Jobs.Count);
+            Assert.AreEqual(0, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void IsPromptingPort_KnowsTheFilePorts()
+        {
+            Assert.IsTrue(PrinterPorts.IsPromptingPort("PORTPROMPT:"));
+            Assert.IsTrue(PrinterPorts.IsPromptingPort("portprompt:"));
+            Assert.IsTrue(PrinterPorts.IsPromptingPort("FILE:"));
+            Assert.IsFalse(PrinterPorts.IsPromptingPort("USB001"));
+            Assert.IsFalse(PrinterPorts.IsPromptingPort("192.168.1.20"));
+            Assert.IsFalse(PrinterPorts.IsPromptingPort(""));
+            Assert.IsFalse(PrinterPorts.IsPromptingPort(null));
+        }
+
+        [TestMethod]
         public void OtherFailures_AreNotRetriedOnAnotherEngine()
         {
             var spooler = new RecordingEngine { Throw = new InvalidOperationException("spooler said no") };
