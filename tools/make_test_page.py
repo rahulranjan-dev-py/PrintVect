@@ -19,6 +19,7 @@ from fontTools.ttLib import TTFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "docs", "samples", "PrintVect-test-page.xps")
+OUT_SHAPES = os.path.join(ROOT, "docs", "samples", "PrintVect-test-shapes.xps")
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/TTF/DejaVuSans.ttf",
@@ -69,7 +70,7 @@ def subset_font(path, chars):
     return buffer.getvalue()
 
 
-def fixed_page():
+def fixed_page(with_text=True):
     parts = ['<FixedPage xmlns="%s" xml:lang="en-US" Width="%s" Height="%s">' % (XPS_NS, PAGE_W, PAGE_H)]
     # Frame 10 mm (37.8 units) inside the paper edge.
     m = 37.8
@@ -83,9 +84,15 @@ def fixed_page():
         parts.append('  <Path Data="M %d,400 L %d,400 L %d,450 L %d,450 Z" Fill="%s" />' % (x, x + 100, x + 100, x, GREY))
     # A thin rule.
     parts.append('  <Path Data="M 72,1010 L %.1f,1010" Stroke="%s" StrokeThickness="1" />' % (PAGE_W - 72, BLACK))
-    for size, x, y, colour, text in TEXT:
-        parts.append('  <Glyphs FontUri="%s" FontRenderingEmSize="%s" OriginX="%s" OriginY="%s" Fill="%s" UnicodeString="%s" />'
-                     % (FONT_PART, size, x, y, colour, escape(text, {'"': "&quot;"})))
+    if with_text:
+        for size, x, y, colour, text in TEXT:
+            parts.append('  <Glyphs FontUri="%s" FontRenderingEmSize="%s" OriginX="%s" OriginY="%s" Fill="%s" UnicodeString="%s" />'
+                         % (FONT_PART, size, x, y, colour, escape(text, {'"': "&quot;"})))
+    else:
+        # A big cross and a circle-ish diamond so the page is recognisable without any text.
+        parts.append('  <Path Data="M 72,520 L 721.7,900" Stroke="%s" StrokeThickness="6" />' % BLUE)
+        parts.append('  <Path Data="M 721.7,520 L 72,900" Stroke="%s" StrokeThickness="6" />' % BLUE)
+        parts.append('  <Path Data="M 396.85,560 L 480,710 L 396.85,860 L 313.7,710 Z" Fill="%s" />' % GREY)
     parts.append("</FixedPage>")
     return "\n".join(parts)
 
@@ -93,6 +100,12 @@ def fixed_page():
 def main():
     chars = "".join(sorted(set("".join(t[4] for t in TEXT))))
     font_bytes = subset_font(find_font(), chars)
+    write_package(OUT, font_bytes, with_text=True)
+    write_package(OUT_SHAPES, None, with_text=False)
+    return 0
+
+
+def write_package(out, font_bytes, with_text):
 
     content_types = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
@@ -101,8 +114,8 @@ def main():
         '  <Default Extension="fdseq" ContentType="application/vnd.ms-package.xps-fixeddocumentsequence+xml" />\n'
         '  <Default Extension="fdoc" ContentType="application/vnd.ms-package.xps-fixeddocument+xml" />\n'
         '  <Default Extension="fpage" ContentType="application/vnd.ms-package.xps-fixedpage+xml" />\n'
-        '  <Default Extension="ttf" ContentType="application/vnd.ms-opentype" />\n'
-        '</Types>\n')
+        + ('  <Default Extension="ttf" ContentType="application/vnd.ms-opentype" />\n' if with_text else '')
+        + '</Types>\n')
     root_rels = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
@@ -123,19 +136,20 @@ def main():
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
         '  <Relationship Id="rId1" Type="http://schemas.microsoft.com/xps/2005/06/required-resource" Target="%s" />\n'
         '</Relationships>\n' % FONT_PART)
-    page = '<?xml version="1.0" encoding="utf-8"?>\n' + fixed_page() + "\n"
+    page = '<?xml version="1.0" encoding="utf-8"?>\n' + fixed_page(with_text) + "\n"
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("[Content_Types].xml", content_types)
         z.writestr("_rels/.rels", root_rels)
         z.writestr("FixedDocumentSequence.fdseq", fdseq)
         z.writestr("Documents/1/FixedDocument.fdoc", fdoc)
         z.writestr("Documents/1/Pages/1.fpage", page)
-        z.writestr("Documents/1/Pages/_rels/1.fpage.rels", page_rels)
-        z.writestr(FONT_PART.lstrip("/"), font_bytes)
-    print("wrote %s (%d bytes, font subset %d bytes, %d characters)" % (os.path.relpath(OUT, ROOT), os.path.getsize(OUT), len(font_bytes), len(chars)))
-    return 0
+        if with_text:
+            z.writestr("Documents/1/Pages/_rels/1.fpage.rels", page_rels)
+            z.writestr(FONT_PART.lstrip("/"), font_bytes)
+    print("wrote %s (%d bytes%s)" % (os.path.relpath(out, ROOT), os.path.getsize(out),
+                                     ", font subset %d bytes" % len(font_bytes) if font_bytes else ", no text"))
 
 
 if __name__ == "__main__":
