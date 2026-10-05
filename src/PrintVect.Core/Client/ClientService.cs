@@ -24,19 +24,26 @@ namespace PrintVect.Core.Client
 
         private readonly AppPaths _paths;
         private readonly IJobSender _sender;
+        private readonly ILocalPrintQueue _localQueue;
         private readonly object _gate = new object();
         private readonly Dictionary<string, Watched> _watched = new Dictionary<string, Watched>(StringComparer.OrdinalIgnoreCase);
         private readonly CancellationTokenSource _stopping = new CancellationTokenSource();
         private readonly Timer _sweep;
         private bool _disposed;
 
-        public ClientService(AppPaths paths, IJobSender sender, ClientJobTracker tracker)
+        public ClientService(AppPaths paths, IJobSender sender, ClientJobTracker tracker) : this(paths, sender, tracker, new WinspoolPrintQueue())
+        {
+        }
+
+        /// <param name="localQueue">Reads the virtual printer's queue for document names; tests pass a fake.</param>
+        public ClientService(AppPaths paths, IJobSender sender, ClientJobTracker tracker, ILocalPrintQueue localQueue)
         {
             if (paths == null) throw new ArgumentNullException(nameof(paths));
             if (sender == null) throw new ArgumentNullException(nameof(sender));
             if (tracker == null) throw new ArgumentNullException(nameof(tracker));
             _paths = paths;
             _sender = sender;
+            _localQueue = localQueue;
             Jobs = tracker;
             _sweep = new Timer(_ => SweepOldFiles(), null, SweepInterval, SweepInterval);
         }
@@ -93,7 +100,7 @@ namespace PrintVect.Core.Client
                     return;
                 }
                 string folder = ClientPrinterNames.SpoolFolder(_paths, printer.PrinterId);
-                var watcher = new SpoolWatcher(folder, printer.FriendlyName) { StableFor = StableFor };
+                var watcher = new SpoolWatcher(folder, printer.FriendlyName, printer.LocalPrinterName, _localQueue) { StableFor = StableFor };
                 var entry = new Watched { Printer = printer, Watcher = watcher };
                 watcher.FileReady += (s, e) => OnFileReady(entry, e);
                 _watched[printer.PrinterId] = entry;
@@ -166,34 +173,79 @@ namespace PrintVect.Core.Client
             return Directory.Exists(folder) ? Directory.GetFiles(folder).Length : 0;
         }
 
-        /// <summary>Puts the files that wait in pending\ back where the watcher takes them. Returns how many.</summary>
+        /// <summary>
+        /// Sends the files that wait in pending\ again, each under the job id it already has, so the
+        /// job keeps its row in the list. Works after a restart too (the id comes from the file name).
+        /// Returns how many were put back on their way.
+        /// </summary>
         public int RetryPending(string printerId)
         {
+            RemotePrinter printer = FindPrinter(printerId);
+            if (printer == null)
+            {
+                Log.Warn("Retry: printer " + printerId + " is not watched; nothing sent.");
+                return 0;
+            }
             string root = ClientPrinterNames.SpoolFolder(_paths, printerId);
             string pending = Path.Combine(root, ClientPrinterNames.PendingFolderName);
             if (!Directory.Exists(pending)) return 0;
-            int moved = 0;
+
+            int started = 0;
             foreach (string file in Directory.GetFiles(pending))
             {
-                string target = Path.Combine(root, "retry-" + Path.GetFileName(file).Replace("job-", ""));
+                string jobId = JobIdFromFileName(file) ?? Guid.NewGuid().ToString("D");
+                string target = Path.Combine(root, SpoolWatcher.JobPrefix + jobId + Path.GetExtension(file));
                 try
                 {
+                    if (File.Exists(target)) File.Delete(target);
                     File.Move(file, target);
-                    moved++;
                 }
                 catch (Exception ex)
                 {
-                    Log.Warn("Could not move " + file + " back for a retry: " + ex.Message);
+                    Log.Warn(jobId, "Could not move " + file + " back for a retry: " + ex.Message);
+                    continue;
                 }
+
+                ClientJobRecord record = Jobs.Find(jobId);
+                if (record == null)
+                {
+                    XpsFileInfo info = XpsFormatSniffer.Inspect(target);
+                    record = new ClientJobRecord
+                    {
+                        JobId = jobId,
+                        PrinterId = printer.PrinterId,
+                        PrinterFriendly = printer.FriendlyName,
+                        HostName = printer.HostName,
+                        Doc = DocumentName(info.Title, target),
+                        Format = info.Format ?? JobFormats.FromFileName(target),
+                        Size = new FileInfo(target).Length,
+                        StartedAt = DateTime.Now
+                    };
+                }
+                record.FilePath = target;
+                Update(record, ClientJobStates.Queued, "Waiting to be sent again to " + printer.HostName + ".");
+                Log.Info(jobId, "Retry: sending the waiting job to " + printer.HostName + " again.");
+                ClientJobRecord toSend = record;
+                Task.Run(() => SendWithRetriesAsync(printer, toSend, _stopping.Token));
+                started++;
             }
-            if (moved > 0)
-            {
-                Log.Info("Retry: " + moved + " waiting job(s) for printer " + printerId + " put back for sending.");
-                Watched entry;
-                lock (_gate) { _watched.TryGetValue(printerId, out entry); }
-                if (entry != null) entry.Watcher.Scan("retry");
-            }
-            return moved;
+            return started;
+        }
+
+        /// <summary>"job-{guid}.xps" to the guid, else null.</summary>
+        public static string JobIdFromFileName(string path)
+        {
+            string name = Path.GetFileNameWithoutExtension(path) ?? "";
+            if (!name.StartsWith(SpoolWatcher.JobPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+            Guid id;
+            return Guid.TryParse(name.Substring(SpoolWatcher.JobPrefix.Length), out id) ? id.ToString("D") : null;
+        }
+
+        private static string DocumentName(string document, string filePath)
+        {
+            if (!string.IsNullOrWhiteSpace(document)) return document.Trim();
+            string name = Path.GetFileNameWithoutExtension(filePath) ?? "document";
+            return name.StartsWith(SpoolWatcher.JobPrefix, StringComparison.OrdinalIgnoreCase) ? "Print job" : name;
         }
 
         private void OnFileReady(Watched entry, SpoolFileReadyEventArgs file)
@@ -205,7 +257,7 @@ namespace PrintVect.Core.Client
                 PrinterId = printer.PrinterId,
                 PrinterFriendly = printer.FriendlyName,
                 HostName = printer.HostName,
-                Doc = string.IsNullOrEmpty(file.Title) ? Path.GetFileNameWithoutExtension(file.FilePath) : file.Title,
+                Doc = DocumentName(file.Document, file.FilePath),
                 Format = file.Format,
                 Size = file.Size,
                 FilePath = file.FilePath,

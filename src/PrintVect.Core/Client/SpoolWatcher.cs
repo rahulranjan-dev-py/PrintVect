@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using PrintVect.Core.Logging;
 
@@ -12,7 +13,11 @@ namespace PrintVect.Core.Client
         public string JobId { get; set; }
         public string FilePath { get; set; }
         public string Format { get; set; }
+        /// <summary>The document name the user saw (from the printer's queue), else the title inside the file, else null.</summary>
+        public string Document { get; set; }
+        /// <summary>The title stored inside the package, if any.</summary>
         public string Title { get; set; }
+        public string User { get; set; }
         public long Size { get; set; }
     }
 
@@ -21,28 +26,43 @@ namespace PrintVect.Core.Client
     /// FileSystemWatcher plus a 2-second polling fallback. A file is taken when it can be opened
     /// exclusively and its size has not changed for one second; it is renamed to job-{guid}.xps
     /// at once so the next print cannot overwrite it, inspected, and announced through FileReady.
-    /// Files that are not XPS packages go to failed\ with a log line instead of being sent.
+    /// While a file is being written, the virtual printer's own queue is read so the job keeps the
+    /// document name the user saw ("Untitled - Notepad"). Files that are not XPS packages go to
+    /// failed\ with a log line instead of being sent.
     /// </summary>
     public sealed class SpoolWatcher : IDisposable
     {
         public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
         public static readonly TimeSpan DefaultStableFor = TimeSpan.FromSeconds(1);
-        private const string JobPrefix = "job-";
+        /// <summary>A queue job seen this long ago without a file to pair it with is forgotten.</summary>
+        public static readonly TimeSpan LocalJobMemory = TimeSpan.FromMinutes(10);
+        public const string JobPrefix = "job-";
 
         private readonly string _folder;
         private readonly string _printerLabel;
+        private readonly string _localPrinterName;
+        private readonly ILocalPrintQueue _localQueue;
         private readonly object _gate = new object();
         private readonly Dictionary<string, Seen> _seen = new Dictionary<string, Seen>(StringComparer.OrdinalIgnoreCase);
+        private readonly List<LocalQueueJob> _recentLocalJobs = new List<LocalQueueJob>();
+        private readonly HashSet<uint> _knownLocalJobIds = new HashSet<uint>();
         private FileSystemWatcher _watcher;
         private Timer _poll;
         private bool _scanning;
         private bool _disposed;
 
-        public SpoolWatcher(string folder, string printerLabel)
+        public SpoolWatcher(string folder, string printerLabel) : this(folder, printerLabel, null, null)
+        {
+        }
+
+        /// <param name="localPrinterName">The virtual printer on this PC whose queue names the jobs; null to skip that.</param>
+        public SpoolWatcher(string folder, string printerLabel, string localPrinterName, ILocalPrintQueue localQueue)
         {
             if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("A folder is required.", nameof(folder));
             _folder = folder;
             _printerLabel = printerLabel ?? folder;
+            _localPrinterName = localPrinterName;
+            _localQueue = localQueue;
             StableFor = DefaultStableFor;
         }
 
@@ -111,25 +131,69 @@ namespace PrintVect.Core.Client
         private void ScanOnce()
         {
             if (!Directory.Exists(_folder)) return;
+            var candidates = new List<string>();
             foreach (string path in Directory.GetFiles(_folder))
             {
                 string name = Path.GetFileName(path);
                 if (name.StartsWith(JobPrefix, StringComparison.OrdinalIgnoreCase)) continue;   // already claimed, being sent
                 if (name.StartsWith(".", StringComparison.Ordinal) || name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)) continue;
+                candidates.Add(path);
+            }
 
+            if (candidates.Count > 0)
+            {
+                NoteLocalJobs();   // the print job is in the printer's queue while its file is written
+            }
+            foreach (string path in candidates)
+            {
                 if (IsComplete(path))
                 {
                     Claim(path);
                 }
             }
+
             lock (_gate)
             {
-                var stale = new List<string>();
-                foreach (KeyValuePair<string, Seen> pair in _seen)
-                {
-                    if (!File.Exists(pair.Key)) stale.Add(pair.Key);
-                }
+                var stale = _seen.Keys.Where(key => !File.Exists(key)).ToList();
                 foreach (string key in stale) _seen.Remove(key);
+                DateTime cutoff = DateTime.Now - LocalJobMemory;
+                _recentLocalJobs.RemoveAll(job => job.SeenAt < cutoff);
+            }
+        }
+
+        private void NoteLocalJobs()
+        {
+            if (_localQueue == null || string.IsNullOrEmpty(_localPrinterName)) return;
+            IList<LocalQueueJob> jobs;
+            try
+            {
+                jobs = _localQueue.Jobs(_localPrinterName);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("The queue of \"" + _localPrinterName + "\" could not be read: " + ex.Message);
+                return;
+            }
+            lock (_gate)
+            {
+                foreach (LocalQueueJob job in jobs)
+                {
+                    if (job == null || !_knownLocalJobIds.Add(job.JobId)) continue;
+                    job.SeenAt = DateTime.Now;
+                    _recentLocalJobs.Add(job);
+                    Log.Info("Print job " + job.JobId + " \"" + job.Document + "\" by " + job.User + " is being written for \"" + _printerLabel + "\".");
+                }
+            }
+        }
+
+        private LocalQueueJob TakeOldestLocalJob()
+        {
+            lock (_gate)
+            {
+                if (_recentLocalJobs.Count == 0) return null;
+                LocalQueueJob job = _recentLocalJobs[0];
+                _recentLocalJobs.RemoveAt(0);
+                return job;
             }
         }
 
@@ -197,16 +261,22 @@ namespace PrintVect.Core.Client
             string target = Path.Combine(_folder, JobPrefix + jobId + "." + XpsFormatSniffer.ExtensionFor(info.Format));
             if (!TryMove(path, target, jobId)) return;
 
+            LocalQueueJob local = TakeOldestLocalJob();
+            string document = local != null && !string.IsNullOrWhiteSpace(local.Document) ? local.Document.Trim() : info.Title;
             long size = new FileInfo(target).Length;
             Log.Info(jobId, string.Format("New print job for \"{0}\": {1} ({2:N0} bytes, {3}{4}) renamed to {5}.",
                 _printerLabel, Path.GetFileName(path), size, info.Format,
-                info.Title == null ? "" : ", title \"" + info.Title + "\"", Path.GetFileName(target)));
+                document == null ? "" : ", document \"" + document + "\"", Path.GetFileName(target)));
 
             EventHandler<SpoolFileReadyEventArgs> handler = FileReady;
             if (handler == null) return;
             try
             {
-                handler(this, new SpoolFileReadyEventArgs { JobId = jobId, FilePath = target, Format = info.Format, Title = info.Title, Size = size });
+                handler(this, new SpoolFileReadyEventArgs
+                {
+                    JobId = jobId, FilePath = target, Format = info.Format, Document = document, Title = info.Title,
+                    User = local == null ? null : local.User, Size = size
+                });
             }
             catch (Exception ex)
             {
