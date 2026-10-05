@@ -31,7 +31,9 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
                          (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer,
                          remove-all (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter,
-                         DeletePrinter, Users:Modify ACL on spool\<id>); M5 adds firewall rules. Results
+                         DeletePrinter, Users:Modify ACL on spool\<id>; when no XPS writer driver is installed it
+                         installs Windows' own from the driver store (InstallPrinterDriverFromPackage) or turns on
+                         the feature with DISM Printing-XPSServices-Features); M5 adds firewall rules. Results
                          come back as exit code + JSON file (ElevateLauncher runs it with "runas").
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability.
 - installer/PrintVect.iss Inno Setup 6 (milestone M5).
