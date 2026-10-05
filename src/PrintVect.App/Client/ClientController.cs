@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PrintVect.Core.Client;
 using PrintVect.Core.Config;
+using PrintVect.Core.Discovery;
 using PrintVect.Core.Elevation;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Protocol;
@@ -15,9 +16,10 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Client
 {
     /// <summary>
-    /// Glue between the Use tab and the Core client service: looks up hosts, adds and removes
-    /// virtual printers through PrintVect.Elevate.exe, keeps config.json in step, and re-raises
-    /// job events on the UI thread.
+    /// Glue between the Use tab and the Core client service: finds hosts (UDP discovery while the
+    /// Use tab is open, or a typed name), adds and removes virtual printers through
+    /// PrintVect.Elevate.exe, keeps config.json and the job history in step, follows a host that
+    /// changed its address, and re-raises events on the UI thread.
     /// </summary>
     internal sealed class ClientController : IDisposable
     {
@@ -28,6 +30,8 @@ namespace PrintVect.App.Client
         private readonly AppConfig _config;
         private readonly SynchronizationContext _ui;
         private readonly ClientService _service;
+        private readonly DiscoveryClient _discovery;
+        private readonly JobHistoryStore<ClientJobRecord> _history;
 
         public ClientController(AppPaths paths, ConfigStore store, AppConfig config, SynchronizationContext ui)
         {
@@ -40,13 +44,21 @@ namespace PrintVect.App.Client
             _config = config;
             _ui = ui;
 
-            _service = new ClientService(paths, new TcpJobSender(), new ClientJobTracker())
+            var tracker = new ClientJobTracker();
+            _history = new JobHistoryStore<ClientJobRecord>(paths.ClientHistoryFile, () => tracker.All());
+            tracker.Restore(_history.Load());
+            tracker.Changed += (s, record) => _history.QueueSave();
+
+            _service = new ClientService(paths, new TcpJobSender(), tracker)
             {
                 Pin = config.Pin,
                 KeepSentFilesHours = config.KeepSentFilesHours
             };
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
+
+            _discovery = new DiscoveryClient(config.DiscoveryPort);
+            _discovery.HostsChanged += (s, e) => Post(OnHostsChanged);
         }
 
         public ClientJobTracker Jobs
@@ -70,6 +82,27 @@ namespace PrintVect.App.Client
 
         /// <summary>Raised on the UI thread after a printer was added or removed.</summary>
         public event EventHandler PrintersChanged;
+
+        /// <summary>Raised on the UI thread when the list of hosts found in the office changed.</summary>
+        public event EventHandler FoundChanged;
+
+        /// <summary>Hosts that answered discovery or were looked up by hand, with their printers.</summary>
+        public IList<DiscoveredHost> FoundHosts
+        {
+            get { return _discovery.Hosts; }
+        }
+
+        public bool IsDiscovering
+        {
+            get { return _discovery.IsRunning; }
+        }
+
+        /// <summary>The Use tab calls this when it is shown or hidden: discovery only runs while it is visible.</summary>
+        public void SetDiscoveryActive(bool active)
+        {
+            if (active) _discovery.Start();
+            else _discovery.Stop();
+        }
 
         public IList<RemotePrinter> Printers
         {
@@ -103,12 +136,47 @@ namespace PrintVect.App.Client
         }
 
         /// <summary>Asks a host PC for its printer list (the "list" request over TCP).</summary>
-        public Task<ListReply> LookupHostAsync(string hostOrIp, CancellationToken ct)
+        public async Task<ListReply> LookupHostAsync(string hostOrIp, CancellationToken ct)
         {
             string address = (hostOrIp ?? "").Trim();
             if (address.Length == 0) throw new ArgumentException("A PC name or IP address is required.", nameof(hostOrIp));
             Log.Info("Looking up the printers of " + address + ".");
-            return new JobClient(address, _config.JobPort).ListPrintersAsync(ct);
+            ListReply reply = await new JobClient(address, _config.JobPort).ListPrintersAsync(ct).ConfigureAwait(true);
+            _discovery.AddManual(reply, address);
+            return reply;
+        }
+
+        /// <summary>On the UI thread: a host appeared, changed or left. Follows hosts whose address changed (DHCP).</summary>
+        private void OnHostsChanged()
+        {
+            bool printersChanged = false;
+            foreach (DiscoveredHost host in _discovery.Hosts)
+            {
+                if (string.IsNullOrEmpty(host.Ip)) continue;
+                foreach (RemotePrinter printer in _config.RemotePrinters)
+                {
+                    bool sameHost = host.Printers.Any(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase))
+                                    || string.Equals(host.Host, printer.HostName, StringComparison.OrdinalIgnoreCase);
+                    if (!sameHost) continue;
+                    bool moved = !string.Equals(printer.HostIp, host.Ip, StringComparison.OrdinalIgnoreCase)
+                                 || (host.Port > 0 && printer.Port != host.Port);
+                    if (!moved) continue;
+                    Log.Info("Host " + host.Host + " for \"" + printer.LocalPrinterName + "\" now answers at " + host.Ip + ":" + host.Port
+                             + " (was " + printer.HostIp + ":" + printer.Port + "); updating config.json.");
+                    printer.HostIp = host.Ip;
+                    if (host.Port > 0) printer.Port = host.Port;
+                    if (!string.IsNullOrWhiteSpace(host.Host)) printer.HostName = host.Host;
+                    printersChanged = true;
+                    try { _service.StartWatching(printer); }
+                    catch (Exception ex) { Log.Warn("Watcher of \"" + printer.LocalPrinterName + "\" could not take the new address: " + ex.Message); }
+                }
+            }
+            if (printersChanged)
+            {
+                TrySave();
+                Raise(PrintersChanged);
+            }
+            Raise(FoundChanged);
         }
 
         /// <summary>Creates the virtual printer (UAC prompt) and remembers it. The result's Message is for the user.</summary>
@@ -235,6 +303,11 @@ namespace PrintVect.App.Client
         {
             var lines = new List<string>();
             lines.Add("Elevate helper: " + (File.Exists(ElevateLauncher.DefaultExePath()) ? "present" : "MISSING") + " (" + ElevateLauncher.DefaultExePath() + ")");
+            lines.Add("Discovery: " + (_discovery.IsRunning ? "looking every " + _discovery.Interval.TotalSeconds + " s on UDP port " + _config.DiscoveryPort : "idle (runs while the Use tab is open)"));
+            IList<DiscoveredHost> found = _discovery.Hosts;
+            lines.Add("Hosts found: " + (found.Count == 0 ? "(none)" : string.Join("; ", found.Select(h => h.Host + " at " + h.Ip + ":" + h.Port
+                + " with " + h.Printers.Count + " printer(s)" + (h.Manual ? ", typed" : ", seen " + h.LastSeen.ToString("HH:mm:ss", CultureInfo.InvariantCulture))))));
+            lines.Add("Job history file: " + _history.Path);
             if (_config.RemotePrinters.Count == 0)
             {
                 lines.Add("Printers from other PCs: (none)");
@@ -305,7 +378,9 @@ namespace PrintVect.App.Client
 
         public void Dispose()
         {
+            _discovery.Dispose();
             _service.Dispose();
+            _history.Dispose();
         }
     }
 }

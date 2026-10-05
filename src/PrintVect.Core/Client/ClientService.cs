@@ -100,6 +100,7 @@ namespace PrintVect.Core.Client
                     return;
                 }
                 string folder = ClientPrinterNames.SpoolFolder(_paths, printer.PrinterId);
+                RecoverInterrupted(folder, printer);
                 var watcher = new SpoolWatcher(folder, printer.FriendlyName, printer.LocalPrinterName, _localQueue) { StableFor = StableFor };
                 var entry = new Watched { Printer = printer, Watcher = watcher };
                 watcher.FileReady += (s, e) => OnFileReady(entry, e);
@@ -230,6 +231,45 @@ namespace PrintVect.Core.Client
                 started++;
             }
             return started;
+        }
+
+        /// <summary>
+        /// A job-* file still in the folder root was being sent when PrintVect closed: move it to
+        /// pending\ so Retry can send it, and mark its record.
+        /// </summary>
+        private void RecoverInterrupted(string folder, RemotePrinter printer)
+        {
+            if (!Directory.Exists(folder)) return;
+            foreach (string file in Directory.GetFiles(folder, SpoolWatcher.JobPrefix + "*"))
+            {
+                string jobId = JobIdFromFileName(file) ?? Guid.NewGuid().ToString("D");
+                string pending = Path.Combine(folder, ClientPrinterNames.PendingFolderName, Path.GetFileName(file));
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(pending));
+                    if (File.Exists(pending)) File.Delete(pending);
+                    File.Move(file, pending);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn(jobId, "Interrupted job file " + file + " could not be moved to pending: " + ex.Message);
+                    continue;
+                }
+                ClientJobRecord record = Jobs.Find(jobId);
+                if (record == null)
+                {
+                    XpsFileInfo info = XpsFormatSniffer.Inspect(pending);
+                    record = new ClientJobRecord
+                    {
+                        JobId = jobId, PrinterId = printer.PrinterId, PrinterFriendly = printer.FriendlyName, HostName = printer.HostName,
+                        Doc = DocumentName(info.Title, pending), Format = info.Format ?? JobFormats.FromFileName(pending),
+                        Size = new FileInfo(pending).Length, StartedAt = File.GetLastWriteTime(pending)
+                    };
+                }
+                record.FilePath = pending;
+                Update(record, ClientJobStates.Pending, "PrintVect was closed before this job was sent. Press Retry waiting jobs.");
+                Log.Info(jobId, "Interrupted job moved to pending\\ for Retry.");
+            }
         }
 
         /// <summary>"job-{guid}.xps" to the guid, else null.</summary>
