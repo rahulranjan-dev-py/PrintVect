@@ -175,6 +175,10 @@ driver store and, when the store does not have it, turns on the Windows feature 
 Writer" itself (DISM, no internet needed, up to a few minutes) before creating the printer. The Elevate
 log shows each step; if Windows asks for a restart, the message says so.
 
+Build 23 on 2026-10-05: **M2 accepted.** On the third PC the SPM printer of NIRSACHATTISO was added (the
+XPS writer driver installed by PrintVect) and the test page printed; on the Windows 10 PC step 7 (Retry
+resumes the same job) and step 11 (Remove) passed.
+
 What happens underneath (for reading the logs): the client's PrintVect.Elevate.exe creates the folder
 `spool\<printer id>`, gives Users modify rights on it, adds a Local Port whose name is that folder's
 `job.xps`, and creates the printer with the Windows XPS Document Writer driver (the older
