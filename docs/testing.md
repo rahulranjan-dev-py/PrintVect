@@ -168,6 +168,13 @@ its own job id, so the orange row itself turns Sending and Printed, and it also 
 document the user printed ("Untitled - Notepad", read from the virtual printer's own queue while the
 file is written) instead of job-<id>. Step 11 (Remove) is still to be reported.
 
+Build 22 on 2026-10-05, on a third PC (host NIRSACHATTISO sharing "SPM"): Add to this PC failed with
+"Neither Microsoft XPS Document Writer nor ... v4 is installed on this PC". That PC has no XPS Document
+Writer at all (the Windows feature is off). Build 23 installs Windows' own XPS writer driver from the
+driver store and, when the store does not have it, turns on the Windows feature "Microsoft XPS Document
+Writer" itself (DISM, no internet needed, up to a few minutes) before creating the printer. The Elevate
+log shows each step; if Windows asks for a restart, the message says so.
+
 What happens underneath (for reading the logs): the client's PrintVect.Elevate.exe creates the folder
 `spool\<printer id>`, gives Users modify rights on it, adds a Local Port whose name is that folder's
 `job.xps`, and creates the printer with the Windows XPS Document Writer driver (the older

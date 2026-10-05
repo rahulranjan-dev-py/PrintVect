@@ -146,6 +146,7 @@ netsh advfirewall firewall add rule name="PrintVect Jobs (TCP-In)" dir=in action
 | Chrome or Edge blocks the download as dangerous | Unsigned new program; use **Download dangerous file** / **Keep** from the download's menu (see above). |
 | Antivirus on Windows 7 quarantines the EXE | Add the PrintVect folder and `C:\ProgramData\PrintVect` to its exclusions; the program is unsigned for now. |
 | "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
+| "Neither Microsoft XPS Document Writer nor ... v4 is installed" when adding a printer | PrintVect installs Windows' own XPS Document Writer itself. If it still fails: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK, restart if asked, then Add again. |
 | "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
 | The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host (Settings, Printers & scanners, the printer, Open print queue). The job is in that queue and prints when the printer is ready; PrintVect keeps reporting its page progress for up to 15 minutes. |
 | Microsoft Print to PDF: the job shows Printing until you answer the Save window | That is how Windows works: choose a file name and the job becomes Printed. |
