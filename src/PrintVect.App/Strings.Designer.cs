@@ -271,6 +271,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Other PCs cannot find this one by themselves: UDP port {0} could not be opened ({1}). They can still [rest of string was truncated].
+        /// </summary>
+        internal static string DiscoveryStartError {
+            get {
+                return ResourceManager.GetString("DiscoveryStartError", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Document.
         /// </summary>
         internal static string JobColDocument {
@@ -928,6 +937,33 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to {0} printer(s) on {1} PC(s)..
+        /// </summary>
+        internal static string UseFoundCount {
+            get {
+                return ResourceManager.GetString("UseFoundCount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printers found in the office:.
+        /// </summary>
+        internal static string UseFoundLabel {
+            get {
+                return ResourceManager.GetString("UseFoundLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No PC is sharing a printer right now. PrintVect keeps looking every 10 seconds. If a PC should be li [rest of string was truncated].
+        /// </summary>
+        internal static string UseFoundNone {
+            get {
+                return ResourceManager.GetString("UseFoundNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} shares {1} printer(s):.
         /// </summary>
         internal static string UseFoundPrinters {
@@ -937,7 +973,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to PC name or IP address:.
+        ///   Looks up a localized string similar to Not listed? PC name or IP address:.
         /// </summary>
         internal static string UseHostLabel {
             get {
@@ -946,7 +982,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Use a printer that another PC in the office shares. Type that PC's name or IP address, press Look up [rest of string was truncated].
+        ///   Looks up a localized string similar to Printers that other PCs in the office share appear here by themselves. Choose one, press Add to this [rest of string was truncated].
         /// </summary>
         internal static string UseIntro {
             get {
@@ -1023,6 +1059,15 @@ namespace PrintVect.App {
         internal static string UseNothingWaiting {
             get {
                 return ResourceManager.GetString("UseNothingWaiting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to on this PC.
+        /// </summary>
+        internal static string UseOnThisPc {
+            get {
+                return ResourceManager.GetString("UseOnThisPc", resourceCulture);
             }
         }
 

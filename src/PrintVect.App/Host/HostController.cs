@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using PrintVect.Core.Config;
+using PrintVect.Core.Discovery;
 using PrintVect.Core.Host;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Printing;
@@ -14,8 +15,9 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Host
 {
     /// <summary>
-    /// Glue between the UI and the Core host service: turns sharing on and off, keeps
-    /// config.json in step, and re-raises job events on the UI thread.
+    /// Glue between the UI and the Core host service: turns sharing on and off (with the UDP
+    /// discovery responder), keeps config.json and the job history in step, and re-raises job
+    /// events on the UI thread.
     /// </summary>
     internal sealed class HostController : IDisposable
     {
@@ -23,6 +25,8 @@ namespace PrintVect.App.Host
         private readonly AppConfig _config;
         private readonly SynchronizationContext _ui;
         private readonly HostService _service;
+        private readonly DiscoveryResponder _discovery;
+        private readonly JobHistoryStore<JobRecord> _history;
 
         public HostController(AppPaths paths, ConfigStore store, AppConfig config, SynchronizationContext ui)
         {
@@ -35,6 +39,10 @@ namespace PrintVect.App.Host
             _ui = ui;
 
             _service = new HostService(paths, new HostPrintEngine(), new LocalPrinters(), new JobTracker());
+            _history = new JobHistoryStore<JobRecord>(paths.HostHistoryFile, () => _service.Jobs.All());
+            _service.Jobs.Restore(_history.Load());
+            _service.Jobs.Changed += (s, record) => _history.QueueSave();
+            _discovery = new DiscoveryResponder(address => _service.BuildListReplyFor(address));
             _service.Pin = config.Pin;
             _service.UpdateSharedPrinters(config.SharedPrinters);
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));
@@ -64,6 +72,9 @@ namespace PrintVect.App.Host
 
         /// <summary>Plain-language reason the last attempt to share failed, or null.</summary>
         public string LastError { get; private set; }
+
+        /// <summary>Why discovery answers are off although sharing is on, or null.</summary>
+        public string DiscoveryError { get; private set; }
 
         /// <summary>Raised on the UI thread.</summary>
         public event EventHandler<JobRecord> JobReceived;
@@ -97,6 +108,7 @@ namespace PrintVect.App.Host
                     _service.Pin = _config.Pin;
                     _service.UpdateSharedPrinters(_config.SharedPrinters);
                     _service.Start(_config.JobPort);
+                    StartDiscovery();
                 }
                 catch (SocketException ex)
                 {
@@ -115,6 +127,7 @@ namespace PrintVect.App.Host
             }
             else
             {
+                _discovery.Stop();
                 _service.Stop();
             }
 
@@ -123,6 +136,20 @@ namespace PrintVect.App.Host
             TrySave();
             Raise(SharingChanged);
             return true;
+        }
+
+        private void StartDiscovery()
+        {
+            try
+            {
+                _discovery.Start(_config.DiscoveryPort);
+                DiscoveryError = null;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Discovery could not start on UDP port " + _config.DiscoveryPort + "; other PCs must type this PC's name.", ex);
+                DiscoveryError = string.Format(Strings.DiscoveryStartError, _config.DiscoveryPort, ex.Message);
+            }
         }
 
         /// <summary>At start-up: resume sharing if it was on last time.</summary>
@@ -192,6 +219,10 @@ namespace PrintVect.App.Host
             lines.Add(IsSharing
                 ? "Sharing: ON, listening on TCP port " + _service.Port + " since " + (_service.StartedAt ?? DateTime.Now).ToString("HH:mm:ss", CultureInfo.InvariantCulture)
                 : "Sharing: OFF" + (LastError == null ? "" : " (last attempt failed: " + LastError + ")"));
+            lines.Add(_discovery.IsListening
+                ? "Discovery: answering on UDP port " + _discovery.Port + " (" + _discovery.RequestsAnswered + " request(s) answered)"
+                : "Discovery: OFF" + (DiscoveryError == null ? "" : " (" + DiscoveryError + ")"));
+            lines.Add("Job history file: " + _history.Path);
             lines.Add("Shared printers: " + (_config.SharedPrinters.Count == 0
                 ? "(none)"
                 : string.Join("; ", _config.SharedPrinters.Select(p => "\"" + p.FriendlyName + "\" = " + p.LocalName + " [id " + p.Id + "]"))));
@@ -246,7 +277,9 @@ namespace PrintVect.App.Host
 
         public void Dispose()
         {
+            _discovery.Dispose();
             _service.Dispose();
+            _history.Dispose();
         }
     }
 }

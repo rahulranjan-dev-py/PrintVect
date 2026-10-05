@@ -69,6 +69,45 @@ namespace PrintVect.Core.Host
             return snapshot;
         }
 
+        /// <summary>
+        /// Puts the jobs of an earlier run back (oldest first). A job that was not finished when
+        /// PrintVect closed is marked as failed with a plain explanation. Raises no events.
+        /// </summary>
+        public int Restore(IEnumerable<JobRecord> records)
+        {
+            if (records == null) return 0;
+            int restored = 0;
+            lock (_gate)
+            {
+                foreach (JobRecord record in records.Where(r => r != null && !string.IsNullOrEmpty(r.JobId))
+                                                     .OrderBy(r => r.ReceivedAt).ThenBy(r => r.Sequence))
+                {
+                    if (_byId.ContainsKey(record.JobId)) continue;
+                    if (!JobStates.IsFinal(record.State))
+                    {
+                        record.State = JobStates.Error;
+                        record.Message = "PrintVect was closed before this job finished. Check the printer and send it again if needed.";
+                        if (record.FinishedAt == null) record.FinishedAt = record.ReceivedAt;
+                    }
+                    record.Sequence = ++_sequence;
+                    _byId[record.JobId] = record;
+                    _order.Enqueue(record.JobId);
+                    restored++;
+                }
+                while (_order.Count > MaxRecords)
+                {
+                    _byId.Remove(_order.Dequeue());
+                }
+            }
+            return restored;
+        }
+
+        /// <summary>Every job, newest first (what the history file stores).</summary>
+        public IList<JobRecord> All()
+        {
+            return Recent(MaxRecords);
+        }
+
         public JobRecord Update(string jobId, string state, string message)
         {
             JobRecord snapshot;
