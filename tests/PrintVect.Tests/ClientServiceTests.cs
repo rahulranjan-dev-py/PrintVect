@@ -38,6 +38,18 @@ namespace PrintVect.Tests
         }
     }
 
+    internal sealed class FakeLocalQueue : ILocalPrintQueue
+    {
+        public readonly List<LocalQueueJob> Current = new List<LocalQueueJob>();
+        public readonly List<string> Asked = new List<string>();
+
+        public IList<LocalQueueJob> Jobs(string printerName)
+        {
+            lock (Asked) Asked.Add(printerName);
+            lock (Current) return Current.Select(j => new LocalQueueJob { JobId = j.JobId, Document = j.Document, User = j.User }).ToList();
+        }
+    }
+
     [TestClass]
     public class SpoolWatcherTests
     {
@@ -67,6 +79,48 @@ namespace PrintVect.Tests
                 Assert.IsTrue(File.Exists(ready.FilePath));
                 Assert.IsFalse(File.Exists(Path.Combine(temp.Path, "job.xps")));
                 Assert.IsTrue(ready.Size > 0);
+            }
+        }
+
+        [TestMethod]
+        public void NamesTheJobAfterTheDocumentInThePrinterQueue()
+        {
+            using (var temp = new TempFolder())
+            {
+                var queue = new FakeLocalQueue();
+                queue.Current.Add(new LocalQueueJob { JobId = 7, Document = "Untitled - Notepad", User = "HP" });
+                using (var watcher = new SpoolWatcher(temp.Path, "Test", "PrintVect - Test @HOST", queue) { StableFor = TimeSpan.FromMilliseconds(100) })
+                {
+                    SpoolFileReadyEventArgs ready = null;
+                    var seen = new ManualResetEventSlim();
+                    watcher.FileReady += (s, e) => { ready = e; seen.Set(); };
+                    watcher.Start();
+
+                    XpsPackages.Write(Path.Combine(temp.Path, "job.xps"), true, null);
+                    for (int i = 0; i < 100 && !seen.IsSet; i++)
+                    {
+                        watcher.Scan("test");
+                        Thread.Sleep(50);
+                    }
+
+                    Assert.IsTrue(seen.IsSet, "the file was never taken");
+                    Assert.AreEqual("Untitled - Notepad", ready.Document);
+                    Assert.AreEqual("HP", ready.User);
+                    Assert.IsNull(ready.Title);
+                    CollectionAssert.Contains(queue.Asked, "PrintVect - Test @HOST");
+
+                    // The queue entry is used once: a second file without a queue job falls back to the file's own title.
+                    queue.Current.Clear();
+                    seen.Reset();
+                    XpsPackages.Write(Path.Combine(temp.Path, "job.xps"), true, "Inside title");
+                    for (int i = 0; i < 100 && !seen.IsSet; i++)
+                    {
+                        watcher.Scan("test");
+                        Thread.Sleep(50);
+                    }
+                    Assert.IsTrue(seen.IsSet);
+                    Assert.AreEqual("Inside title", ready.Document);
+                }
             }
         }
 
@@ -148,7 +202,7 @@ namespace PrintVect.Tests
         {
             var paths = new AppPaths(temp.Path);
             paths.EnsureDirectories();
-            var service = new ClientService(paths, sender, new ClientJobTracker())
+            var service = new ClientService(paths, sender, new ClientJobTracker(), new FakeLocalQueue())
             {
                 StableFor = TimeSpan.FromMilliseconds(50),
                 StatusPollInterval = TimeSpan.FromMilliseconds(50),
@@ -263,8 +317,42 @@ namespace PrintVect.Tests
                     }
                     Assert.IsTrue(done.IsSet, "the retried job never finished");
                     Assert.AreEqual(ClientJobStates.Printed, retried.State);
-                    Assert.AreEqual("Pending one", retried.Doc, "the title is read from the file again");
+                    Assert.AreEqual(record.JobId, retried.JobId, "Retry resends the same job, it does not create a new one");
+                    Assert.AreEqual("Pending one", retried.Doc);
                     Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                    Assert.AreEqual(record.JobId, sender.Sent.Last().JobId);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void PendingFilesFromAnEarlierRunKeepTheirIdOnRetry()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                using (ClientService service = Service(temp, sender))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    string pending = Path.Combine(ClientPrinterNames.SpoolFolder(paths, printer.PrinterId), ClientPrinterNames.PendingFolderName);
+                    string oldId = Guid.NewGuid().ToString("D");
+                    XpsPackages.Write(Path.Combine(pending, "job-" + oldId + ".oxps"), true, "Left over");
+                    service.StartWatching(printer);
+                    Assert.AreEqual(1, service.PendingCount(printer.PrinterId));
+
+                    ClientJobRecord finished = null;
+                    var done = new ManualResetEventSlim();
+                    service.JobFinished += (s, r) => { finished = r; done.Set(); };
+                    Assert.AreEqual(1, service.RetryPending(printer.PrinterId));
+                    Assert.IsTrue(done.Wait(TimeSpan.FromSeconds(10)), "the job never finished");
+
+                    Assert.AreEqual(oldId, finished.JobId);
+                    Assert.AreEqual("Left over", finished.Doc);
+                    Assert.AreEqual(JobFormats.Oxps, finished.Format);
+                    Assert.AreEqual(ClientJobStates.Printed, finished.State);
+                    Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                    Assert.AreEqual("job-" + oldId + ".oxps", sender.Sent[0].FileName, "the file keeps its name and id");
                 }
             }
         }

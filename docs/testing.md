@@ -153,11 +153,20 @@ ships the file to the host.
 | 4 | Select the new printer in the list and press **Send test page**. | Within about 10 s the job appears under "Jobs sent from this PC" as Sending, then Printed; the PrintVect test page comes out of the host's laser; a balloon says "PrintVect-test-page printed on DESKTOP-JK66OQV". On the host, the Share tab lists the job from DESKTOP-CTQLFOK. |
 | 5 | **The real test.** On the client open Notepad, type a line, File, Print, choose "PrintVect - Mail Branch @DESKTOP-JK66OQV", Print. | Within 10 s the page comes out of the host's laser. The job list shows the document name (e.g. "Untitled - Notepad") with state Printed and a balloon appears. |
 | 6 | Print the same Notepad page twice quickly (Print, Print again straight away). | Two pages come out and two jobs are listed. |
-| 7 | Host-off test: on the host untick "Share the ticked printers with the office". On the client print from Notepad again. | Within about 30 s the job turns **Waiting** (orange) with "DESKTOP-JK66OQV could not be reached after 3 tries ... press Retry", a balloon says the same, and "Waiting jobs" shows 1 next to the printer. Turn sharing ON again on the host, then on the client select the printer and press **Retry waiting jobs**: the page prints. |
+| 7 | Host-off test: on the host untick "Share the ticked printers with the office". On the client print from Notepad again. | Within about a minute (three tries, each to the IP and then to the PC name) the job turns **Waiting** (orange) with "DESKTOP-JK66OQV could not be reached after 3 tries ... press Retry", a balloon says the same, and "Waiting jobs" shows 1 next to the printer. Turn sharing ON again on the host, then on the client select the printer and press **Retry waiting jobs**: the page prints **as the same job**: the orange row turns Sending, then Printed. |
 | 8 | Exit PrintVect on the client (tray, Exit), start it again, print from Notepad. | It still prints: the printer and its folder are remembered in config.json. |
 | 9 | Optional: add "Microsoft Print to PDF" the same way and print to it from the client. | The **Save Print Output As** window appears on the **host** PC (that is where the PDF printer is); after saving there the job shows Printed on the client. |
 | 10 | Client: Diagnostics tab, Copy to clipboard. | The section "Printers from other PCs (client role)" lists the printer with its folder, "Elevate helper: present", and the last jobs. |
 | 11 | Client: select the printer, press **Remove**, Yes, then Yes in the Windows permission window. | The printer disappears from the list and from Windows Settings, and `C:\ProgramData\PrintVect\spool\<id>` is gone. Add it again afterwards if you want to keep using it. |
+
+Build 20 on 2026-10-05: steps 1 to 6, 8 and 10 passed on the Windows 10 PC DESKTOP-CTQLFOK. The
+printer was created with the "Microsoft XPS Document Writer v4" driver (the older writer is not installed
+there), so Notepad jobs arrive as OpenXPS; the host printed them on the HP Laser through the spooler
+(XPS2GDI), which settles pitfall 11.2 for Windows 10/11 hosts. Step 7: the job went Waiting as expected,
+but Retry created a new job instead of resuming the waiting one. Build 21 resends the waiting file under
+its own job id, so the orange row itself turns Sending and Printed, and it also names jobs after the
+document the user printed ("Untitled - Notepad", read from the virtual printer's own queue while the
+file is written) instead of job-<id>. Step 11 (Remove) is still to be reported.
 
 What happens underneath (for reading the logs): the client's PrintVect.Elevate.exe creates the folder
 `spool\<printer id>`, gives Users modify rights on it, adds a Local Port whose name is that folder's

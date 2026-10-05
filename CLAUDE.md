@@ -40,8 +40,10 @@ Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer dr
 installed because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher
 (FileSystemWatcher + 2 s polling; file taken when exclusively openable and size stable 1 s) -> rename to
 job-<guid>.xps/.oxps (XpsFormatSniffer looks inside: namespace openxps.org = oxps; it also reads the
-docProps title) -> ClientService sends (3 tries over 30 s, then pending\ + Retry button; sent\ kept 1 h,
-failed\ last 20) and polls status while the host prints.
+docProps title; the v4 writer stores none, so the document name comes from EnumJobs on the virtual
+printer while the port writes) -> ClientService sends (3 tries, each IP then PC name, about a minute;
+then pending\ and the Retry button resends under the same job id; sent\ kept 1 h, failed\ last 20)
+and polls status while the host prints.
 Host: receive into spool\incoming\ -> verify size, sniff the real format -> HostPrintEngine -> reply JSON
 -> watch the job (up to 60 s before replying). One job at a time per printer, arrival
 order, on that printer's worker thread (never the UI thread). Printer statuses and
@@ -85,8 +87,8 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   GetPrinterDriver level 8 to pick XPS_PASS for XPS-based drivers (v4 / attribute 0x2) or XPS2GDI
   for GDI drivers, StartDocPrinter, WritePrinter, EndDocPrinter, GetJob level 2 polling with the
   Windows status text in the log). XpsPrintEngine and SystemPrintingEngine remain as fallbacks for
-  start failures only; .oxps goes the same way on Windows 8+ (the spooler converts OpenXPS; untested on
-  paper until M2's client test), System.Printing on Windows 7. Printers on the PORTPROMPT: or FILE:
+  start failures only; .oxps goes the same way on Windows 8+ (the spooler converts OpenXPS; verified on
+  paper 2026-10-05 with Notepad jobs from the Windows 10 client), System.Printing on Windows 7. Printers on the PORTPROMPT: or FILE:
   port (Microsoft Print to PDF) also use System.Printing: under XPS_PASS the PDF driver saved an
   unreadable file to Documents with no Save window, while AddJob showed the window and made a good PDF. docs/samples has
   PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a
