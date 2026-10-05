@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using PrintVect.App.Client;
 using PrintVect.Core.Client;
 using PrintVect.Core.Config;
+using PrintVect.Core.Discovery;
 using PrintVect.Core.Elevation;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Protocol;
@@ -15,21 +17,23 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// "Use shared printers" (brief, section 7), M2 version: look a host up by PC name or IP,
-    /// add one of its printers to this PC (virtual printer through the Elevate helper), remove it,
-    /// send the test page, retry waiting jobs, and watch the jobs sent from this PC. Automatic
-    /// discovery of hosts arrives in M3.
+    /// "Use shared printers" (brief, section 7): the printers found in the office by themselves
+    /// (UDP discovery runs while this tab is visible) or by a typed PC name, Add to this PC
+    /// (virtual printer through the Elevate helper), Remove, Send test page, Retry waiting jobs,
+    /// and the jobs sent from this PC.
     /// </summary>
     internal sealed class UseTab : UserControl
     {
         private const int MaxJobRows = 50;
 
         private readonly ClientController _controller;
+        private Label _foundLabel;
+        private Label _foundStatus;
+        private ListView _found;
+        private Button _add;
         private TextBox _hostBox;
         private Button _lookup;
         private Label _lookupStatus;
-        private ListView _found;
-        private Button _add;
         private Label _mineLabel;
         private ListView _mine;
         private Button _remove;
@@ -38,10 +42,14 @@ namespace PrintVect.App.Forms
         private Label _mineHint;
         private Label _jobsLabel;
         private ListView _jobs;
-        private ListReply _lastReply;
-        private string _lastTyped;
         private CancellationTokenSource _lookupCancel;
         private bool _busy;
+
+        private sealed class FoundEntry
+        {
+            public DiscoveredHost Host;
+            public PrinterInfo Printer;
+        }
 
         public UseTab(ClientController controller)
         {
@@ -50,12 +58,14 @@ namespace PrintVect.App.Forms
             BuildLayout();
             _controller.JobChanged += OnJobChanged;
             _controller.PrintersChanged += OnPrintersChanged;
+            _controller.FoundChanged += OnFoundChanged;
 
             IList<ClientJobRecord> recent = _controller.Jobs.Recent(MaxJobRows);
             for (int i = recent.Count - 1; i >= 0; i--)
             {
                 UpsertJob(recent[i]);
             }
+            FillFound();
             FillMine();
             UpdateJobCount();
         }
@@ -63,24 +73,37 @@ namespace PrintVect.App.Forms
         private void BuildLayout()
         {
             SuspendLayout();
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 10, Margin = new Padding(0) };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Margin = new Padding(0) };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // intro
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // host box
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // lookup status
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92)); // found printers
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // add button
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // found label + status
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 34));  // found printers
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // add + manual look-up
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // my printers label
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 42));  // my printers
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 30));  // my printers
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // buttons
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // jobs label
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 58));  // jobs
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 36));  // jobs
 
             var intro = new Label { Text = Strings.UseIntro, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 8) };
 
-            var hostRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0) };
+            var foundHead = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 0, 0, 4) };
+            _foundLabel = new Label { Text = Strings.UseFoundLabel, AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 10, 0) };
+            _foundStatus = new Label { AutoSize = true, Margin = new Padding(0), ForeColor = SystemColors.GrayText };
+            foundHead.Controls.AddRange(new Control[] { _foundLabel, _foundStatus });
+
+            _found = CreateList();
+            _found.Columns.Add(Strings.UseColPrinter, 230);
+            _found.Columns.Add(Strings.UseColHost, 150);
+            _found.Columns.Add(Strings.UseColStatus, 160);
+            _found.Margin = new Padding(0, 0, 0, 4);
+            _found.DoubleClick += (s, e) => AddSelected();
+
+            var addRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 0, 0, 10) };
+            _add = CreateButton(Strings.UseAdd, (s, e) => AddSelected());
+            _add.Margin = new Padding(0, 0, 18, 0);
             var hostLabel = new Label { Text = Strings.UseHostLabel, AutoSize = true, Margin = new Padding(0, 6, 6, 0) };
-            _hostBox = new TextBox { Width = 200, Margin = new Padding(0, 2, 8, 0) };
+            _hostBox = new TextBox { Width = 170, Margin = new Padding(0, 2, 8, 0) };
             _hostBox.KeyDown += (s, e) =>
             {
                 if (e.KeyCode == Keys.Enter)
@@ -90,19 +113,8 @@ namespace PrintVect.App.Forms
                 }
             };
             _lookup = CreateButton(Strings.UseLookup, (s, e) => LookUp());
-            hostRow.Controls.AddRange(new Control[] { hostLabel, _hostBox, _lookup });
-
-            _lookupStatus = new Label { AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 4, 0, 4) };
-
-            _found = CreateList();
-            _found.Columns.Add(Strings.UseColPrinter, 300);
-            _found.Columns.Add(Strings.UseColStatus, 120);
-            _found.Margin = new Padding(0, 0, 0, 4);
-            _found.DoubleClick += (s, e) => AddSelected();
-
-            var addRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
-            _add = CreateButton(Strings.UseAdd, (s, e) => AddSelected());
-            addRow.Controls.Add(_add);
+            _lookupStatus = new Label { AutoSize = true, Margin = new Padding(6, 6, 0, 0) };
+            addRow.Controls.AddRange(new Control[] { _add, hostLabel, _hostBox, _lookup, _lookupStatus });
 
             _mineLabel = new Label { Text = Strings.UseMyPrinters, AutoSize = true, Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 4) };
             _mine = CreateList();
@@ -129,15 +141,14 @@ namespace PrintVect.App.Forms
             _jobs.Columns.Add(Strings.JobColMessage, 330);
 
             layout.Controls.Add(intro, 0, 0);
-            layout.Controls.Add(hostRow, 0, 1);
-            layout.Controls.Add(_lookupStatus, 0, 2);
-            layout.Controls.Add(_found, 0, 3);
-            layout.Controls.Add(addRow, 0, 4);
-            layout.Controls.Add(_mineLabel, 0, 5);
-            layout.Controls.Add(_mine, 0, 6);
-            layout.Controls.Add(buttons, 0, 7);
-            layout.Controls.Add(_jobsLabel, 0, 8);
-            layout.Controls.Add(_jobs, 0, 9);
+            layout.Controls.Add(foundHead, 0, 1);
+            layout.Controls.Add(_found, 0, 2);
+            layout.Controls.Add(addRow, 0, 3);
+            layout.Controls.Add(_mineLabel, 0, 4);
+            layout.Controls.Add(_mine, 0, 5);
+            layout.Controls.Add(buttons, 0, 6);
+            layout.Controls.Add(_jobsLabel, 0, 7);
+            layout.Controls.Add(_jobs, 0, 8);
             Controls.Add(layout);
             ResumeLayout(true);
         }
@@ -171,6 +182,61 @@ namespace PrintVect.App.Forms
             return button;
         }
 
+        /// <summary>Discovery only runs while this tab can be seen (brief, section 6).</summary>
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            try
+            {
+                _controller.SetDiscoveryActive(Visible && !IsDisposed);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Discovery could not be switched " + (Visible ? "on" : "off") + ".", ex);
+            }
+        }
+
+        private void FillFound()
+        {
+            string selectedKey = SelectedFoundKey();
+            IList<DiscoveredHost> hosts = _controller.FoundHosts;
+            _found.BeginUpdate();
+            _found.Items.Clear();
+            int printers = 0;
+            foreach (DiscoveredHost host in hosts)
+            {
+                foreach (PrinterInfo printer in host.Printers)
+                {
+                    printers++;
+                    bool onThisPc = _controller.FindPrinter(printer.Id) != null;
+                    string shown = string.IsNullOrWhiteSpace(printer.Friendly) ? printer.Name : printer.Friendly;
+                    string status = ShareTab.StatusText(printer.Status) + (onThisPc ? ", " + Strings.UseOnThisPc : "");
+                    var item = new ListViewItem(new[] { shown, host.Host, status }) { Tag = new FoundEntry { Host = host, Printer = printer } };
+                    if (onThisPc) item.ForeColor = SystemColors.GrayText;
+                    if (FoundKey(host, printer) == selectedKey) item.Selected = true;
+                    _found.Items.Add(item);
+                }
+            }
+            _found.EndUpdate();
+            _foundStatus.Text = hosts.Count == 0 ? Strings.UseFoundNone : string.Format(Strings.UseFoundCount, printers, hosts.Count);
+            if (_found.SelectedItems.Count == 0 && _found.Items.Count > 0)
+            {
+                _found.Items[0].Selected = true;
+            }
+        }
+
+        private static string FoundKey(DiscoveredHost host, PrinterInfo printer)
+        {
+            return host.Host + "|" + printer.Id;
+        }
+
+        private string SelectedFoundKey()
+        {
+            if (_found.SelectedItems.Count == 0) return null;
+            var entry = (FoundEntry)_found.SelectedItems[0].Tag;
+            return FoundKey(entry.Host, entry.Printer);
+        }
+
         private async void LookUp()
         {
             string typed = _hostBox.Text.Trim();
@@ -179,31 +245,19 @@ namespace PrintVect.App.Forms
                 return;
             }
             SetBusy(true);
-            _found.Items.Clear();
-            _lastReply = null;
             _lookupStatus.Text = string.Format(Strings.UseLookingUp, typed);
             _lookupCancel = new CancellationTokenSource();
             try
             {
                 ListReply reply = await _controller.LookupHostAsync(typed, _lookupCancel.Token);
                 if (IsDisposed) return;
-                _lastReply = reply;
-                _lastTyped = typed;
                 string host = string.IsNullOrEmpty(reply.Host) ? typed : reply.Host;
-                foreach (PrinterInfo printer in reply.Printers)
-                {
-                    string shown = string.IsNullOrWhiteSpace(printer.Friendly) ? printer.Name : printer.Friendly;
-                    var item = new ListViewItem(new[] { shown, ShareTab.StatusText(printer.Status) }) { Tag = printer };
-                    _found.Items.Add(item);
-                }
                 _lookupStatus.Text = reply.Printers.Count == 0
                     ? string.Format(Strings.UseNoPrintersShared, host)
                     : string.Format(Strings.UseFoundPrinters, host, reply.Printers.Count);
-                if (_found.Items.Count > 0)
-                {
-                    _found.Items[0].Selected = true;
-                }
                 Log.Info("Look-up of " + typed + ": " + reply.Printers.Count + " printer(s) on " + host + ".");
+                FillFound();
+                SelectHost(host);
             }
             catch (Exception ex)
             {
@@ -219,26 +273,42 @@ namespace PrintVect.App.Forms
             }
         }
 
+        private void SelectHost(string hostName)
+        {
+            foreach (ListViewItem item in _found.Items)
+            {
+                var entry = (FoundEntry)item.Tag;
+                if (string.Equals(entry.Host.Host, hostName, StringComparison.OrdinalIgnoreCase))
+                {
+                    item.Selected = true;
+                    item.EnsureVisible();
+                    return;
+                }
+            }
+        }
+
         private async void AddSelected()
         {
             if (_busy) return;
-            if (_lastReply == null || _found.SelectedItems.Count == 0)
+            if (_found.SelectedItems.Count == 0)
             {
                 _lookupStatus.Text = Strings.UseSelectFound;
                 return;
             }
-            var printer = (PrinterInfo)_found.SelectedItems[0].Tag;
+            var entry = (FoundEntry)_found.SelectedItems[0].Tag;
+            PrinterInfo printer = entry.Printer;
             string friendly = string.IsNullOrWhiteSpace(printer.Friendly) ? printer.Name : printer.Friendly;
             SetBusy(true);
             _lookupStatus.Text = string.Format(Strings.UseAdding, friendly);
             try
             {
-                ElevateResult result = await _controller.AddPrinterAsync(_lastReply, printer, _lastTyped);
+                ElevateResult result = await _controller.AddPrinterAsync(entry.Host.ToListReply(), printer, entry.Host.Ip);
                 if (IsDisposed) return;
                 if (result.Ok)
                 {
                     RemotePrinter added = _controller.FindPrinter(printer.Id);
                     _lookupStatus.Text = added == null ? result.Message : string.Format(Strings.UseAdded, added.LocalPrinterName, added.HostName);
+                    FillFound();
                 }
                 else
                 {
@@ -287,6 +357,7 @@ namespace PrintVect.App.Forms
                 if (result.Ok)
                 {
                     _mineHint.Text = string.Format(Strings.UseRemoved, printer.LocalPrinterName);
+                    FillFound();
                 }
                 else
                 {
@@ -374,6 +445,11 @@ namespace PrintVect.App.Forms
             }
         }
 
+        private void OnFoundChanged(object sender, EventArgs e)
+        {
+            if (!IsDisposed) FillFound();
+        }
+
         private void OnPrintersChanged(object sender, EventArgs e)
         {
             if (!IsDisposed) FillMine();
@@ -441,6 +517,7 @@ namespace PrintVect.App.Forms
         protected override void OnFontChanged(EventArgs e)
         {
             base.OnFontChanged(e);
+            if (_foundLabel != null) _foundLabel.Font = new Font(Font, FontStyle.Bold);
             if (_mineLabel != null) _mineLabel.Font = new Font(Font, FontStyle.Bold);
             if (_jobsLabel != null) _jobsLabel.Font = new Font(Font, FontStyle.Bold);
         }
@@ -451,6 +528,7 @@ namespace PrintVect.App.Forms
             {
                 _controller.JobChanged -= OnJobChanged;
                 _controller.PrintersChanged -= OnPrintersChanged;
+                _controller.FoundChanged -= OnFoundChanged;
                 if (_lookupCancel != null)
                 {
                     _lookupCancel.Cancel();

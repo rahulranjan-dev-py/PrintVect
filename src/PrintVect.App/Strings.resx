@@ -308,10 +308,10 @@ Details: {0}</value>
     <value>Yes</value>
   </data>
   <data name="UseIntro" xml:space="preserve">
-    <value>Use a printer that another PC in the office shares. Type that PC's name or IP address, press Look up, choose the printer and press Add to this PC. Windows asks once for permission. The printer then appears in every program's print window.</value>
+    <value>Printers that other PCs in the office share appear here by themselves. Choose one, press Add to this PC and answer Yes to Windows once. The printer then appears in every program's print window. If a PC is not listed, type its name or IP address and press Look up.</value>
   </data>
   <data name="UseHostLabel" xml:space="preserve">
-    <value>PC name or IP address:</value>
+    <value>Not listed? PC name or IP address:</value>
   </data>
   <data name="UseLookup" xml:space="preserve">
     <value>Look up</value>
@@ -435,5 +435,20 @@ Details: {0}</value>
   </data>
   <data name="DiagClientSection" xml:space="preserve">
     <value>Printers from other PCs (client role)</value>
+  </data>
+  <data name="UseFoundLabel" xml:space="preserve">
+    <value>Printers found in the office:</value>
+  </data>
+  <data name="UseFoundNone" xml:space="preserve">
+    <value>No PC is sharing a printer right now. PrintVect keeps looking every 10 seconds. If a PC should be listed, check that PrintVect is running there with sharing ON (and that its firewall allows UDP port 9150).</value>
+  </data>
+  <data name="UseFoundCount" xml:space="preserve">
+    <value>{0} printer(s) on {1} PC(s).</value>
+  </data>
+  <data name="UseOnThisPc" xml:space="preserve">
+    <value>on this PC</value>
+  </data>
+  <data name="DiscoveryStartError" xml:space="preserve">
+    <value>Other PCs cannot find this one by themselves: UDP port {0} could not be opened ({1}). They can still type this PC's name.</value>
   </data>
 </root>

@@ -83,6 +83,47 @@ namespace PrintVect.Core.Client
             }
         }
 
+        /// <summary>
+        /// Puts the jobs of an earlier run back. A job that was still on its way when PrintVect closed
+        /// is marked: its file waits in pending\ (the service moves it there) or the host had it.
+        /// Raises no events.
+        /// </summary>
+        public int Restore(IEnumerable<ClientJobRecord> records)
+        {
+            if (records == null) return 0;
+            int restored = 0;
+            lock (_gate)
+            {
+                foreach (ClientJobRecord record in records.Where(r => r != null && !string.IsNullOrEmpty(r.JobId)).OrderByDescending(r => r.StartedAt))
+                {
+                    if (_records.Any(r => r.JobId == record.JobId)) continue;
+                    if (record.State == ClientJobStates.Queued || record.State == ClientJobStates.Sending)
+                    {
+                        record.State = ClientJobStates.Pending;
+                        record.Message = "PrintVect was closed before this job was sent. Press Retry waiting jobs.";
+                    }
+                    else if (record.State == ClientJobStates.Printing)
+                    {
+                        record.State = ClientJobStates.Error;
+                        record.Message = "PrintVect was closed while " + (record.HostName ?? "the host") + " was printing this. Check the printer there.";
+                    }
+                    _records.Add(record);
+                    restored++;
+                }
+                while (_records.Count > MaxRecords)
+                {
+                    _records.RemoveAt(_records.Count - 1);
+                }
+            }
+            return restored;
+        }
+
+        /// <summary>Every job, newest first (what the history file stores).</summary>
+        public IList<ClientJobRecord> All()
+        {
+            return Recent(MaxRecords);
+        }
+
         public IList<ClientJobRecord> Recent(int count)
         {
             lock (_gate)

@@ -13,6 +13,8 @@ namespace PrintVect.Core.Config
         public const string ConfigFileName = "config.json";
         public const string SpoolFolderName = "spool";
         public const string LogsFolderName = "logs";
+        public const string HostHistoryFileName = "jobs-host.json";
+        public const string ClientHistoryFileName = "jobs-client.json";
 
         public AppPaths(string root)
         {
@@ -27,6 +29,10 @@ namespace PrintVect.Core.Config
         public string ConfigFile { get { return Path.Combine(Root, ConfigFileName); } }
         public string SpoolDir { get { return Path.Combine(Root, SpoolFolderName); } }
         public string LogsDir { get { return Path.Combine(Root, LogsFolderName); } }
+        /// <summary>Jobs this PC received as a host (survives restarts, M3).</summary>
+        public string HostHistoryFile { get { return Path.Combine(Root, HostHistoryFileName); } }
+        /// <summary>Jobs this PC sent as a client (survives restarts, M3).</summary>
+        public string ClientHistoryFile { get { return Path.Combine(Root, ClientHistoryFileName); } }
 
         /// <summary>%ProgramData%\PrintVect (C:\ProgramData\PrintVect on a normal install).</summary>
         public static AppPaths Default()

@@ -105,4 +105,4 @@ printer name (case-insensitive), so a person can type a name into `pvct-send`.
 | TCP job, status and list requests (host) | M1      | done                        |
 | Client sender (`JobClient`, pvct-send)   | M1      | done                        |
 | PIN check on the host                    | M1      | done (PIN set in config.json until the Settings UI arrives) |
-| UDP discovery                            | M3      | not started                 |
+| UDP discovery                            | M3      | done                        |

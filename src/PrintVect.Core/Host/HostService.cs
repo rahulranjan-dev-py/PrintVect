@@ -312,6 +312,13 @@ namespace PrintVect.Core.Host
             }
         }
 
+        /// <summary>The printer list for an asker at <paramref name="remote"/>, answered as the local address on its subnet.</summary>
+        public ListReply BuildListReplyFor(System.Net.IPAddress remote)
+        {
+            System.Net.IPAddress local = Discovery.LocalNetworks.BestLocalAddressFor(remote, Discovery.LocalNetworks.List());
+            return BuildListReply(local == null ? "" : local.ToString());
+        }
+
         private ListReply BuildListReply(string localIp)
         {
             SharedPrinter[] shared = Volatile.Read(ref _shared);

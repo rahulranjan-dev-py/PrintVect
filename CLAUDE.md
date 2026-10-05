@@ -16,13 +16,14 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
 - Protocol identifiers: discovery text `PVECT-DISCOVER 1`, TCP magic `PVCT`, `"app":"PrintVect"`.
 - All admin work lives in src/PrintVect.Elevate (requireAdministrator manifest, launched with
   ShellExecute "runas"). PrintVect.App is asInvoker and runs as a standard user.
-- Data in %ProgramData%\PrintVect\ : config.json, spool\, logs\ (daily files, keep 14 days).
+- Data in %ProgramData%\PrintVect\ : config.json, spool\, logs\ (daily files, keep 14 days),
+  jobs-host.json and jobs-client.json (job history, last 200, saved a second after a change).
 - All user-visible text lives in src/PrintVect.App/Strings.resx from day one (Hindi is Phase 2).
 - MIT licence (LICENSE in repo root).
 
 ## Architecture
 - src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, Protocol/, Host/, Printing/,
-                         Client/ (spool watcher, sender), Elevation/; later Discovery/. No UI references.
+                         Client/ (spool watcher, sender), Elevation/, Discovery/. No UI references.
 - src/PrintVect.App      WinForms tray exe. Tabs: Share my printers, Use shared printers, Settings,
                          Diagnostics. Closing the window minimises to tray; Exit is in the tray menu.
                          `/tray` switch starts hidden (used by the autostart entry).
@@ -78,8 +79,10 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   Users modify rights on %ProgramData%\PrintVect; until then the logger falls back to a
   per-user file name (PrintVect-<user>-<date>.log) so a second user can still start the app.
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
-  10.148.x). Discovery (M3) must send the broadcast on every interface, not only to
-  255.255.255.255 once, and the host must listen on all IPv4 addresses.
+  10.148.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
+  broadcast and 255.255.255.255; DiscoveryResponder binds 0.0.0.0:9150 and answers from the address
+  on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs only while the Use tab
+  is visible; a typed name goes through the TCP list request and joins the same found list.
 - Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) worked for Microsoft
   Print to PDF (returning only after the Save dialog, job already gone from the queue) but hung
   forever for the USB "HP Laser 103 107 108" without ever creating a spooler job. The XPS Print API
@@ -95,14 +98,10 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   unreadable file to Documents with no Save window, while AddJob showed the window and made a good PDF. docs/samples has
   PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a
   printer problem.
-  On the owner's PC the API's job object refused .NET's QueryInterface for IXpsPrintJob
-  (E_NOINTERFACE) from STA and MTA alike although the job had started, so XpsPrintEngine keeps
-  raw IUnknown pointers and calls Write/Close/GetJobStatus through the COM function table
-  (no interface cast); it runs on an MTA thread with an explicit CoInitializeEx and logs an
-  interface probe once (probe result there: stream answers IXpsPrintJobStream, job answers
-  neither id). The empty print ticket stream MUST be closed before the document is written,
-  or Windows never starts the job (seen: data handed over, no completion, empty PDF). System.Printing's XPS path needs STA: each engine runs its call through
-  ApartmentRunner on the apartment it needs. PrintDispatcher runs one worker per printer;
+  XpsPrintEngine (fallback only): the job object refused QueryInterface for IXpsPrintJob there, so it
+  calls Write/Close/GetJobStatus through raw COM function tables on an MTA thread, and the empty print
+  ticket stream MUST be closed before the document is written or Windows never starts the job.
+  System.Printing's XPS path needs STA: each engine runs through ApartmentRunner on its apartment. PrintDispatcher runs one worker per printer;
   HostService reports a job stuck after 20 min and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
   per session); "Ethernet" 10.148.93.x is the office LAN; the HP Laser is on USB001.
 - Ask before: new dependency, framework change, port change, data-folder change, anything

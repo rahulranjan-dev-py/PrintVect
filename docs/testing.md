@@ -197,6 +197,43 @@ What to paste back after M2:
 2. From the client: the Diagnostics text (step 10), `PrintVect-<date>.log` and `PrintVect-Elevate-<date>.log`.
 3. From the host: `PrintVect-<date>.log` (the job ids match the client's log).
 
-## M3 and later
+## M3: finding hosts by themselves, job history after a restart
+
+Host PC = the Windows 11 PC (sharing ON). Client PC = the Windows 10 PC (its "Mail Branch" printer
+from M2 is still there) or any other office PC with PrintVect. Nobody should have to type an address
+any more: while the **Use shared printers** tab is open, PrintVect asks the office every 10 seconds
+(UDP port 9150, out of every network card) and lists every PC that answers.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On both PCs: Exit PrintVect, unzip the latest `PrintVect-build-<n>` over `C:\PrintVect`, start it. On the host check "Sharing is ON". If Windows shows a "Windows Security Alert" for PrintVect.App on the host, tick Private networks and **Allow access** (that is the UDP port). | Both windows open. |
+| 2 | Host: Diagnostics tab, Refresh. | Under "Printer sharing (host role)": "Discovery: answering on UDP port 9150 (0 request(s) answered)". If it says OFF with a reason, paste it. |
+| 3 | Client: open the **Use shared printers** tab and wait up to 10 s. | "Printers found in the office:" lists Mail Branch and Microsoft Print to PDF with Host PC DESKTOP-JK66OQV, **without typing anything**. The line next to the heading says "2 printer(s) on 1 PC(s)". A printer already on this PC is grey with ", on this PC" after its status. |
+| 3a | **Only if the list stays empty for 30 s:** on the host run the UDP firewall command below in a Command Prompt **as administrator**, then on the client click another tab and come back to the Use tab. | The list fills within 10 s. If not, paste the Diagnostics text of both PCs. |
+| 4 | Client: select a printer that is not on this PC yet (Microsoft Print to PDF), **Add to this PC**, Yes to Windows. | Added as in M2; it now shows ", on this PC" in the found list and appears under "Printers from other PCs on this PC". |
+| 5 | Host: untick sharing. Client: watch the found list. | Within about 30 s the host's printers disappear and the grey line says "No PC is sharing a printer right now...". Tick sharing ON again on the host: they are back within 10 s. |
+| 6 | Restart test: on the client, Exit PrintVect and start it again; look at "Jobs sent from this PC". Do the same on the host and look at the Share tab's job list. | The jobs from before the restart are still listed on both PCs, with their states, and "Printed today" still counts them (files `jobs-client.json` and `jobs-host.json` in `C:\ProgramData\PrintVect`). |
+| 7 | Typing still works: in "Not listed? PC name or IP address" type `DESKTOP-JK66OQV`, **Look up**. | The status line says "DESKTOP-JK66OQV shares 2 printer(s)" and the host stays in the found list. |
+| 8 | Client: Diagnostics, Refresh (with the Use tab visited first). | "Discovery: looking every 10 s on UDP port 9150" or "idle (runs while the Use tab is open)", and "Hosts found: DESKTOP-JK66OQV at 10.148.93.218:9151 with 2 printer(s), seen hh:mm:ss". |
+| 9 | Optional, the third PC (SPM): open its Use tab. | It lists the host(s) on its network by itself too. |
+
+Firewall rule for discovery on the host (only if step 3a was needed; run as administrator):
+
+```
+netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in action=allow protocol=UDP localport=9150 program="C:\PrintVect\PrintVect.App.exe" profile=private,domain
+```
+
+Why a client needs no rule: Windows lets the answers in because this PC asked first. Why the host
+answers from the right card: it picks the address on the asker's subnet, so the phone tether on
+"Ethernet 2" does not get in the way of the office LAN. Broadcasts do not cross subnets; a host on
+another subnet is still reachable by typing its name or IP.
+
+Known limits at M3, by design: the found list only shows hosts on this PC's own subnet(s); a host that
+changes its IP address is followed automatically only while the Use tab is open (otherwise the next
+job tries the IP, then the PC name); the Settings tab is still read-only (M6).
+
+What to paste back after M3: whether each step matched, and the Diagnostics text of both PCs.
+
+## M4 and later
 
 Steps are added here when each milestone is delivered.
