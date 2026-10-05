@@ -121,13 +121,21 @@ namespace PrintVect.Elevate
             IList<string> installed = VirtualPrinters.InstalledDrivers();
             Log.Info("Installed printer drivers: " + (installed.Count == 0 ? "(none)" : string.Join("; ", installed)));
             string driver = VirtualPrinters.ChooseDriver(installed, requestedDriver);
+            var notes = new List<string>();
+            bool restartNeeded = false;
+            if (driver == null && requestedDriver == null)
+            {
+                driver = InstallXpsWriterDriver(notes, out restartNeeded);
+            }
             if (driver == null)
             {
                 result.ExitCode = ElevateExitCodes.Failed;
                 result.Message = requestedDriver != null
                     ? "The printer driver \"" + requestedDriver + "\" is not installed on this PC."
-                    : "Neither \"" + VirtualPrinters.DriverV3 + "\" nor \"" + VirtualPrinters.DriverV4 + "\" is installed on this PC. "
-                      + "Turn on the Windows feature \"Microsoft XPS Document Writer\" (Settings, Apps, Optional features, More Windows features) and try again.";
+                    : "Neither \"" + VirtualPrinters.DriverV3 + "\" nor \"" + VirtualPrinters.DriverV4 + "\" is installed on this PC, and PrintVect could not install it"
+                      + (notes.Count == 0 ? "." : " (" + string.Join("; ", notes) + ").")
+                      + (restartNeeded ? " Windows asks for a restart: restart this PC, then press Add to this PC again."
+                                       : " Turn on the Windows feature \"Microsoft XPS Document Writer\" (Settings, Apps, Optional features, More Windows features), restart if Windows asks, and try again.");
                 return result;
             }
 
@@ -153,7 +161,59 @@ namespace PrintVect.Elevate
             }
 
             return Ok(result, (existed ? "The printer \"" + name + "\" was already there." : "Printer \"" + name + "\" created with driver \"" + driver + "\".")
-                              + " It writes to " + port + ".");
+                              + " It writes to " + port + "." + (notes.Count == 0 ? "" : " (" + string.Join("; ", notes) + ")"));
+        }
+
+        /// <summary>
+        /// No XPS Document Writer driver is installed: install Windows' own one from the driver store,
+        /// and when the store does not have it, turn on the Windows feature and try again.
+        /// Returns the driver name that is installed afterwards, or null.
+        /// </summary>
+        private static string InstallXpsWriterDriver(List<string> notes, out bool restartNeeded)
+        {
+            restartNeeded = false;
+            string[] candidates = WindowsInfo.IsWindows8OrLater
+                ? new[] { VirtualPrinters.DriverV4, VirtualPrinters.DriverV3 }
+                : new[] { VirtualPrinters.DriverV3 };
+
+            string driver = InstallFromStore(candidates, notes);
+            if (driver != null) return driver;
+
+            Log.Info("No XPS Document Writer driver in the driver store; turning on the Windows feature.");
+            string problem = VirtualPrinters.TryEnableXpsWriterFeature(TimeSpan.FromMinutes(4), out restartNeeded);
+            if (problem != null)
+            {
+                notes.Add("Windows feature: " + problem);
+                return null;
+            }
+            notes.Add("the Windows feature Microsoft XPS Document Writer was turned on" + (restartNeeded ? ", Windows asks for a restart" : ""));
+
+            IList<string> installed = VirtualPrinters.InstalledDrivers();
+            Log.Info("Installed printer drivers now: " + (installed.Count == 0 ? "(none)" : string.Join("; ", installed)));
+            driver = VirtualPrinters.ChooseDriver(installed, null);
+            return driver ?? InstallFromStore(candidates, notes);
+        }
+
+        private static string InstallFromStore(string[] candidates, List<string> notes)
+        {
+            foreach (string candidate in candidates)
+            {
+                string problem = VirtualPrinters.TryInstallDriverFromStore(candidate);
+                if (problem != null)
+                {
+                    notes.Add("\"" + candidate + "\" from the driver store: " + problem);
+                    continue;
+                }
+                IList<string> installed = VirtualPrinters.InstalledDrivers();
+                string driver = VirtualPrinters.ChooseDriver(installed, null);
+                if (driver != null)
+                {
+                    notes.Add("\"" + driver + "\" was installed from the Windows driver store");
+                    return driver;
+                }
+                notes.Add("\"" + candidate + "\" was reported installed but is not listed");
+            }
+            return null;
         }
 
         private static ElevateResult RemovePrinter(ElevateResult result, ElevateArguments arguments)

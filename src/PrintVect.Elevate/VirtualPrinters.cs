@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -89,6 +90,93 @@ namespace PrintVect.Elevate
             }
             return installed.FirstOrDefault(d => string.Equals(d, DriverV3, StringComparison.OrdinalIgnoreCase))
                    ?? installed.FirstOrDefault(d => string.Equals(d, DriverV4, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Installs one of Windows' own printer drivers from the driver store (what PowerShell's
+        /// Add-PrinterDriver does without an .inf path). Returns null when done, else the problem.
+        /// </summary>
+        public static string TryInstallDriverFromStore(string driverName)
+        {
+            try
+            {
+                int hr = NativeMethods.InstallPrinterDriverFromPackage(null, null, driverName, null, 0);
+                if (hr == 0)
+                {
+                    Log.Info("Printer driver \"" + driverName + "\" installed from the Windows driver store.");
+                    return null;
+                }
+                Exception reason = Marshal.GetExceptionForHR(hr);
+                string problem = "0x" + hr.ToString("X8") + (reason == null ? "" : " " + reason.Message);
+                Log.Warn("Printer driver \"" + driverName + "\" could not be installed from the driver store: " + problem);
+                return problem;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Printer driver \"" + driverName + "\" could not be installed from the driver store: " + ex.Message);
+                return ex.Message;
+            }
+        }
+
+        /// <summary>
+        /// Turns on the Windows feature "Microsoft XPS Document Writer" with DISM (inbox, no internet).
+        /// Returns null when the feature is on, else the problem. Sets restartNeeded when Windows says so.
+        /// </summary>
+        public static string TryEnableXpsWriterFeature(TimeSpan timeout, out bool restartNeeded)
+        {
+            restartNeeded = false;
+            string dism = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "dism.exe");
+            if (!File.Exists(dism))
+            {
+                return dism + " was not found.";
+            }
+            var info = new ProcessStartInfo(dism, "/online /enable-feature /featurename:Printing-XPSServices-Features /all /norestart")
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            Log.Info("Turning on the Windows feature Microsoft XPS Document Writer: " + dism + " " + info.Arguments);
+            try
+            {
+                using (Process process = Process.Start(info))
+                {
+                    if (process == null) return "DISM did not start.";
+                    var output = new System.Text.StringBuilder();
+                    process.OutputDataReceived += (s, e) => { if (e.Data != null) lock (output) output.AppendLine(e.Data); };
+                    process.ErrorDataReceived += (s, e) => { if (e.Data != null) lock (output) output.AppendLine(e.Data); };
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    if (!process.WaitForExit((int)timeout.TotalMilliseconds))
+                    {
+                        try { process.Kill(); } catch (Exception ex) { Log.Warn("DISM could not be stopped: " + ex.Message); }
+                        return "DISM did not finish within " + timeout.TotalMinutes + " minutes.";
+                    }
+                    process.WaitForExit();
+                    string text;
+                    lock (output) text = output.ToString().Trim();
+                    Log.Info("DISM finished with exit code " + process.ExitCode + (text.Length == 0 ? "." : ":\n" + text));
+                    if (process.ExitCode == 0) return null;
+                    if (process.ExitCode == 3010)
+                    {
+                        restartNeeded = true;
+                        return null;
+                    }
+                    return "DISM exit code " + process.ExitCode + (text.Length == 0 ? "" : " (" + LastLine(text) + ")");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("DISM could not be run: " + ex.Message);
+                return ex.Message;
+            }
+        }
+
+        private static string LastLine(string text)
+        {
+            string[] lines = text.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            return lines.Length == 0 ? "" : lines[lines.Length - 1].Trim();
         }
 
         public static void AddLocalPort(string portName)
@@ -365,6 +453,10 @@ namespace PrintVect.Elevate
             [DllImport("winspool.drv", EntryPoint = "EnumPrinterDriversW", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
             internal static extern bool EnumPrinterDrivers(string pName, string pEnvironment, uint level, IntPtr pDriverInfo, uint cbBuf,
                                                            out uint pcbNeeded, out uint pcReturned);
+
+            [DllImport("winspool.drv", EntryPoint = "InstallPrinterDriverFromPackageW", CharSet = CharSet.Unicode, ExactSpelling = true)]
+            internal static extern int InstallPrinterDriverFromPackage(string pszServer, string pszInfPath, string pszDriverName,
+                                                                      string pszEnvironment, uint dwFlags);
 
             [DllImport("winspool.drv", EntryPoint = "EnumPrintersW", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
             internal static extern bool EnumPrinters(uint flags, string name, uint level, IntPtr pPrinterEnum, uint cbBuf,
