@@ -24,7 +24,15 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
 - Status pills fully rounded. Active tab: 3 px accent-green underline.
 - Mock-up size 1040 x 680 at 100 %; top bar 56 px; content padding 20/24 px; card gap 16 px.
 
-## Mapping to PrintVect (agreed items are ticked when the owner confirms)
+## Decisions (owner delegated them on 2026-10-06; all of the below is agreed)
+- Fonts: Manrope and JetBrains Mono are bundled (SIL Open Font License, licence text shipped beside
+  them), loaded privately at start-up, fallbacks Segoe UI and Consolas.
+- Order: M5 (installer with the new icon and the fonts) first, then M6 = this look plus hardening
+  (copies prompt, presence signal, Pause, PIN screen, plain-language polish).
+- Window frame: Windows' own dark title bar, no hand-drawn frame.
+- The tray icon uses a simplified 16 px glyph (printer body and one green bar).
+
+## Mapping to PrintVect (agreed)
 - Tabs Office / Queue / Printers / Settings = Share my printers (this PC as host) / jobs sent and
   received / Use shared printers (printers from other PCs) / Settings with a Diagnostics section.
 - "Computers" card and list = PCs that use this host, from a light presence signal (M6), with their
