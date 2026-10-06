@@ -240,6 +240,13 @@ job tries the IP, then the PC name); the Settings tab is still read-only (M6).
 
 What to paste back after M3: whether each step matched, and the Diagnostics text of both PCs.
 
-## M4 and later
+## M4: Windows 7 pass (skipped)
+
+Decided 2026-10-06: the office has no Windows 7 PC, so the Windows 7 pass of the brief is skipped and
+PrintVect is tested on Windows 10 and 11 only. The code keeps what Windows 7 compatibility costs nothing
+(.NET Framework 4.8, no newer Windows APIs, the v3 XPS writer driver and System.Printing paths for a
+Windows 7 PC), but none of it is verified. After M3 the next milestone is M5 (installer), then M6.
+
+## M5 and later
 
 Steps are added here when each milestone is delivered.

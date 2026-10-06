@@ -1,8 +1,8 @@
 # PrintVect - CLAUDE.md
 
 ## What this is
-Windows tray app that shares printers across a LAN of mixed Windows 7 / 8 / 10 / 11 PCs
-without drivers or credentials on the client. Full brief (written under the working name
+Windows tray app that shares printers across a LAN of Windows 10 / 11 PCs (Windows 7 / 8 by
+construction only, untested) without drivers or credentials on the client. Full brief (written under the working name
 MudranSetu; PrintVect is the chosen name): docs/MudranSetu_Claude_Code_Guide.pdf.
 Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: docs/testing.md.
 
@@ -66,7 +66,8 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
 
 ## Workflow
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
-  then wait for the owner's result before starting the next one.
+  then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
+  the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing.
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`.
