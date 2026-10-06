@@ -88,11 +88,13 @@ namespace PrintVect.Tests
             var tracker = new JobTracker();
             int events = 0;
             tracker.Changed += (s, r) => events++;
+            // Times early today, so they are in the past whatever the clock says now (and still "today").
+            DateTime earlier = DateTime.Today.AddSeconds(1);
             int restored = tracker.Restore(new[]
             {
-                new JobRecord { JobId = "old", State = JobStates.Printed, ReceivedAt = DateTime.Today.AddHours(8), FinishedAt = DateTime.Today.AddHours(8) },
-                new JobRecord { JobId = "cut", State = JobStates.Printing, ReceivedAt = DateTime.Today.AddHours(9) },
-                new JobRecord { JobId = "cut", State = JobStates.Printing, ReceivedAt = DateTime.Today.AddHours(9) },
+                new JobRecord { JobId = "old", State = JobStates.Printed, ReceivedAt = earlier, FinishedAt = earlier },
+                new JobRecord { JobId = "cut", State = JobStates.Printing, ReceivedAt = earlier.AddSeconds(1) },
+                new JobRecord { JobId = "cut", State = JobStates.Printing, ReceivedAt = earlier.AddSeconds(1) },
                 null
             });
 
@@ -117,9 +119,9 @@ namespace PrintVect.Tests
             var tracker = new ClientJobTracker();
             int restored = tracker.Restore(new[]
             {
-                new ClientJobRecord { JobId = "done", State = ClientJobStates.Printed, StartedAt = DateTime.Today.AddHours(8) },
-                new ClientJobRecord { JobId = "sending", State = ClientJobStates.Sending, StartedAt = DateTime.Today.AddHours(9), HostName = "COUNTER1" },
-                new ClientJobRecord { JobId = "printing", State = ClientJobStates.Printing, StartedAt = DateTime.Today.AddHours(10), HostName = "COUNTER1" }
+                new ClientJobRecord { JobId = "done", State = ClientJobStates.Printed, StartedAt = DateTime.Today.AddSeconds(1) },
+                new ClientJobRecord { JobId = "sending", State = ClientJobStates.Sending, StartedAt = DateTime.Today.AddSeconds(2), HostName = "COUNTER1" },
+                new ClientJobRecord { JobId = "printing", State = ClientJobStates.Printing, StartedAt = DateTime.Today.AddSeconds(3), HostName = "COUNTER1" }
             });
 
             Assert.AreEqual(3, restored);

@@ -218,6 +218,7 @@ namespace PrintVect.Core.Client
                         PrinterFriendly = printer.FriendlyName,
                         HostName = printer.HostName,
                         Doc = DocumentName(info.Title, target),
+                        Copies = Math.Max(1, info.Copies),
                         Format = info.Format ?? JobFormats.FromFileName(target),
                         Size = new FileInfo(target).Length,
                         StartedAt = DateTime.Now
@@ -262,7 +263,7 @@ namespace PrintVect.Core.Client
                     record = new ClientJobRecord
                     {
                         JobId = jobId, PrinterId = printer.PrinterId, PrinterFriendly = printer.FriendlyName, HostName = printer.HostName,
-                        Doc = DocumentName(info.Title, pending), Format = info.Format ?? JobFormats.FromFileName(pending),
+                        Doc = DocumentName(info.Title, pending), Copies = Math.Max(1, info.Copies), Format = info.Format ?? JobFormats.FromFileName(pending),
                         Size = new FileInfo(pending).Length, StartedAt = File.GetLastWriteTime(pending)
                     };
                 }
@@ -300,6 +301,7 @@ namespace PrintVect.Core.Client
                 Doc = DocumentName(file.Document, file.FilePath),
                 Format = file.Format,
                 Size = file.Size,
+                Copies = Math.Max(1, file.Copies),
                 FilePath = file.FilePath,
                 State = ClientJobStates.Queued,
                 Message = "Waiting to be sent to " + printer.HostName + ".",
@@ -329,6 +331,7 @@ namespace PrintVect.Core.Client
                     RequestHeader header = RequestHeader.ForJob(printer.PrinterId, Path.GetFileName(record.FilePath), record.Format,
                         record.Size, record.Doc, Pin);
                     header.JobId = jobId;
+                    header.Copies = Math.Max(1, record.Copies);
                     JobReply reply = await _sender.SendAsync(printer, header, record.FilePath, ct).ConfigureAwait(false);
                     await HandleReplyAsync(printer, record, reply, ct).ConfigureAwait(false);
                     return;
