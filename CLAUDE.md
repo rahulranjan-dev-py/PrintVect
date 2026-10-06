@@ -37,9 +37,8 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
                          the feature with DISM Printing-XPSServices-Features); M5 adds firewall rules. Results
                          come back as exit code + JSON file (ElevateLauncher runs it with "runas").
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability.
-- installer/PrintVect.iss Inno Setup 6 (milestone M5). docs/design/ holds the owner's icon (SVG) and
-                         visual spec (dark graphite look, Manrope + JetBrains Mono bundled under the OFL),
-                         applied in M6 with Windows' own dark title bar, no hand-drawn frame.
+- installer/PrintVect.iss Inno Setup 6 (M5). docs/design/: the owner's icon (SVG) and visual spec (dark
+                         graphite, Manrope + JetBrains Mono bundled under the OFL), applied in M6, native dark title bar.
 
 Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer driver, the v3 one when
 installed because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher
