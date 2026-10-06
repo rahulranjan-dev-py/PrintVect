@@ -86,6 +86,10 @@ namespace PrintVect.Core.Protocol
         [JsonProperty("pin", NullValueHandling = NullValueHandling.Ignore)]
         public string Pin { get; set; }
 
+        /// <summary>Copies the host should print; 1 when absent. Read from the XPS print ticket on the client (M3).</summary>
+        [Newtonsoft.Json.JsonProperty("copies", DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
+        public int Copies { get; set; } = 1;
+
         public static RequestHeader ForList()
         {
             return new RequestHeader { Type = RequestTypes.List };

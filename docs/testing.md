@@ -228,6 +228,12 @@ answers from the right card: it picks the address on the asker's subnet, so the 
 "Ethernet 2" does not get in the way of the office LAN. Broadcasts do not cross subnets; a host on
 another subnet is still reachable by typing its name or IP.
 
+Copies (seen 2026-10-06): printing 2 copies from Word to a PrintVect printer gave one page, because the
+XPS writer records the copies count inside the file instead of repeating the pages. From build 26 the client
+reads that count from the file's print ticket and the host prints the document that many times (each copy its
+own Windows job); the job list shows "2 copies". Chrome hides the Copies field for the XPS writer altogether,
+so Chrome users still print twice until M6 adds PrintVect's own copies prompt.
+
 Known limits at M3, by design: the found list only shows hosts on this PC's own subnet(s); a host that
 changes its IP address is followed automatically only while the Use tab is open (otherwise the next
 job tries the IP, then the PC name); the Settings tab is still read-only (M6).

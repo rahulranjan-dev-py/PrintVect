@@ -18,6 +18,8 @@ namespace PrintVect.Core.Printing
         public string DocumentName { get; set; }
         public string ClientName { get; set; }
         public string UserName { get; set; }
+        /// <summary>How many times the document is printed (each copy is its own Windows job).</summary>
+        public int Copies { get; set; } = 1;
     }
 
     /// <summary>What happened to a print request: printed, error, or still printing after the wait.</summary>

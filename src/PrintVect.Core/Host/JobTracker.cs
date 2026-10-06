@@ -18,6 +18,7 @@ namespace PrintVect.Core.Host
         public string Doc { get; set; }
         public string Format { get; set; }
         public long Size { get; set; }
+        public int Copies { get; set; } = 1;
         public string State { get; set; }
         public string Message { get; set; }
         public DateTime ReceivedAt { get; set; }

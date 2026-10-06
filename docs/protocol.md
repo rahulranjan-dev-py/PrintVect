@@ -61,6 +61,10 @@ relay) and **631** are never allowed.
 }
 ```
 
+`copies` (optional, default 1, at most 99) asks the host to print the document that many times; the client
+fills it from the XPS print ticket inside the file (`JobCopiesAllDocuments`), which Word and Excel set when the
+user chooses copies. A host that receives no `copies` reads the ticket itself.
+
 `format` is `xps` or `oxps` (the Windows 8+ v4 XPS writer produces OpenXPS). The host does not trust
 the field blindly: it looks inside the package (the OpenXPS namespace `schemas.openxps.org/oxps/v1.0`
 versus the XPS namespace `schemas.microsoft.com/xps/2005/06`) and prints by what it finds, logging a

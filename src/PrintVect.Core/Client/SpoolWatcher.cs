@@ -19,6 +19,8 @@ namespace PrintVect.Core.Client
         public string Title { get; set; }
         public string User { get; set; }
         public long Size { get; set; }
+        /// <summary>Copies asked for in the file's print ticket; 1 when none.</summary>
+        public int Copies { get; set; } = 1;
     }
 
     /// <summary>
@@ -266,7 +268,7 @@ namespace PrintVect.Core.Client
             long size = new FileInfo(target).Length;
             Log.Info(jobId, string.Format("New print job for \"{0}\": {1} ({2:N0} bytes, {3}{4}) renamed to {5}.",
                 _printerLabel, Path.GetFileName(path), size, info.Format,
-                document == null ? "" : ", document \"" + document + "\"", Path.GetFileName(target)));
+                (document == null ? "" : ", document \"" + document + "\"") + (info.Copies > 1 ? ", " + info.Copies + " copies" : ""), Path.GetFileName(target)));
 
             EventHandler<SpoolFileReadyEventArgs> handler = FileReady;
             if (handler == null) return;
@@ -275,7 +277,7 @@ namespace PrintVect.Core.Client
                 handler(this, new SpoolFileReadyEventArgs
                 {
                     JobId = jobId, FilePath = target, Format = info.Format, Document = document, Title = info.Title,
-                    User = local == null ? null : local.User, Size = size
+                    User = local == null ? null : local.User, Size = size, Copies = info.Copies
                 });
             }
             catch (Exception ex)

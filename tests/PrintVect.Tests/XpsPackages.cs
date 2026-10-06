@@ -10,7 +10,7 @@ namespace PrintVect.Tests
         public const string XpsNamespace = "http://schemas.microsoft.com/xps/2005/06";
         public const string OpenXpsNamespace = "http://schemas.openxps.org/oxps/v1.0";
 
-        public static string Write(string path, bool openXps, string title, int paddingBytes = 0)
+        public static string Write(string path, bool openXps, string title, int paddingBytes = 0, int copies = 0)
         {
             string ns = openXps ? OpenXpsNamespace : XpsNamespace;
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -28,6 +28,18 @@ namespace PrintVect.Tests
                     + "</Relationships>");
                 Add(zip, "FixedDocumentSequence.fdseq",
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?><FixedDocumentSequence xmlns=\"" + ns + "\"><DocumentReference Source=\"/Documents/1/FixedDocument.fdoc\" /></FixedDocumentSequence>");
+                if (copies > 0)
+                {
+                    // Job-level print ticket, linked from the sequence part the way the XPS writer does it.
+                    Add(zip, "_rels/FixedDocumentSequence.fdseq.rels",
+                        "<?xml version=\"1.0\" encoding=\"utf-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                        + "<Relationship Id=\"rPT\" Type=\"" + ns + "/printticket\" Target=\"Metadata/Job_PT.xml\" /></Relationships>");
+                    Add(zip, "Metadata/Job_PT.xml",
+                        "<?xml version=\"1.0\" encoding=\"utf-8\"?><psf:PrintTicket version=\"1\" xmlns:psf=\"http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework\" "
+                        + "xmlns:psk=\"http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+                        + "<psf:ParameterInit name=\"psk:JobCopiesAllDocuments\"><psf:Value xsi:type=\"xsd:integer\">" + copies + "</psf:Value></psf:ParameterInit>"
+                        + "<psf:Feature name=\"psk:PageMediaSize\"><psf:Option name=\"psk:ISOA4\" /></psf:Feature></psf:PrintTicket>");
+                }
                 if (paddingBytes > 0)
                 {
                     // Random, uncompressible bytes so transfer tests can ask for a file of roughly this size.

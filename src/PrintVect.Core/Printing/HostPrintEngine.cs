@@ -56,7 +56,31 @@ namespace PrintVect.Core.Printing
         public PrintOutcome Print(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
+            int copies = Math.Max(1, request.Copies);
+            if (copies == 1)
+            {
+                return PrintOnce(request, onProgress, ct);
+            }
 
+            PrintOutcome outcome = null;
+            for (int copy = 1; copy <= copies; copy++)
+            {
+                ct.ThrowIfCancellationRequested();
+                int current = copy;
+                Log.Info(request.JobId, "Copy " + copy + " of " + copies + ".");
+                outcome = PrintOnce(request, (state, message) => onProgress(state, "Copy " + current + " of " + copies + ": " + message), ct);
+                if (outcome.State != JobStates.Printed)
+                {
+                    return outcome.State == JobStates.Error
+                        ? PrintOutcome.Error("Copy " + copy + " of " + copies + " failed: " + outcome.Message)
+                        : PrintOutcome.StillPrinting("Copy " + copy + " of " + copies + ": " + outcome.Message);
+                }
+            }
+            return PrintOutcome.Printed(copies + " copies printed. " + outcome.Message);
+        }
+
+        private PrintOutcome PrintOnce(PrintRequest request, Action<string, string> onProgress, CancellationToken ct)
+        {
             if (request.Format == JobFormats.Oxps && !_spoolerPrintsOpenXps)
             {
                 Log.Info(request.JobId, "OpenXPS job on a Windows older than 8: using System.Printing.");

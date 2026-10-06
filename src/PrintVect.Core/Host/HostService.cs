@@ -400,6 +400,7 @@ namespace PrintVect.Core.Host
                 Doc = string.IsNullOrWhiteSpace(header.Doc) ? (string.IsNullOrWhiteSpace(header.FileName) ? "document" : header.FileName) : header.Doc.Trim(),
                 Format = header.Format,
                 Size = header.Size,
+                Copies = Math.Max(1, header.Copies),
                 State = JobStates.Queued,
                 Message = "Receiving the file.",
                 ReceivedAt = DateTime.Now,
@@ -457,6 +458,13 @@ namespace PrintVect.Core.Host
             {
                 Log.Info(jobId, "Document title inside the file: \"" + content.Title + "\".");
             }
+            int copies = header.Copies > 1 ? header.Copies : content.Copies;
+            copies = Math.Max(1, Math.Min(copies, XpsFormatSniffer.MaxCopies));
+            if (copies > 1)
+            {
+                Log.Info(jobId, copies + " copies asked for (" + (header.Copies > 1 ? "by the sender" : "in the file's print ticket") + ").");
+                _tracker.Update(jobId, JobStates.Queued, "Received on " + Environment.MachineName + "; " + copies + " copies.");
+            }
 
             Log.Info(jobId, string.Format(CultureInfo.InvariantCulture, "File received: {0} ({1:N0} bytes in {2} ms).", path, actual, watch.ElapsedMilliseconds));
 
@@ -482,7 +490,8 @@ namespace PrintVect.Core.Host
                 Format = format,
                 DocumentName = record.Doc,
                 ClientName = record.Client,
-                UserName = record.User
+                UserName = record.User,
+                Copies = copies
             };
 
             Task<PrintOutcome> printing = dispatcher.EnqueueAsync(request, (state, message) => _tracker.Update(jobId, state, message));
