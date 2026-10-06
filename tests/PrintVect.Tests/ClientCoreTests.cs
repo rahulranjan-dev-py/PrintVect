@@ -39,6 +39,39 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void ReadsTheCopiesCountFromThePrintTicket()
+        {
+            using (var temp = new TempFolder())
+            {
+                XpsFileInfo two = XpsFormatSniffer.Inspect(XpsPackages.Write(temp.File("two.oxps"), true, "Receipt", 0, 2));
+                Assert.AreEqual(2, two.Copies);
+                Assert.AreEqual(JobFormats.Oxps, two.Format);
+                Assert.AreEqual("Receipt", two.Title);
+
+                XpsFileInfo none = XpsFormatSniffer.Inspect(XpsPackages.Write(temp.File("one.xps"), false, null));
+                Assert.AreEqual(1, none.Copies);
+
+                XpsFileInfo many = XpsFormatSniffer.Inspect(XpsPackages.Write(temp.File("many.xps"), false, null, 0, 500));
+                Assert.AreEqual(XpsFormatSniffer.MaxCopies, many.Copies, "the count is capped");
+            }
+        }
+
+        [TestMethod]
+        public void PrintTicketPartsAreResolvedRelativeToTheirPart()
+        {
+            string rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                          + "<Relationship Id=\"a\" Type=\"http://schemas.microsoft.com/xps/2005/06/printticket\" Target=\"../Metadata/Doc_PT.xml\" />"
+                          + "<Relationship Id=\"b\" Type=\"http://schemas.microsoft.com/xps/2005/06/required-resource\" Target=\"/Resources/f.ttf\" />"
+                          + "<Relationship Id=\"c\" Type=\"http://schemas.openxps.org/oxps/v1.0/printticket\" Target=\"/Metadata/Job_PT.xml\" /></Relationships>";
+            var targets = new System.Collections.Generic.List<string>(XpsFormatSniffer.PrintTicketTargets("Documents/1/_rels/FixedDocument.fdoc.rels", rels));
+            CollectionAssert.AreEqual(new[] { "Documents/Metadata/Doc_PT.xml", "Metadata/Job_PT.xml" }, targets);
+            Assert.AreEqual("Metadata/Job_PT.xml", XpsFormatSniffer.ResolvePartName("", "/Metadata/Job_PT.xml"));
+            Assert.AreEqual(3, XpsFormatSniffer.CopiesFrom("<t xmlns:psf=\"x\"><psf:ParameterInit name=\"ns0000:JobCopiesAllDocuments\"><psf:Value>3</psf:Value></psf:ParameterInit></t>"));
+            Assert.AreEqual(1, XpsFormatSniffer.CopiesFrom("<t><ParameterInit name=\"psk:PageMediaSize\"><Value>2</Value></ParameterInit></t>"));
+            Assert.AreEqual(1, XpsFormatSniffer.CopiesFrom("not xml"));
+        }
+
+        [TestMethod]
         public void RejectsFilesThatAreNotPackages()
         {
             using (var temp = new TempFolder())

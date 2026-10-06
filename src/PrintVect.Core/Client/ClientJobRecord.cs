@@ -34,6 +34,7 @@ namespace PrintVect.Core.Client
         public string Doc { get; set; }
         public string Format { get; set; }
         public long Size { get; set; }
+        public int Copies { get; set; } = 1;
         public string State { get; set; }
         public string Message { get; set; }
         public string FilePath { get; set; }

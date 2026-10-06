@@ -145,6 +145,37 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void Copies_PrintTheDocumentThatManyTimes()
+        {
+            var spooler = new RecordingEngine();
+            var xps = new RecordingEngine();
+            var system = new RecordingEngine();
+            var messages = new List<string>();
+            PrintRequest request = Request(JobFormats.Xps);
+            request.Copies = 3;
+
+            PrintOutcome outcome = new HostPrintEngine(spooler, xps, system).Print(request, (s, m) => messages.Add(m), CancellationToken.None);
+
+            Assert.AreEqual(JobStates.Printed, outcome.State);
+            StringAssert.Contains(outcome.Message, "3 copies");
+            Assert.AreEqual(3, spooler.Jobs.Count);
+            Assert.AreEqual(0, system.Jobs.Count);
+        }
+
+        [TestMethod]
+        public void Copies_StopAtTheFirstFailure()
+        {
+            var spooler = new RecordingEngine { Throw = new InvalidOperationException("paper jam") };
+            var system = new RecordingEngine();
+            PrintRequest request = Request(JobFormats.Xps);
+            request.Copies = 2;
+
+            Assert.ThrowsException<InvalidOperationException>(
+                () => new HostPrintEngine(spooler, new RecordingEngine(), system).Print(request, (s, m) => { }, CancellationToken.None));
+            Assert.AreEqual(1, spooler.Jobs.Count, "the second copy is not attempted");
+        }
+
+        [TestMethod]
         public void IsPromptingPort_KnowsTheFilePorts()
         {
             Assert.IsTrue(PrinterPorts.IsPromptingPort("PORTPROMPT:"));

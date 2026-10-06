@@ -266,6 +266,35 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void TheCopiesCountFromTheFileTravelsInTheHeader()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                using (ClientService service = Service(temp, sender))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord finished = null;
+                    var done = new ManualResetEventSlim();
+                    service.JobFinished += (s, r) => { finished = r; done.Set(); };
+                    XpsPackages.Write(ClientPrinterNames.PortFile(paths, printer.PrinterId), true, "Two copies", 0, 2);
+                    for (int i = 0; i < 200 && !done.IsSet; i++)
+                    {
+                        service.ScanNow(printer.PrinterId);
+                        Thread.Sleep(50);
+                    }
+
+                    Assert.IsTrue(done.IsSet, "the job never finished");
+                    Assert.AreEqual(2, finished.Copies);
+                    Assert.AreEqual(2, sender.Sent[0].Copies);
+                }
+            }
+        }
+
+        [TestMethod]
         public void ARefusedJobEndsInFailed()
         {
             using (var temp = new TempFolder())
