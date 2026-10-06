@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" aria-label="PrintVect icon: a printer feeding three computers">
+  <rect width="64" height="64" rx="14" fill="#1F3B73"/>
+  <rect x="21" y="9" width="22" height="12" rx="2" fill="#A9C4F5"/>
+  <rect x="10" y="18" width="44" height="20" rx="5" fill="#FFFFFF"/>
+  <rect x="19" y="27" width="26" height="4" rx="2" fill="#1F3B73"/>
+  <rect x="30.5" y="38" width="3" height="7" fill="#A9C4F5"/>
+  <rect x="13" y="44" width="38" height="3" rx="1.5" fill="#A9C4F5"/>
+  <rect x="10" y="47" width="10" height="8" rx="2" fill="#34D399"/>
+  <rect x="27" y="47" width="10" height="8" rx="2" fill="#34D399"/>
+  <rect x="44" y="47" width="10" height="8" rx="2" fill="#34D399"/>
+</svg>
