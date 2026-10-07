@@ -35,4 +35,11 @@
     <EmbeddedResource Include="PrintVect.ico" LogicalName="PrintVect.App.PrintVect.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Fonts of the visual design (SIL Open Font License, licence text beside them); loaded privately at start-up from M6. -->
+    <Content Include="Fonts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
