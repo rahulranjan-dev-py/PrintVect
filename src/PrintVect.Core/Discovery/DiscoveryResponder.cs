@@ -133,6 +133,10 @@ namespace PrintVect.Core.Discovery
                 Log.Info("Discovery: " + asker + " asked (version " + version + "); answered with " + reply.Printers.Count
                          + " printer(s) as " + reply.Ip + ".");
             }
+            catch (ObjectDisposedException)
+            {
+                // Stop() closed the socket while an answer was on its way: nothing to report.
+            }
             catch (Exception ex)
             {
                 Log.Warn("Discovery: could not answer " + asker + ": " + ex.Message);
