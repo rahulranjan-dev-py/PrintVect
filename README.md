@@ -28,7 +28,7 @@ was the working name before PrintVect was chosen).
 | M0 | Solution scaffold, CI build, empty tray app with Diagnostics tab | **done, verified on Windows 11** |
 | M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done, verified on Windows 11 host with a Windows 10 sender** |
 | M2 | Client role: virtual printer through the Elevate helper, spool watcher, status balloons, Use tab | **done, verified on Windows 10 and 11 clients** |
-| M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, awaiting test** |
+| M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, verified on two Windows 11 PCs and a Windows 10 PC** |
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
 | M5 | Installer (Inno Setup): .NET 4.8 check, firewall rules, autostart, clean uninstall | |
 | M6 | Hardening: PIN, retries, cleanup, log rotation, plain-language errors | |

@@ -23,10 +23,14 @@ namespace PrintVect.Core.Discovery
         /// <summary>Which of this PC's addresses heard the answer.</summary>
         public string Via { get; set; }
 
+        /// <summary>Every address the host answered from lately, with the last time each was heard.</summary>
+        public Dictionary<string, DateTime> Addresses { get; set; } = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+
         public DiscoveredHost Clone()
         {
             var copy = (DiscoveredHost)MemberwiseClone();
             copy.Printers = Printers.Select(p => new PrinterInfo { Id = p.Id, Name = p.Name, Friendly = p.Friendly, Status = p.Status }).ToList();
+            copy.Addresses = new Dictionary<string, DateTime>(Addresses, StringComparer.OrdinalIgnoreCase);
             return copy;
         }
 
@@ -216,33 +220,69 @@ namespace PrintVect.Core.Discovery
             Upsert(reply.Host, from.Address.ToString(), reply, via.Address.ToString(), false);
         }
 
-        private void Upsert(string hostName, string ip, ListReply reply, string via, bool manual)
+        /// <summary>Takes an answer heard from <paramref name="heardFrom"/> (public for tests).</summary>
+        public void Record(ListReply reply, string heardFrom, string via)
         {
-            string key = string.IsNullOrWhiteSpace(hostName) ? ip : hostName.Trim();
+            if (reply == null) throw new ArgumentNullException(nameof(reply));
+            Upsert(reply.Host, heardFrom, reply, via, false);
+        }
+
+        private void Upsert(string hostName, string heardFrom, ListReply reply, string via, bool manual)
+        {
+            string key = string.IsNullOrWhiteSpace(hostName) ? heardFrom : hostName.Trim();
             bool changed;
             lock (_gate)
             {
+                DateTime now = DateTime.Now;
                 DiscoveredHost host;
                 if (!_hosts.TryGetValue(key, out host))
                 {
-                    host = new DiscoveredHost { Host = key };
+                    host = new DiscoveredHost { Host = key, Ip = heardFrom };
                     _hosts[key] = host;
                     changed = true;
-                    Log.Info("Discovery: found " + key + " at " + ip + " with " + reply.Printers.Count + " printer(s) (" + via + ").");
+                    Log.Info("Discovery: found " + key + " at " + heardFrom + " with " + reply.Printers.Count + " printer(s) (" + via + ").");
                 }
                 else
                 {
-                    changed = host.Ip != ip || host.Port != reply.Port || !SamePrinters(host.Printers, reply.Printers);
-                    if (host.Ip != ip) Log.Info("Discovery: " + key + " now answers from " + ip + " (was " + host.Ip + ").");
+                    string chosen = ChooseAddress(host, heardFrom, now);
+                    changed = host.Ip != chosen || host.Port != reply.Port || !SamePrinters(host.Printers, reply.Printers);
+                    host.Ip = chosen;
                 }
-                host.Ip = ip;
+                host.Addresses[heardFrom] = now;
+                foreach (string stale in host.Addresses.Where(a => now - a.Value > Expiry).Select(a => a.Key).ToList())
+                {
+                    host.Addresses.Remove(stale);
+                }
                 host.Port = reply.Port > 0 ? reply.Port : host.Port;
                 host.Printers = reply.Printers.Select(p => new PrinterInfo { Id = p.Id, Name = p.Name, Friendly = p.Friendly, Status = p.Status }).ToList();
-                host.LastSeen = DateTime.Now;
+                host.LastSeen = now;
                 host.Manual = host.Manual || manual;
                 host.Via = via;
             }
             if (changed) RaiseChanged();
+        }
+
+        /// <summary>
+        /// A host with two network cards answers each of our cards from a different address. Keep the
+        /// address already in use while it still answers; switch only once it has gone quiet for more
+        /// than a round (DHCP moved the host, or that card went down).
+        /// </summary>
+        private string ChooseAddress(DiscoveredHost host, string heardFrom, DateTime now)
+        {
+            if (string.IsNullOrEmpty(host.Ip) || string.Equals(host.Ip, heardFrom, StringComparison.OrdinalIgnoreCase)) return heardFrom;
+            DateTime lastHeard;
+            TimeSpan grace = TimeSpan.FromTicks(Interval.Ticks * 6 / 5);   // one round plus a fifth: 12 s in normal use
+            bool currentStillAnswers = host.Addresses.TryGetValue(host.Ip, out lastHeard) && now - lastHeard <= grace;
+            if (currentStillAnswers)
+            {
+                if (!host.Addresses.ContainsKey(heardFrom))
+                {
+                    Log.Info("Discovery: " + host.Host + " also answers from " + heardFrom + "; keeping " + host.Ip + ".");
+                }
+                return host.Ip;
+            }
+            Log.Info("Discovery: " + host.Host + " now answers from " + heardFrom + " (was " + host.Ip + ").");
+            return heardFrom;
         }
 
         private void ExpireOldHosts()
