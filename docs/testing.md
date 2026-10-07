@@ -228,6 +228,13 @@ answers from the right card: it picks the address on the asker's subnet, so the 
 "Ethernet 2" does not get in the way of the office LAN. Broadcasts do not cross subnets; a host on
 another subnet is still reachable by typing its name or IP.
 
+Build 26 on 2026-10-07: **M3 accepted.** Both PCs found each other by themselves (the Windows 11 host
+answered 148 requests, NIRSACHATTISO 122), a 2 MB Word letter printed from the host onto NIRSACHATTISO's
+laser, Remove and the restart worked. Two things seen in the diagnostics were tidied in build 27: a PC with
+two network cards flipped between its own two addresses every round (a log line each time; the found list
+now keeps the address that still answers), and every PC listed its own printers under "found in the
+office" (now hidden there; Diagnostics still shows them).
+
 Copies (seen 2026-10-06): printing 2 copies from Word to a PrintVect printer gave one page, because the
 XPS writer records the copies count inside the file instead of repeating the pages. From build 26 the client
 reads that count from the file's print ticket and the host prints the document that many times (each copy its

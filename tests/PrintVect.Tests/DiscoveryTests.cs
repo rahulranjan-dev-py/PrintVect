@@ -134,6 +134,32 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void AHostWithTwoNetworkCardsKeepsOneAddressWhileItAnswers()
+        {
+            using (var client = new DiscoveryClient(0) { Interval = TimeSpan.FromMilliseconds(100), Expiry = TimeSpan.FromSeconds(5) })
+            {
+                var reply = new ListReply { Host = "TWOCARDS", Ip = "ignored", Port = 9151 };
+                int changes = 0;
+                client.HostsChanged += (s, e) => Interlocked.Increment(ref changes);
+
+                client.Record(reply, "10.148.93.218", "10.148.93.220");
+                client.Record(reply, "172.27.122.6", "172.27.122.9");
+                client.Record(reply, "10.148.93.218", "10.148.93.220");
+                client.Record(reply, "172.27.122.6", "172.27.122.9");
+
+                DiscoveredHost host = client.Hosts[0];
+                Assert.AreEqual("10.148.93.218", host.Ip, "the first address stays while it keeps answering");
+                Assert.AreEqual(2, host.Addresses.Count);
+                Assert.AreEqual(1, changes, "the second card is not a change");
+
+                Thread.Sleep(300);   // longer than one round plus a fifth: the first address has gone quiet
+                client.Record(reply, "172.27.122.6", "172.27.122.9");
+                Assert.AreEqual("172.27.122.6", client.Hosts[0].Ip, "the host moved to the address that still answers");
+                Assert.AreEqual(2, changes);
+            }
+        }
+
+        [TestMethod]
         public void ManualHostsStayAndDiscoveredOnesExpire()
         {
             using (var client = new DiscoveryClient(0) { Expiry = TimeSpan.FromMilliseconds(50) })

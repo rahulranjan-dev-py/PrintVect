@@ -205,6 +205,10 @@ namespace PrintVect.App.Forms
             int printers = 0;
             foreach (DiscoveredHost host in hosts)
             {
+                if (string.Equals(host.Host, Environment.MachineName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;   // this PC's own printers: it prints to them directly
+                }
                 foreach (PrinterInfo printer in host.Printers)
                 {
                     printers++;
@@ -218,7 +222,8 @@ namespace PrintVect.App.Forms
                 }
             }
             _found.EndUpdate();
-            _foundStatus.Text = hosts.Count == 0 ? Strings.UseFoundNone : string.Format(Strings.UseFoundCount, printers, hosts.Count);
+            int otherPcs = hosts.Count(h => !string.Equals(h.Host, Environment.MachineName, StringComparison.OrdinalIgnoreCase));
+            _foundStatus.Text = otherPcs == 0 ? Strings.UseFoundNone : string.Format(Strings.UseFoundCount, printers, otherPcs);
             if (_found.SelectedItems.Count == 0 && _found.Items.Count > 0)
             {
                 _found.Items[0].Selected = true;
