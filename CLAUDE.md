@@ -37,8 +37,10 @@ Wire protocol with the PrintVect identifiers: docs/protocol.md. Manual tests: do
                          the feature with DISM Printing-XPSServices-Features); M5 adds firewall rules. Results
                          come back as exit code + JSON file (ElevateLauncher runs it with "runas").
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability.
-- installer/PrintVect.iss Inno Setup 6 (M5). docs/design/: the owner's icon (SVG) and visual spec (dark
-                         graphite, Manrope + JetBrains Mono bundled under the OFL), applied in M6, native dark title bar.
+- installer/PrintVect.iss Inno Setup 6, compiled by CI (ISCC, /DAppVersion from Directory.Build.props,
+                         /DSourceDir = collected program files): Program Files, Users:Modify on ProgramData, netsh
+                         firewall rules, HKLM Run /tray, uninstall = Elevate remove-all, rules and data folder gone.
+                         docs/design/: icon SVG (tools/make_icon.py) and visual spec; src/PrintVect.App/Fonts: OFL fonts.
 
 Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer driver, the v3 one when
 installed because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher
@@ -93,13 +95,11 @@ over loopback TCP (tests never load System.Printing, which Mono lacks).
   .xps by handing the file to the spooler with plain winspool calls (SpoolerXpsEngine: OpenPrinter,
   GetPrinterDriver level 8 to pick XPS_PASS for XPS-based drivers (v4 / attribute 0x2) or XPS2GDI
   for GDI drivers, StartDocPrinter, WritePrinter, EndDocPrinter, GetJob level 2 polling with the
-  Windows status text in the log). XpsPrintEngine and SystemPrintingEngine remain as fallbacks for
-  start failures only; .oxps goes the same way on Windows 8+ (the spooler converts OpenXPS; verified on
-  paper 2026-10-05 with Notepad jobs from the Windows 10 client), System.Printing on Windows 7. Printers on the PORTPROMPT: or FILE:
-  port (Microsoft Print to PDF) also use System.Printing: under XPS_PASS the PDF driver saved an
-  unreadable file to Documents with no Save window, while AddJob showed the window and made a good PDF. docs/samples has
-  PrintVect-test-shapes.xps (no font) next to the text page, to tell a document problem from a
-  printer problem.
+  Windows status text in the log). XpsPrintEngine and SystemPrintingEngine are fallbacks for start
+  failures only; .oxps goes the same way on Windows 8+ (verified on paper 2026-10-05), System.Printing on
+  Windows 7. PORTPROMPT:/FILE: printers (Microsoft Print to PDF) use System.Printing: under XPS_PASS the PDF
+  driver saved an unreadable file with no Save window, AddJob showed the window and made a good PDF.
+  docs/samples has PrintVect-test-shapes.xps (no font) to tell a document problem from a printer one.
   XpsPrintEngine (fallback only): the job object refused QueryInterface for IXpsPrintJob there, so it
   calls Write/Close/GetJobStatus through raw COM function tables on an MTA thread, and the empty print
   ticket stream MUST be closed before the document is written or Windows never starts the job.

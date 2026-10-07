@@ -254,6 +254,29 @@ PrintVect is tested on Windows 10 and 11 only. The code keeps what Windows 7 com
 (.NET Framework 4.8, no newer Windows APIs, the v3 XPS writer driver and System.Printing paths for a
 Windows 7 PC), but none of it is verified. After M3 the next milestone is M5 (installer), then M6.
 
-## M5 and later
+## M5: installer
+
+One setup program for every PC, built by CI as the artifact `PrintVect-Setup-<n>` (inside it:
+`PrintVect-Setup-<version>.exe`). It installs to `C:\Program Files\PrintVect`, keeps the settings that are
+already in `C:\ProgramData\PrintVect`, opens the two firewall ports, and starts PrintVect with Windows.
+The program is not signed yet, so Windows SmartScreen warns once: **More info**, then **Run anyway**.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On the Windows 10 PC: download `PrintVect-Setup-<n>`, unzip it, run `PrintVect-Setup-0.1.0.exe` (More info, Run anyway if SmartScreen appears). Accept the licence, keep both tick boxes ticked, Install, Finish with "Start PrintVect now" ticked. | Setup closes the running PrintVect by itself, shows a note that the old copy in `C:\PrintVect` can be deleted, and PrintVect opens. The printer "PrintVect - Mail Branch @DESKTOP-JK66OQV" is still under "Printers from other PCs on this PC" (settings were kept). |
+| 2 | Diagnostics tab, Refresh. | "Program file: C:\Program Files\PrintVect\PrintVect.App.exe"; under Firewall rules both "PrintVect Jobs (TCP-In)" and "PrintVect Discovery (UDP-In)" say **present**. |
+| 3 | Print from Notepad to the PrintVect printer. | Prints on the host as before. |
+| 4 | Delete the folder `C:\PrintVect`, then sign out of Windows and in again (or restart the PC). | PrintVect starts by itself in the tray (icon in the notification area, no window). The Start menu has a PrintVect entry. |
+| 5 | On the host (Windows 11): run the same setup. | Sharing is still ON afterwards with Mail Branch ticked; Diagnostics shows both firewall rules present; the client prints to it. |
+| 6 | Uninstall test on the third PC (NIRSACHATTISO): Settings, Apps, Installed apps, PrintVect, Uninstall, Yes. | Windows shows no PrintVect printer any more (Settings, Printers & scanners), the tray icon is gone, `C:\Program Files\PrintVect` and `C:\ProgramData\PrintVect` are gone, and the two firewall rules are gone (Diagnostics on another PC cannot show that; `netsh advfirewall firewall show rule name="PrintVect Jobs (TCP-In)"` in a Command Prompt says "No rules match"). Install again afterwards; the SPM printer must be added again, because an uninstall removes everything by design. |
+| 7 | Second user: on any PC, sign in as a different Windows user and start PrintVect from the Start menu. | It starts and shows the same printers and settings (ProgramData is writable for every user now). |
+
+Known limits at M5, by design: the setup program is unsigned (SmartScreen warning until a code-signing
+certificate is bought); an uninstall deletes settings, history and logs with the program; there is no
+Windows 7 prerequisites page (M4 skipped).
+
+What to paste back after M5: whether each step matched, and the Diagnostics text after step 2.
+
+## M6 and later
 
 Steps are added here when each milestone is delivered.

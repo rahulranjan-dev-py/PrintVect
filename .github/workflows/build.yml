@@ -51,3 +51,22 @@ jobs:
           name: PrintVect-build-${{ github.run_number }}
           path: artifacts/PrintVect
           if-no-files-found: error
+
+      - name: Build the installer (Inno Setup 6)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress | Out-Null
+          }
+          $version = (Select-String -Path Directory.Build.props -Pattern '<Version>([^<]+)</Version>').Matches[0].Groups[1].Value
+          & $iscc "/DAppVersion=$version" "/DSourceDir=$PWD\artifacts\PrintVect" installer\PrintVect.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
+          Get-ChildItem artifacts\installer | Format-Table Name, Length
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrintVect-Setup-${{ github.run_number }}
+          path: artifacts/installer/*.exe
+          if-no-files-found: error

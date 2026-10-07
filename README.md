@@ -30,7 +30,7 @@ was the working name before PrintVect was chosen).
 | M2 | Client role: virtual printer through the Elevate helper, spool watcher, status balloons, Use tab | **done, verified on Windows 10 and 11 clients** |
 | M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, verified on two Windows 11 PCs and a Windows 10 PC** |
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
-| M5 | Installer (Inno Setup): .NET 4.8 check, firewall rules, autostart, clean uninstall | |
+| M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, awaiting test** |
 | M6 | Hardening: PIN, retries, cleanup, log rotation, plain-language errors | |
 
 ## Requirements
@@ -89,6 +89,15 @@ The window has four tabs:
 Closing the window only hides it; PrintVect keeps running in the tray. To stop it, right-click
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
 autostart entry uses this).
+
+### Installing with the setup program (M5)
+
+Download the `PrintVect-Setup-<n>` artifact from the latest green build on the Actions page, unzip it
+and run `PrintVect-Setup-<version>.exe`. The program is not signed yet, so SmartScreen warns once:
+**More info**, then **Run anyway**. Setup installs to `C:\Program Files\PrintVect`, keeps any settings
+already in `C:\ProgramData\PrintVect`, opens TCP 9151 and UDP 9150 in Windows Firewall for PrintVect
+only, adds a Start menu entry and starts PrintVect with Windows (hidden in the tray). Uninstalling from
+Settings, Apps removes the PrintVect printers, the firewall rules, the program and its data folder.
 
 ### Using a shared printer from another PC (client role, M2)
 
