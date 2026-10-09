@@ -136,6 +136,42 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to PrintVect {0} is ready to install. Open PrintVect and press Update now..
+        /// </summary>
+        internal static string BalloonUpdateText {
+            get {
+                return ResourceManager.GetString("BalloonUpdateText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A newer PrintVect is ready.
+        /// </summary>
+        internal static string BalloonUpdateTitle {
+            get {
+                return ResourceManager.GetString("BalloonUpdateTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC now runs PrintVect {0}..
+        /// </summary>
+        internal static string BalloonUpdatedText {
+            get {
+                return ResourceManager.GetString("BalloonUpdatedText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect was updated.
+        /// </summary>
+        internal static string BalloonUpdatedTitle {
+            get {
+                return ResourceManager.GetString("BalloonUpdatedTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Printers from other PCs (client role).
         /// </summary>
         internal static string DiagClientSection {
@@ -267,6 +303,15 @@ namespace PrintVect.App {
         internal static string DiagRefresh {
             get {
                 return ResourceManager.GetString("DiagRefresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updates.
+        /// </summary>
+        internal static string DiagUpdatesSection {
+            get {
+                return ResourceManager.GetString("DiagUpdatesSection", resourceCulture);
             }
         }
 
@@ -505,6 +550,24 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Look for a newer PrintVect once a day (needs the internet; printing itself never uses it).
+        /// </summary>
+        internal static string SettingsCheckForUpdates {
+            get {
+                return ResourceManager.GetString("SettingsCheckForUpdates", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Check now.
+        /// </summary>
+        internal static string SettingsCheckNow {
+            get {
+                return ResourceManager.GetString("SettingsCheckNow", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Settings file: {0}.
         /// </summary>
         internal static string SettingsConfigFile {
@@ -564,6 +627,24 @@ namespace PrintVect.App {
         internal static string SettingsStartWithWindows {
             get {
                 return ResourceManager.GetString("SettingsStartWithWindows", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update now.
+        /// </summary>
+        internal static string SettingsUpdateNow {
+            get {
+                return ResourceManager.GetString("SettingsUpdateNow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Updates.
+        /// </summary>
+        internal static string SettingsUpdatesGroup {
+            get {
+                return ResourceManager.GetString("SettingsUpdatesGroup", resourceCulture);
             }
         }
 
@@ -834,6 +915,132 @@ namespace PrintVect.App {
         internal static string UnexpectedError {
             get {
                 return ResourceManager.GetString("UnexpectedError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Later.
+        /// </summary>
+        internal static string UpdateBannerLater {
+            get {
+                return ResourceManager.GetString("UpdateBannerLater", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A newer PrintVect ({0}) is ready to install..
+        /// </summary>
+        internal static string UpdateBannerText {
+            get {
+                return ResourceManager.GetString("UpdateBannerText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The update did not run (the setup program ended with code {0}). Press Update now again and answer Ye [rest of string was truncated].
+        /// </summary>
+        internal static string UpdateDidNotRun {
+            get {
+                return ResourceManager.GetString("UpdateDidNotRun", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The update could not be downloaded: {0}. Press Update now to try again..
+        /// </summary>
+        internal static string UpdateDownloadFailed {
+            get {
+                return ResourceManager.GetString("UpdateDownloadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Downloading PrintVect {0}: {1} of {2} MB....
+        /// </summary>
+        internal static string UpdateDownloading {
+            get {
+                return ResourceManager.GetString("UpdateDownloading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} print job(s) are still being handled. Wait for them to finish, then press Update now again..
+        /// </summary>
+        internal static string UpdateJobsBusy {
+            get {
+                return ResourceManager.GetString("UpdateJobsBusy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The setup program could not be started: {0}.
+        /// </summary>
+        internal static string UpdateStartFailed {
+            get {
+                return ResourceManager.GetString("UpdateStartFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Starting the update. Answer Yes to the Windows permission question; PrintVect closes for a moment an [rest of string was truncated].
+        /// </summary>
+        internal static string UpdateStarting {
+            get {
+                return ResourceManager.GetString("UpdateStarting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect {0} is ready to install; this PC has {1}. Press Update now: it takes about a minute, and P [rest of string was truncated].
+        /// </summary>
+        internal static string UpdateStatusAvailable {
+            get {
+                return ResourceManager.GetString("UpdateStatusAvailable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Asking github.com for the latest version....
+        /// </summary>
+        internal static string UpdateStatusChecking {
+            get {
+                return ResourceManager.GetString("UpdateStatusChecking", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not check for a newer version at {1}: {0}..
+        /// </summary>
+        internal static string UpdateStatusFailed {
+            get {
+                return ResourceManager.GetString("UpdateStatusFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not checked yet in this run. PrintVect looks shortly after it starts and then once a day..
+        /// </summary>
+        internal static string UpdateStatusNeverChecked {
+            get {
+                return ResourceManager.GetString("UpdateStatusNeverChecked", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Automatic checks are off. Press Check now to look once..
+        /// </summary>
+        internal static string UpdateStatusOff {
+            get {
+                return ResourceManager.GetString("UpdateStatusOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect {0} is the latest version (checked {1})..
+        /// </summary>
+        internal static string UpdateStatusUpToDate {
+            get {
+                return ResourceManager.GetString("UpdateStatusUpToDate", resourceCulture);
             }
         }
 

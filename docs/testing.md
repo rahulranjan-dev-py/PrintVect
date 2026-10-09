@@ -277,6 +277,46 @@ Windows 7 prerequisites page (M4 skipped).
 
 What to paste back after M5: whether each step matched, and the Diagnostics text after step 2.
 
-## M6 and later
+Build 32 on 2026-10-09: **M5 accepted.** The setup program installed to `C:\Program Files\PrintVect` on the
+Windows 10 PC, both firewall rules were present in Diagnostics, settings and the two remote printers were kept,
+and the PC printed its real work through PrintVect all day (12 jobs to SPM on NIRSACHATTISO; the 4 jobs from
+the minutes that PC was unreachable stayed under Retry, as designed).
+
+## M6a: updates from inside the program
+
+Asked for by the owner on 2026-10-09 ("auto update feature in software when new update is released").
+This is the one place PrintVect uses the internet: once a day (45 s after it starts, then every 24 h while
+it runs) it asks github.com for this repository's latest release. When that release is newer, a balloon and
+a yellow strip in the window say so, and **Update now** downloads the setup program, checks its size and
+SHA-256, and runs it silently. Windows asks its permission question once, PrintVect closes for a few
+seconds, installs over itself and opens again. Printing never touches the internet, and the daily look can
+be switched off in Settings (Check now still works).
+
+The test needs two releases: the first one (v0.2.0) gets installed, the second one (v0.2.1, published by
+me when you say the first part worked) is what the PCs must find and install by themselves.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On the Windows 10 PC: open the repository's **Releases** page on GitHub, download `PrintVect-Setup-0.2.0.exe` from release v0.2.0 and run it (More info, Run anyway if SmartScreen appears; Yes to the permission question). | PrintVect opens again by itself after the install. The status bar says "Version 0.2.0". A balloon "PrintVect was updated: This PC now runs PrintVect 0.2.0" appears (the first start of a new version says so). |
+| 2 | Settings tab. | A new **Updates** group at the bottom: the tick box "Look for a newer PrintVect once a day" is ticked, the text says "Not checked yet in this run..." or, after about a minute, "PrintVect 0.2.0 is the latest version (checked HH:MM)". |
+| 3 | Press **Check now**. | The text says "Asking github.com..." for a moment, then "PrintVect 0.2.0 is the latest version (checked HH:MM)". |
+| 4 | Unplug the network cable (or turn Wi-Fi off), press **Check now**, plug it back in. | "Could not check for a newer version at HH:MM: this PC cannot reach github.com (is it connected to the internet?)". Printing and the rest of PrintVect carry on. |
+| 5 | Diagnostics tab, Refresh. | A new section **Updates** with "This PC runs 0.2.0; daily check ON, next at ...", the last check result and "Release feed: https://api.github.com/repos/rahulranjan-dev-py/PrintVect/releases/latest". |
+| 6 | Install v0.2.0 the same way on the host (Windows 11) and on NIRSACHATTISO, then tell me. I publish release v0.2.1. | |
+| 7 | Within a day (or right away with **Check now**) on each PC. | Balloon "A newer PrintVect is ready: PrintVect 0.2.1 is ready to install..." and a yellow strip at the top of the window "A newer PrintVect (0.2.1) is ready to install" with **Update now** and **Later**. Settings says "PrintVect 0.2.1 is ready to install; this PC has 0.2.0...". |
+| 8 | Press **Update now** (on the host, while nothing is printing). | "Downloading PrintVect 0.2.1: x of 2.x MB", then "Starting the update...". The Windows permission question appears for `PrintVect-Setup-0.2.1.exe`: Yes. A small setup progress window shows for a few seconds, PrintVect disappears from the tray and comes back with its window open; the status bar says "Version 0.2.1" and the balloon "This PC now runs PrintVect 0.2.1" appears. Sharing is still ON and the shared printers unchanged. |
+| 9 | Press **Update now** on another PC, but answer **No** to the Windows permission question. | PrintVect keeps running: Settings says "The update did not run (the setup program ended with code N). Press Update now again and answer Yes...". Press it again and answer Yes: the update completes as in step 8. |
+| 10 | Print from the Windows 10 PC to the host's printer, and from the host to its own printer. | Prints as before (an update keeps settings, printers and job history). |
+| 11 | On one PC untick "Look for a newer PrintVect once a day", Exit PrintVect from the tray, start it again, Settings. | The box stays unticked and the text says "Automatic checks are off. Press Check now to look once." The log has "Update check: off in Settings". Tick it again afterwards. |
+
+What to paste back after M6a: whether each step matched, the Diagnostics text of step 5, and, if step 8
+or 9 went wrong, the newest `update-0.2.1.log` from `C:\ProgramData\PrintVect\updates\`.
+
+Known limits at M6a, by design: the Windows permission question cannot be avoided without a Windows
+Service (the setup program needs administrator rights), so an update is never installed without a click;
+the setup program is still unsigned, which is why the permission window says "Unknown publisher"; a PC
+without internet simply never sees updates (install the setup program by hand there).
+
+## M6b and later
 
 Steps are added here when each milestone is delivered.

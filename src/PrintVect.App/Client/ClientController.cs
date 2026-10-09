@@ -299,6 +299,18 @@ namespace PrintVect.App.Client
             return _service.RetryPending(printer.PrinterId);
         }
 
+        /// <summary>Jobs being sent or printed right now (an update waits for them; waiting jobs do not count).</summary>
+        public int ActiveJobCount
+        {
+            get { return Jobs.All().Count(j => !ClientJobStates.IsFinal(j.State)); }
+        }
+
+        /// <summary>Writes the job history now, before the setup program ends this process (M6a).</summary>
+        public void FlushHistory()
+        {
+            _history.Flush();
+        }
+
         public IEnumerable<string> DescribeForDiagnostics()
         {
             var lines = new List<string>();

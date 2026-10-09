@@ -6,18 +6,22 @@ using Microsoft.Win32;
 using PrintVect.App.Client;
 using PrintVect.App.Forms;
 using PrintVect.App.Host;
+using PrintVect.App.Update;
+using PrintVect.Core;
 using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Host;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Protocol;
+using PrintVect.Core.Update;
 
 namespace PrintVect.App.Tray
 {
     /// <summary>
     /// Owns the tray icon, the host controller and the main window. Closing the window only hides
     /// it; Exit lives in the tray menu (brief, section 7). Balloons announce received, printed
-    /// and failed jobs on both sides. The message loop ends when ExitApplication is called.
+    /// and failed jobs on both sides, and (M6a) a newer PrintVect. The message loop ends when
+    /// ExitApplication is called.
     /// </summary>
     internal sealed class TrayApplicationContext : ApplicationContext
     {
@@ -27,12 +31,14 @@ namespace PrintVect.App.Tray
         private readonly NotifyIcon _trayIcon;
         private readonly HostController _host;
         private readonly ClientController _client;
+        private readonly UpdateController _updates;
         private readonly MainForm _form;
         private readonly SynchronizationContext _ui;
         private readonly EventWaitHandle _showEvent;
         private readonly RegisteredWaitHandle _showWait;
         private bool _exiting;
         private bool _hideHintShown;
+        private bool _lastBalloonAboutUpdate;
 
         public TrayApplicationContext(AppPaths paths, ConfigStore store, AppConfig config, bool startHidden)
         {
@@ -56,7 +62,16 @@ namespace PrintVect.App.Tray
             _client = new ClientController(paths, store, config, _ui);
             _client.JobFinished += OnClientJobFinished;
 
-            _form = new MainForm(paths, store, config, _host, _client);
+            _updates = new UpdateController(paths, store, config,
+                () => _host.ActiveJobCount + _client.ActiveJobCount,
+                () =>
+                {
+                    _host.FlushHistory();
+                    _client.FlushHistory();
+                });
+            _updates.UpdateFound += OnUpdateFound;
+
+            _form = new MainForm(paths, store, config, _host, _client, _updates);
             _form.FormClosing += OnFormClosing;
 
             var menu = new ContextMenuStrip();
@@ -78,6 +93,14 @@ namespace PrintVect.App.Tray
                 if (e.Button == MouseButtons.Left)
                 {
                     ShowWindow();
+                }
+            };
+            _trayIcon.BalloonTipClicked += (s, e) =>
+            {
+                if (_lastBalloonAboutUpdate)
+                {
+                    ShowWindow();
+                    _form.ShowSettings();
                 }
             };
 
@@ -106,6 +129,39 @@ namespace PrintVect.App.Tray
             {
                 Balloon(Strings.BalloonClientStartFailedTitle, _client.LastError, ToolTipIcon.Warning);
             }
+
+            NoteVersionChange(store, config);
+            _updates.Start();
+        }
+
+        /// <summary>The first start after an update says so (the setup program restarted PrintVect quietly).</summary>
+        private void NoteVersionChange(ConfigStore store, AppConfig config)
+        {
+            string last = config.LastRunVersion ?? "";
+            if (last == AppInfo.Version)
+            {
+                return;
+            }
+            if (last.Length > 0)
+            {
+                Log.Info("PrintVect was updated from " + last + " to " + AppInfo.Version + ".");
+                Balloon(Strings.BalloonUpdatedTitle, string.Format(Strings.BalloonUpdatedText, AppInfo.Version), ToolTipIcon.Info);
+            }
+            config.LastRunVersion = AppInfo.Version;
+            try
+            {
+                store.Save(config);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Could not save " + store.Path + " after noting the program version.", ex);
+            }
+        }
+
+        private void OnUpdateFound(object sender, ReleaseInfo release)
+        {
+            Balloon(Strings.BalloonUpdateTitle, string.Format(Strings.BalloonUpdateText, AppVersions.Format(release.Version)),
+                ToolTipIcon.Info, true);
         }
 
         public void ShowWindow()
@@ -135,6 +191,7 @@ namespace PrintVect.App.Tray
             _exiting = true;
             Log.Info("Exit chosen; closing the tray icon and the window.");
             _trayIcon.Visible = false;
+            _updates.Dispose();
             _client.Dispose();
             _host.Dispose();
             if (!_form.IsDisposed)
@@ -177,12 +234,13 @@ namespace PrintVect.App.Tray
             }
         }
 
-        private void Balloon(string title, string text, ToolTipIcon icon)
+        private void Balloon(string title, string text, ToolTipIcon icon, bool aboutUpdate = false)
         {
             if (_exiting || string.IsNullOrEmpty(text))
             {
                 return;
             }
+            _lastBalloonAboutUpdate = aboutUpdate;
             if (text.Length > MaxBalloonText)
             {
                 text = text.Substring(0, MaxBalloonText - 3) + "...";
@@ -237,6 +295,10 @@ namespace PrintVect.App.Tray
                 {
                     _trayIcon.Visible = false;
                     _trayIcon.Dispose();
+                }
+                if (_updates != null)
+                {
+                    _updates.Dispose();
                 }
                 if (_client != null)
                 {

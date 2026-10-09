@@ -213,6 +213,18 @@ namespace PrintVect.App.Host
             return TrySave();
         }
 
+        /// <summary>Jobs received but not yet printed or failed (an update waits for them).</summary>
+        public int ActiveJobCount
+        {
+            get { return Jobs.All().Count(j => !JobStates.IsFinal(j.State)); }
+        }
+
+        /// <summary>Writes the job history now, before the setup program ends this process (M6a).</summary>
+        public void FlushHistory()
+        {
+            _history.Flush();
+        }
+
         public IEnumerable<string> DescribeForDiagnostics()
         {
             var lines = new List<string>();

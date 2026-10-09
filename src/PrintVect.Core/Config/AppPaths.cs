@@ -15,6 +15,7 @@ namespace PrintVect.Core.Config
         public const string LogsFolderName = "logs";
         public const string HostHistoryFileName = "jobs-host.json";
         public const string ClientHistoryFileName = "jobs-client.json";
+        public const string UpdatesFolderName = "updates";
 
         public AppPaths(string root)
         {
@@ -33,6 +34,8 @@ namespace PrintVect.Core.Config
         public string HostHistoryFile { get { return Path.Combine(Root, HostHistoryFileName); } }
         /// <summary>Jobs this PC sent as a client (survives restarts, M3).</summary>
         public string ClientHistoryFile { get { return Path.Combine(Root, ClientHistoryFileName); } }
+        /// <summary>Downloaded setup programs and their setup logs (M6a). Created when first needed.</summary>
+        public string UpdatesDir { get { return Path.Combine(Root, UpdatesFolderName); } }
 
         /// <summary>%ProgramData%\PrintVect (C:\ProgramData\PrintVect on a normal install).</summary>
         public static AppPaths Default()
