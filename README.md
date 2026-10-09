@@ -177,23 +177,23 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 ## Publishing a new version
 
 PCs that run PrintVect look at this repository's **latest release** once a day and offer it with one
-click, so an update reaches the office by publishing a release:
+click, so an update reaches the office by making a release. First the version number must go up:
+raise the three version lines in `Directory.Build.props` (for example `0.2.0` to `0.2.1`), commit,
+push, and wait for the green build. Then, on the GitHub website:
 
-1. Raise the three version lines in `Directory.Build.props` (for example `0.2.0` to `0.2.1`), commit
-   and push, and wait for the green build. A version whose release already has a setup program is
-   left alone by the release workflow (it only warns), so this step is never optional.
-2. Publish, in one of three ways:
-   - On the GitHub website: **Releases**, **Draft a new release**, **Choose a tag**, type `v0.2.1`
-     and pick **Create new tag on publish**, set **Target** to the branch that has the version,
-     give the title `PrintVect 0.2.1`, **Publish release**. No file needs to be attached by hand.
-   - Or push a matching tag: `git tag v0.2.1 && git push origin v0.2.1`.
-   - Or **Actions**, **release**, **Run workflow** on that branch (GitHub shows this button only
-     once the workflow file is on the default branch).
-3. The release workflow builds, runs the unit tests, compiles the setup program, writes its SHA-256
-   next to it and attaches `PrintVect-Setup-0.2.1.exe` and `PrintVect-Setup-0.2.1.exe.sha256` to
-   the release `v0.2.1` (creating the release when a tag was pushed). Until the files are there, a
-   few minutes after the website route, the PCs report "release v0.2.1 has no PrintVect-Setup file
-   attached" and simply try again later. Drafts and pre-releases are ignored by the PCs.
+1. Open `https://github.com/rahulranjan-dev-py/PrintVect/releases/new`.
+2. Click **Choose a tag**, type `v0.2.1`, then click **Create new tag: v0.2.1 on publish**.
+3. Click **Target: main** and pick the branch that has the new version. Do not skip this.
+4. In **Release title** type `PrintVect 0.2.1`. Leave everything else as it is.
+5. Click **Publish release**.
+6. Wait five minutes and refresh: the release now lists `PrintVect-Setup-0.2.1.exe` and
+   `PrintVect-Setup-0.2.1.exe.sha256`, built and attached by GitHub (Actions, run named **release**).
+
+Until the files are there, the PCs report "release v0.2.1 has no PrintVect-Setup file attached" and
+try again later. Drafts and pre-releases are ignored by the PCs. A release whose version already has
+a setup program is left alone (the run only warns), so the version number must always go up first.
+For people with git, pushing a tag (`git tag v0.2.1 && git push origin v0.2.1`) does the same, and so
+does **Actions**, **release**, **Run workflow** once the workflow file is on the default branch.
 
 On each PC, PrintVect then shows a balloon and a yellow strip "A newer PrintVect (0.2.1) is ready to
 install". **Update now** downloads the setup program into `C:\ProgramData\PrintVect\updates\`, checks
