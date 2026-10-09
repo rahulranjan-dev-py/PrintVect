@@ -16,7 +16,10 @@ administrator. PrintVect side-steps all of that:
 - When someone prints, the client sends the job file over the office network to the host, and
   the host prints it with its own, already-working driver.
 
-Everything stays on the office LAN. PrintVect never contacts the internet.
+Printing stays on the office LAN. The only thing PrintVect ever fetches from the internet is its own
+newer version: once a day it looks at this repository's releases on github.com and offers an update
+with one click (Settings tab; the daily look can be switched off). Nothing about the office, its
+printers or its documents is ever sent anywhere.
 
 ## Status
 
@@ -30,8 +33,9 @@ was the working name before PrintVect was chosen).
 | M2 | Client role: virtual printer through the Elevate helper, spool watcher, status balloons, Use tab | **done, verified on Windows 10 and 11 clients** |
 | M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, verified on two Windows 11 PCs and a Windows 10 PC** |
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
-| M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, awaiting test** |
-| M6 | Hardening: PIN, retries, cleanup, log rotation, plain-language errors | |
+| M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, verified on Windows 10 (daily use)** |
+| M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, awaiting test** |
+| M6b | The new look (docs/design) and hardening: editable settings, plain-language errors, copies prompt, presence | |
 
 ## Requirements
 
@@ -81,7 +85,9 @@ The window has four tabs:
 - **Use shared printers**: type a host PC's name or IP, look its printers up, add one to this PC
   (Windows asks once for permission), send a test page, retry waiting jobs, see the jobs sent. Hosts are
   found automatically from M3.
-- **Settings**: shared PIN, ports, start with Windows, how long to keep sent files.
+- **Settings**: shared PIN, ports, start with Windows, how long to keep sent files, and the
+  **Updates** group: whether PrintVect looks for a newer version once a day, **Check now**, and
+  **Update now** when one is ready.
 - **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when
   something does not work. It contains the Windows version, .NET version, network addresses,
   firewall rule state, printer list and the last 200 log lines. Nothing is sent automatically.
@@ -92,8 +98,9 @@ autostart entry uses this).
 
 ### Installing with the setup program (M5)
 
-Download the `PrintVect-Setup-<n>` artifact from the latest green build on the Actions page, unzip it
-and run `PrintVect-Setup-<version>.exe`. The program is not signed yet, so SmartScreen warns once:
+Download `PrintVect-Setup-<version>.exe` from the latest entry on the **Releases** page of this
+repository (or the `PrintVect-Setup-<n>` artifact of the latest green build on the Actions page, which is
+a zip around the same file) and run it. The program is not signed yet, so SmartScreen warns once:
 **More info**, then **Run anyway**. Setup installs to `C:\Program Files\PrintVect`, keeps any settings
 already in `C:\ProgramData\PrintVect`, opens TCP 9151 and UDP 9150 in Windows Firewall for PrintVect
 only, adds a Start menu entry and starts PrintVect with Windows (hidden in the tray). Uninstalling from
@@ -143,7 +150,9 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | Logs (one per day, kept 14 days) | `C:\ProgramData\PrintVect\logs\PrintVect-<date>.log` |
 | Admin helper log | `C:\ProgramData\PrintVect\logs\PrintVect-Elevate-<date>.log` |
 | pvct-send log | `C:\ProgramData\PrintVect\logs\PrintVect-Send-<date>.log` |
+| Downloaded update and its setup log | `C:\ProgramData\PrintVect\updates\PrintVect-Setup-<version>.exe`, `update-<version>.log` |
 | Ports | UDP 9150 (finding printers), TCP 9151 (sending jobs) |
+| Update check | HTTPS to `api.github.com` and `github.com` only (this repository's releases) |
 
 `ProgramData` is a hidden folder; type the path into the Explorer address bar.
 
@@ -160,7 +169,28 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
 | The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host (Settings, Printers & scanners, the printer, Open print queue). The job is in that queue and prints when the printer is ready; PrintVect keeps reporting its page progress for up to 15 minutes. |
 | Microsoft Print to PDF: the job shows Printing until you answer the Save window | That is how Windows works: choose a file name and the job becomes Printed. |
+| Settings says "Could not check for a newer version: this PC cannot reach github.com" | The PC has no internet connection right now (or a proxy blocks github.com). Printing is not affected; the check tries again the next day, or press **Check now** later. |
+| "The update did not run (the setup program ended with code ...)" | The Windows permission question was answered No, or the setup failed: the reason is in `C:\ProgramData\PrintVect\updates\update-<version>.log`. Press **Update now** again. |
+| After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
 | Something else | Diagnostics tab, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
+
+## Publishing a new version
+
+PCs that run PrintVect look at this repository's **latest release** once a day and offer it with one
+click, so an update reaches the office by publishing a release:
+
+1. Raise the three version lines in `Directory.Build.props` (for example `0.2.0` to `0.2.1`) and
+   commit. The release workflow refuses a version that already has a release.
+2. Either push a matching tag (`git tag v0.2.1 && git push origin v0.2.1`) or open **Actions**,
+   **release**, **Run workflow** on the branch to publish.
+3. The workflow builds, runs the unit tests, compiles the setup program, writes its SHA-256 next to it
+   and publishes the GitHub release `v0.2.1` with `PrintVect-Setup-0.2.1.exe` and
+   `PrintVect-Setup-0.2.1.exe.sha256`. Drafts and pre-releases are ignored by the PCs.
+
+On each PC, PrintVect then shows a balloon and a yellow strip "A newer PrintVect (0.2.1) is ready to
+install". **Update now** downloads the setup program into `C:\ProgramData\PrintVect\updates\`, checks
+its size and SHA-256, and runs it silently; Windows asks the usual permission question once, PrintVect
+closes for a few seconds and opens again as the new version. Nothing is installed without that click.
 
 ## For developers
 
