@@ -182,7 +182,8 @@ click, so an update reaches the office by publishing a release:
 1. Raise the three version lines in `Directory.Build.props` (for example `0.2.0` to `0.2.1`) and
    commit. The release workflow refuses a version that already has a release.
 2. Either push a matching tag (`git tag v0.2.1 && git push origin v0.2.1`) or open **Actions**,
-   **release**, **Run workflow** on the branch to publish.
+   **release**, **Run workflow** on the branch to publish. (GitHub lists a workflow under Actions only
+   once its file is on the default branch; until then the tag is the way.)
 3. The workflow builds, runs the unit tests, compiles the setup program, writes its SHA-256 next to it
    and publishes the GitHub release `v0.2.1` with `PrintVect-Setup-0.2.1.exe` and
    `PrintVect-Setup-0.2.1.exe.sha256`. Drafts and pre-releases are ignored by the PCs.
