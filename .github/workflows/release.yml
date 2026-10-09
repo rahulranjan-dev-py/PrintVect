@@ -2,15 +2,25 @@ name: release
 
 # Publishes a GitHub Release carrying the setup program. Every installed PrintVect looks at the latest
 # release once a day (Settings tab, Updates) and offers it with one click, so this is how an update
-# reaches the office PCs. Two ways to start it:
-#   1. push a tag that matches <Version> in Directory.Build.props:   git tag v0.2.0 && git push origin v0.2.0
-#   2. Actions > release > Run workflow (the tag is then created from Directory.Build.props).
-# It refuses to publish a version that already has a release, so raise <Version> (all three lines) first.
+# reaches the office PCs. Three ways to start it (README, "Publishing a new version"):
+#   1. on the GitHub website: Releases > Draft a new release, new tag v<Version>, target = the branch, Publish;
+#      the setup program and its checksum are added to that release a few minutes later;
+#   2. push a tag that matches <Version> in Directory.Build.props:   git tag v0.2.0 && git push origin v0.2.0
+#   3. Actions > release > Run workflow (the tag is then created from Directory.Build.props).
+# A version whose release already carries a setup program is left alone (warning in the run), so
+# raise <Version> (all three lines in Directory.Build.props) before publishing the next one.
 
 on:
   push:
     tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
+
+# A release made on the website fires both "push tag" and "release published": run them one after the other.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -42,27 +52,38 @@ jobs:
               throw "The tag $pushed does not match <Version>$version</Version> in Directory.Build.props. Fix one of them, then tag again."
             }
           }
-          gh release view $tag --json tagName 2>$null | Out-Null
+          $assets = gh release view $tag --json assets --jq '.assets[].name' 2>$null
           if ($LASTEXITCODE -eq 0) {
-            throw "Release $tag already exists on GitHub. Raise <Version> in Directory.Build.props first."
+            if ("$assets" -match 'PrintVect-Setup-') {
+              Write-Host "::warning::Nothing to publish: release $tag already carries its setup program. To release a new version, raise <Version> in Directory.Build.props first."
+              "SKIP=1" >> $env:GITHUB_ENV
+            } else {
+              Write-Host "Release $tag exists without a setup program (made on the GitHub website); the files will be added to it."
+              "EXISTING=1" >> $env:GITHUB_ENV
+            }
           }
           "VERSION=$version" >> $env:GITHUB_ENV
           "TAG=$tag" >> $env:GITHUB_ENV
-          Write-Host "Publishing PrintVect $version as release $tag"
+          Write-Host "PrintVect $version, release $tag"
 
       - name: Add MSBuild to PATH
+        if: env.SKIP != '1'
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet packages
+        if: env.SKIP != '1'
         run: msbuild PrintVect.sln /t:Restore /p:Configuration=Release /v:minimal /nologo
 
       - name: Build (Release, AnyCPU)
+        if: env.SKIP != '1'
         run: msbuild PrintVect.sln /p:Configuration=Release /v:minimal /nologo
 
       - name: Unit tests
+        if: env.SKIP != '1'
         run: tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
 
       - name: Collect the program files
+        if: env.SKIP != '1'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts\PrintVect | Out-Null
@@ -74,6 +95,7 @@ jobs:
           Get-ChildItem artifacts\PrintVect | Format-Table Name, Length
 
       - name: Build the installer (Inno Setup 6)
+        if: env.SKIP != '1'
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -85,6 +107,7 @@ jobs:
           Get-ChildItem artifacts\installer | Format-Table Name, Length
 
       - name: Write the checksum file
+        if: env.SKIP != '1'
         shell: pwsh
         run: |
           $exe = Get-Item "artifacts\installer\PrintVect-Setup-$env:VERSION.exe"
@@ -93,19 +116,26 @@ jobs:
           Get-Content "$($exe.FullName).sha256"
 
       - name: Publish the GitHub release
+        if: env.SKIP != '1'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $exe = "artifacts\installer\PrintVect-Setup-$env:VERSION.exe"
-          $notes = "PrintVect $env:VERSION`n`n" +
-                   "Download **PrintVect-Setup-$env:VERSION.exe** and run it on a PC that does not have PrintVect yet. " +
-                   "PCs that already run PrintVect find this version by themselves within a day (Settings tab, Updates) " +
-                   "and install it with one click.`n`n" +
-                   "The .sha256 file is the checksum PrintVect verifies after downloading."
-          # Draft first, then publish: the release never shows up without its files.
-          gh release create $env:TAG --target $env:GITHUB_SHA --title "PrintVect $env:VERSION" --notes $notes --draft $exe "$exe.sha256"
-          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
-          gh release edit $env:TAG --draft=false
-          if ($LASTEXITCODE -ne 0) { throw "gh release edit failed with exit code $LASTEXITCODE" }
+          if ($env:EXISTING -eq '1') {
+            # The release was made on the website: just add the files to it.
+            gh release upload $env:TAG $exe "$exe.sha256" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "gh release upload failed with exit code $LASTEXITCODE" }
+          } else {
+            $notes = "PrintVect $env:VERSION`n`n" +
+                     "Download **PrintVect-Setup-$env:VERSION.exe** and run it on a PC that does not have PrintVect yet. " +
+                     "PCs that already run PrintVect find this version by themselves within a day (Settings tab, Updates) " +
+                     "and install it with one click.`n`n" +
+                     "The .sha256 file is the checksum PrintVect verifies after downloading."
+            # Draft first, then publish: the release never shows up without its files.
+            gh release create $env:TAG --target $env:GITHUB_SHA --title "PrintVect $env:VERSION" --notes $notes --draft $exe "$exe.sha256"
+            if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
+            gh release edit $env:TAG --draft=false
+            if ($LASTEXITCODE -ne 0) { throw "gh release edit failed with exit code $LASTEXITCODE" }
+          }
           Write-Host "Published https://github.com/$env:GITHUB_REPOSITORY/releases/tag/$env:TAG"
