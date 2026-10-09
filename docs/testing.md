@@ -297,7 +297,7 @@ me when you say the first part worked) is what the PCs must find and install by 
 
 | # | Do this | Expect this |
 |---|---------|-------------|
-| 1 | On the Windows 10 PC: open the repository's **Releases** page on GitHub, download `PrintVect-Setup-0.2.0.exe` from release v0.2.0 and run it (More info, Run anyway if SmartScreen appears; Yes to the permission question). | PrintVect opens again by itself after the install. The status bar says "Version 0.2.0". A balloon "PrintVect was updated: This PC now runs PrintVect 0.2.0" appears (the first start of a new version says so). |
+| 1 | On the Windows 10 PC: open the repository's **Releases** page on GitHub, download `PrintVect-Setup-0.2.0.exe` from release v0.2.0 and run it (More info, Run anyway if SmartScreen appears; Yes to the permission question). | PrintVect opens again by itself after the install. The status bar says "Version 0.2.0". Settings, printers and the job history are as before. (No "was updated" balloon this time: version 0.1.0 did not yet note which version ran; from now on every first start of a new version shows one.) |
 | 2 | Settings tab. | A new **Updates** group at the bottom: the tick box "Look for a newer PrintVect once a day" is ticked, the text says "Not checked yet in this run..." or, after about a minute, "PrintVect 0.2.0 is the latest version (checked HH:MM)". |
 | 3 | Press **Check now**. | The text says "Asking github.com..." for a moment, then "PrintVect 0.2.0 is the latest version (checked HH:MM)". |
 | 4 | Unplug the network cable (or turn Wi-Fi off), press **Check now**, plug it back in. | "Could not check for a newer version at HH:MM: this PC cannot reach github.com (is it connected to the internet?)". Printing and the rest of PrintVect carry on. |
