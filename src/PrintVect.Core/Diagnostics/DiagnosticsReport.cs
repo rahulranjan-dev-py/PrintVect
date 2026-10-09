@@ -125,7 +125,8 @@ namespace PrintVect.Core.Diagnostics
                       + ", shared printers: " + config.SharedPrinters.Count
                       + ", remote printers added: " + config.RemotePrinters.Count);
             lines.Add("Start with Windows: " + (config.StartWithWindows ? "yes" : "no")
-                      + ", keep sent files: " + config.KeepSentFilesHours + " h, language: " + config.Language);
+                      + ", keep sent files: " + config.KeepSentFilesHours + " h, language: " + config.Language
+                      + ", daily update check: " + (config.CheckForUpdates ? "on" : "off"));
             return lines;
         }
 

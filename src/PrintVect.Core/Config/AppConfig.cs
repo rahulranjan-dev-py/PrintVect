@@ -39,6 +39,15 @@ namespace PrintVect.Core.Config
         /// <summary>UI language. "en" now, "hi" in Phase 2.</summary>
         public string Language { get; set; } = DefaultLanguage;
 
+        /// <summary>
+        /// Ask github.com once a day whether a newer PrintVect has been released (the only time
+        /// PrintVect uses the internet; printing never does). Off means "Check now" only.
+        /// </summary>
+        public bool CheckForUpdates { get; set; } = true;
+
+        /// <summary>The version that ran last time, so the first start after an update can say so.</summary>
+        public string LastRunVersion { get; set; } = "";
+
         /// <summary>Local printers this PC shares (host role, M1).</summary>
         public List<SharedPrinter> SharedPrinters { get; set; } = new List<SharedPrinter>();
 

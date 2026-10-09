@@ -1,10 +1,13 @@
-; PrintVect installer (Inno Setup 6, milestone M5).
-; CI builds it with:  ISCC.exe /DAppVersion=0.1.0 /DSourceDir=<folder with the built program files> installer\PrintVect.iss
+; PrintVect installer (Inno Setup 6, milestone M5; silent in-app updates since M6a).
+; CI builds it with:  ISCC.exe /DAppVersion=0.2.0 /DSourceDir=<folder with the built program files> installer\PrintVect.iss
 ; The source folder is what the build workflow collects: PrintVect.App.exe, PrintVect.Core.dll,
 ; Newtonsoft.Json.dll, PrintVect.Elevate.exe, pvct-send.exe, Fonts\, the sample .xps files, README.md, LICENSE.
+; An update from inside PrintVect runs this same program as  PrintVect-Setup-<version>.exe /SILENT /NORESTART /LOG=...
+; started by the app like a double-click: Setup asks Windows for administrator rights itself, ends the running
+; PrintVect (PrepareToInstall below), installs over the old files and starts PrintVect again as the signed-in user.
 
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "0.2.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\artifacts\PrintVect"
@@ -54,6 +57,7 @@ Name: "desktopicon"; Description: "Put a {#AppName} icon on the desktop"; GroupD
 Name: "{commonappdata}\{#AppName}"; Permissions: users-modify
 Name: "{commonappdata}\{#AppName}\spool"; Permissions: users-modify
 Name: "{commonappdata}\{#AppName}\logs"; Permissions: users-modify
+Name: "{commonappdata}\{#AppName}\updates"; Permissions: users-modify
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -73,7 +77,9 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#FwTcpRule}"" dir=in action=allow protocol=TCP localport=9151 program=""{app}\{#AppExe}"" profile=private,domain"; Flags: runhidden; Tasks: firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#FwUdpRule}"""; Flags: runhidden; Tasks: firewall
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#FwUdpRule}"" dir=in action=allow protocol=UDP localport=9150 program=""{app}\{#AppExe}"" profile=private,domain"; Flags: runhidden; Tasks: firewall
-Filename: "{app}\{#AppExe}"; Description: "Start {#AppName} now"; Flags: postinstall nowait skipifsilent
+; Also runs after a silent update from inside PrintVect (no skipifsilent), and as the signed-in user rather than
+; the administrator (runasoriginaluser), so the restarted PrintVect owns the files it writes.
+Filename: "{app}\{#AppExe}"; Description: "Start {#AppName} now"; Flags: postinstall nowait runasoriginaluser
 
 [UninstallRun]
 ; Order matters: printers and ports first (while the helper still exists), then the firewall rules.
@@ -102,9 +108,11 @@ procedure StopPrintVect;
 var
   ResultCode: Integer;
 begin
-  { The tray app has no window to close, so ask Windows to end it; the installer replaces its files next. }
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM PrintVect.App.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM pvct-send.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  { The tray app has no window to close, so ask Windows to end it; the installer replaces its files next.
+    No /T (process tree): when PrintVect itself started this setup for an update, this setup is a child of
+    PrintVect, and /T would end the setup half-way. The app writes everything to disk before it starts us. }
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM PrintVect.App.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM pvct-send.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 function InitializeSetup: Boolean;

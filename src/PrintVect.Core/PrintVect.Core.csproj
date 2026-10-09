@@ -12,6 +12,8 @@
     <Reference Include="System.Printing" />
     <Reference Include="ReachFramework" />
     <Reference Include="System.IO.Compression" />
+    <!-- HTTPS to github.com for the update check (Update/UpdateChecker.cs); part of .NET Framework 4.8. -->
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>

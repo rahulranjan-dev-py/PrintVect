@@ -157,6 +157,11 @@ namespace PrintVect.Core.Config
                 config.Language = AppConfig.DefaultLanguage;
             }
 
+            if (config.LastRunVersion == null)
+            {
+                config.LastRunVersion = "";
+            }
+
             if (config.SharedPrinters == null)
             {
                 config.SharedPrinters = new List<SharedPrinter>();
