@@ -298,7 +298,7 @@ allowed to publish on the repository, so this part is the owner's):
 
 1. Open https://github.com/rahulranjan-dev-py/PrintVect/releases/new (signed in to GitHub).
 2. Click **Choose a tag**, type `v0.2.0`, then click **Create new tag: v0.2.0 on publish**.
-3. Click **Target: main** and pick the branch **ccr-81ffc443-d0d2ka**. Do not skip this: the main branch
+3. Click **Target: main** and pick the branch **ccr-5c5bb225-3h4f6u**. Do not skip this: the main branch
    has nothing to build, and the files would never appear.
 4. In **Release title** type `PrintVect 0.2.0`. Leave everything else as it is.
 5. Click **Publish release**.
