@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Every user-visible string of PrintVect lives here (brief, section 3).
+    Hindi comes as Strings.hi.resx in Phase 2. After editing, regenerate Strings.Designer.cs
+    with Visual Studio (automatic) or: python3 tools/generate_strings.py
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve">
+    <value>PrintVect</value>
+  </data>
+  <data name="BalloonJobFailed" xml:space="preserve">
+    <value>Could not print "{0}" from {1}: {2}</value>
+  </data>
+  <data name="BalloonJobPrinted" xml:space="preserve">
+    <value>Printed "{0}" from {1} on {2}</value>
+  </data>
+  <data name="BalloonJobReceived" xml:space="preserve">
+    <value>Printing "{0}" from {1} on {2}</value>
+  </data>
+  <data name="BalloonSharingFailedTitle" xml:space="preserve">
+    <value>Printer sharing did not start</value>
+  </data>
+  <data name="DiagCollecting" xml:space="preserve">
+    <value>Collecting information about this PC, please wait...</value>
+  </data>
+  <data name="DiagCopied" xml:space="preserve">
+    <value>Copied. You can now paste it into an email or chat.</value>
+  </data>
+  <data name="DiagCopy" xml:space="preserve">
+    <value>Copy to clipboard</value>
+  </data>
+  <data name="DiagCopyFailed" xml:space="preserve">
+    <value>Could not copy to the clipboard. Select the text with the mouse and press Ctrl+C instead.</value>
+  </data>
+  <data name="DiagDefaultPrinterSuffix" xml:space="preserve">
+    <value> (default)</value>
+  </data>
+  <data name="DiagFailed" xml:space="preserve">
+    <value>Could not collect the information: {0}</value>
+  </data>
+  <data name="DiagHostSection" xml:space="preserve">
+    <value>Printer sharing (host role)</value>
+  </data>
+  <data name="DiagIntro" xml:space="preserve">
+    <value>If printing does not work, press "Copy to clipboard" and paste the text into an email or chat to the person who supports PrintVect. Nothing is sent anywhere automatically.</value>
+  </data>
+  <data name="DiagNoPrinters" xml:space="preserve">
+    <value>No printers are installed on this PC.</value>
+  </data>
+  <data name="DiagOpenLogs" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="DiagOpenLogsFailed" xml:space="preserve">
+    <value>Could not open the log folder. It is here: {0}</value>
+  </data>
+  <data name="DiagPrintersError" xml:space="preserve">
+    <value>Could not read the printer list: {0}</value>
+  </data>
+  <data name="DiagPrintersSection" xml:space="preserve">
+    <value>Printers on this PC</value>
+  </data>
+  <data name="DiagRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="JobColDocument" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="JobColFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="JobColMessage" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="JobColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="JobColState" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="JobColTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="JobState_error" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="JobState_printed" xml:space="preserve">
+    <value>Printed</value>
+  </data>
+  <data name="JobState_printing" xml:space="preserve">
+    <value>Printing</value>
+  </data>
+  <data name="JobState_queued" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>OFF</value>
+  </data>
+  <data name="On" xml:space="preserve">
+    <value>ON</value>
+  </data>
+  <data name="PinNotSet" xml:space="preserve">
+    <value>not set (open to the office network)</value>
+  </data>
+  <data name="PinSet" xml:space="preserve">
+    <value>set</value>
+  </data>
+  <data name="PrinterStatus_busy" xml:space="preserve">
+    <value>Busy</value>
+  </data>
+  <data name="PrinterStatus_error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="PrinterStatus_offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="PrinterStatus_paper_out" xml:space="preserve">
+    <value>Paper out</value>
+  </data>
+  <data name="PrinterStatus_paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="PrinterStatus_ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="PrinterStatus_unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="SettingsConfigFile" xml:space="preserve">
+    <value>Settings file: {0}</value>
+  </data>
+  <data name="SettingsIntro" xml:space="preserve">
+    <value>These settings are read from the file shown below. Changing them from this screen comes in a later update. Until then, ask the person who set up PrintVect if something needs to change.</value>
+  </data>
+  <data name="SettingsKeepFiles" xml:space="preserve">
+    <value>Keep sent files for: {0} hour(s)</value>
+  </data>
+  <data name="SettingsPin" xml:space="preserve">
+    <value>Shared PIN: {0}</value>
+  </data>
+  <data name="SettingsPorts" xml:space="preserve">
+    <value>Discovery port (UDP): {0}     Job port (TCP): {1}</value>
+  </data>
+  <data name="SettingsSharing" xml:space="preserve">
+    <value>Sharing my printers: {0}</value>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Start with Windows: {0}</value>
+  </data>
+  <data name="ShareColFriendly" xml:space="preserve">
+    <value>Name for the office</value>
+  </data>
+  <data name="ShareColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="ShareColShare" xml:space="preserve">
+    <value>Share</value>
+  </data>
+  <data name="ShareColStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ShareIntro" xml:space="preserve">
+    <value>Tick each printer you want other PCs to use. The name for the office is what people on the other PCs see, so use something like "Counter 1 Laser" (double-click it to change it).</value>
+  </data>
+  <data name="ShareJobsToday" xml:space="preserve">
+    <value>Jobs printed today: {0}</value>
+  </data>
+  <data name="ShareLoading" xml:space="preserve">
+    <value>Reading the printer list...</value>
+  </data>
+  <data name="ShareNoPrinters" xml:space="preserve">
+    <value>No printers are installed on this PC. Install the printer in Windows first, then press Refresh.</value>
+  </data>
+  <data name="SharePrintersError" xml:space="preserve">
+    <value>Could not read the printer list: {0}</value>
+  </data>
+  <data name="ShareRecentJobs" xml:space="preserve">
+    <value>Received from other PCs</value>
+  </data>
+  <data name="ShareRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ShareStatusOff" xml:space="preserve">
+    <value>Sharing is OFF. Other PCs cannot print here.</value>
+  </data>
+  <data name="ShareStatusOn" xml:space="preserve">
+    <value>Sharing is ON. Other PCs can send print jobs to this PC on port {0}.</value>
+  </data>
+  <data name="ShareToggle" xml:space="preserve">
+    <value>Share the ticked printers with the office</value>
+  </data>
+  <data name="SharingPortError" xml:space="preserve">
+    <value>PrintVect could not open port {0} for incoming print jobs. Another program (or a second copy of PrintVect) is using it. Close that program, or change the job port in {1} and start PrintVect again.</value>
+  </data>
+  <data name="SharingSaveError" xml:space="preserve">
+    <value>Your change could not be saved to {0}, so it will be lost when PrintVect closes. Ask the person who installed PrintVect to check that folder.</value>
+  </data>
+  <data name="SharingStartError" xml:space="preserve">
+    <value>PrintVect could not start sharing: {0}</value>
+  </data>
+  <data name="StartupFolderError" xml:space="preserve">
+    <value>PrintVect could not create its data folder:
+{0}
+
+{1}
+
+Ask the person who installed PrintVect to check that this folder can be written to, then start PrintVect again.</value>
+  </data>
+  <data name="StatusSharingOff" xml:space="preserve">
+    <value>Sharing OFF</value>
+  </data>
+  <data name="StatusSharingOn" xml:space="preserve">
+    <value>Sharing ON</value>
+  </data>
+  <data name="StatusVersion" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="TabDiagnostics" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="TabSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="TabShare" xml:space="preserve">
+    <value>Share my printers</value>
+  </data>
+  <data name="TabUse" xml:space="preserve">
+    <value>Use shared printers</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="TrayOpen" xml:space="preserve">
+    <value>Open PrintVect</value>
+  </data>
+  <data name="TrayStillRunningText" xml:space="preserve">
+    <value>PrintVect keeps running in the tray so that printing keeps working. To close it completely, right-click the tray icon and choose Exit.</value>
+  </data>
+  <data name="TrayStillRunningTitle" xml:space="preserve">
+    <value>PrintVect is still running</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Something went wrong inside PrintVect. The details have been written to the log file. If it happens again, open Diagnostics, press "Copy to clipboard" and send the text to the person who supports PrintVect.
+
+Details: {0}</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="UseIntro" xml:space="preserve">
+    <value>Printers that other PCs in the office share appear here by themselves. Choose one and press Add to this PC; Windows asks once for permission. The printer then appears in every program's print window.</value>
+  </data>
+  <data name="UseHostLabel" xml:space="preserve">
+    <value>Not listed? PC name or IP address:</value>
+  </data>
+  <data name="UseLookup" xml:space="preserve">
+    <value>Look up</value>
+  </data>
+  <data name="UseLookingUp" xml:space="preserve">
+    <value>Asking {0}...</value>
+  </data>
+  <data name="UseFoundPrinters" xml:space="preserve">
+    <value>{0} shares {1} printer(s):</value>
+  </data>
+  <data name="UseNoPrintersShared" xml:space="preserve">
+    <value>{0} shares no printers. On that PC, open PrintVect, tick a printer and turn sharing ON.</value>
+  </data>
+  <data name="UseLookupFailed" xml:space="preserve">
+    <value>{0}</value>
+  </data>
+  <data name="UseColPrinter" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="UseColStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="UseAdd" xml:space="preserve">
+    <value>Add to this PC</value>
+  </data>
+  <data name="UseAdding" xml:space="preserve">
+    <value>Creating "{0}" on this PC. If Windows asks for permission, choose Yes.</value>
+  </data>
+  <data name="UseAdded" xml:space="preserve">
+    <value>"{0}" is ready. Print to it from any program; the pages come out on {1}.</value>
+  </data>
+  <data name="UseAddFailed" xml:space="preserve">
+    <value>The printer could not be added. {0}</value>
+  </data>
+  <data name="UseAlreadyAdded" xml:space="preserve">
+    <value>"{0}" is already on this PC.</value>
+  </data>
+  <data name="UseSelectFound" xml:space="preserve">
+    <value>Choose a printer in the list first.</value>
+  </data>
+  <data name="UseMyPrinters" xml:space="preserve">
+    <value>Printers from other PCs on this PC</value>
+  </data>
+  <data name="UseNoRemotePrinters" xml:space="preserve">
+    <value>No printer from another PC has been added yet.</value>
+  </data>
+  <data name="UseColLocalPrinter" xml:space="preserve">
+    <value>Printer on this PC</value>
+  </data>
+  <data name="UseColHost" xml:space="preserve">
+    <value>Host PC</value>
+  </data>
+  <data name="UseColAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="UseColWaiting" xml:space="preserve">
+    <value>Waiting jobs</value>
+  </data>
+  <data name="UseRemove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="UseRemoveConfirm" xml:space="preserve">
+    <value>Remove "{0}" from this PC? Windows asks for permission.</value>
+  </data>
+  <data name="UseRemoved" xml:space="preserve">
+    <value>"{0}" was removed from this PC.</value>
+  </data>
+  <data name="UseRemoveFailed" xml:space="preserve">
+    <value>The printer could not be removed. {0}</value>
+  </data>
+  <data name="UseSelectMine" xml:space="preserve">
+    <value>Choose one of your printers first.</value>
+  </data>
+  <data name="UseTestPage" xml:space="preserve">
+    <value>Send test page</value>
+  </data>
+  <data name="UseTestPageSent" xml:space="preserve">
+    <value>The test page was handed to "{0}"; the Jobs page shows how it goes.</value>
+  </data>
+  <data name="UseTestPageMissing" xml:space="preserve">
+    <value>The test page {0} is missing. Copy the whole PrintVect folder again.</value>
+  </data>
+  <data name="UseRetry" xml:space="preserve">
+    <value>Retry waiting jobs</value>
+  </data>
+  <data name="UseRetried" xml:space="preserve">
+    <value>{0} waiting job(s) are being sent again.</value>
+  </data>
+  <data name="UseNothingWaiting" xml:space="preserve">
+    <value>No jobs are waiting for "{0}".</value>
+  </data>
+  <data name="UseRecentJobs" xml:space="preserve">
+    <value>Sent from this PC</value>
+  </data>
+  <data name="UseJobsToday" xml:space="preserve">
+    <value>Printed today: {0}</value>
+  </data>
+  <data name="UseWatcherError" xml:space="preserve">
+    <value>"{0}" cannot be watched for jobs: {1}</value>
+  </data>
+  <data name="JobColHost" xml:space="preserve">
+    <value>Host PC</value>
+  </data>
+  <data name="JobState_sending" xml:space="preserve">
+    <value>Sending</value>
+  </data>
+  <data name="JobState_pending" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="BalloonClientPrinted" xml:space="preserve">
+    <value>"{0}" printed on {1}.</value>
+  </data>
+  <data name="BalloonClientFailed" xml:space="preserve">
+    <value>"{0}" was not printed: {1}</value>
+  </data>
+  <data name="BalloonClientPending" xml:space="preserve">
+    <value>"{0}" is waiting: {1}</value>
+  </data>
+  <data name="BalloonClientStartFailedTitle" xml:space="preserve">
+    <value>PrintVect printers need attention</value>
+  </data>
+  <data name="DiagClientSection" xml:space="preserve">
+    <value>Printers from other PCs (client role)</value>
+  </data>
+  <data name="UseFoundLabel" xml:space="preserve">
+    <value>Printers in the office</value>
+  </data>
+  <data name="UseFoundNone" xml:space="preserve">
+    <value>No PC is sharing a printer right now. PrintVect keeps looking every 10 seconds. If a PC should be listed, check that PrintVect is running there with sharing ON (and that its firewall allows UDP port 9150).</value>
+  </data>
+  <data name="UseFoundCount" xml:space="preserve">
+    <value>{0} printer(s) on {1} PC(s).</value>
+  </data>
+  <data name="UseOnThisPc" xml:space="preserve">
+    <value>on this PC</value>
+  </data>
+  <data name="DiscoveryStartError" xml:space="preserve">
+    <value>Other PCs cannot find this one by themselves: UDP port {0} could not be opened ({1}). They can still type this PC's name.</value>
+  </data>
+  <data name="SettingsUpdatesGroup" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="SettingsCheckForUpdates" xml:space="preserve">
+    <value>Look for a newer PrintVect once a day (needs the internet; printing itself never uses it)</value>
+  </data>
+  <data name="SettingsCheckNow" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="SettingsUpdateNow" xml:space="preserve">
+    <value>Update now</value>
+  </data>
+  <data name="UpdateStatusNeverChecked" xml:space="preserve">
+    <value>Not checked yet in this run. PrintVect looks shortly after it starts and then once a day.</value>
+  </data>
+  <data name="UpdateStatusOff" xml:space="preserve">
+    <value>Automatic checks are off. Press Check now to look once.</value>
+  </data>
+  <data name="UpdateStatusChecking" xml:space="preserve">
+    <value>Asking github.com for the latest version...</value>
+  </data>
+  <data name="UpdateStatusUpToDate" xml:space="preserve">
+    <value>PrintVect {0} is the latest version (checked {1}).</value>
+  </data>
+  <data name="UpdateStatusAvailable" xml:space="preserve">
+    <value>PrintVect {0} is ready to install; this PC has {1}. Press Update now: it takes about a minute, and PrintVect opens again by itself.</value>
+  </data>
+  <data name="UpdateStatusFailed" xml:space="preserve">
+    <value>Could not check for a newer version at {1}: {0}.</value>
+  </data>
+  <data name="UpdateDownloading" xml:space="preserve">
+    <value>Downloading PrintVect {0}: {1} of {2} MB...</value>
+  </data>
+  <data name="UpdateStarting" xml:space="preserve">
+    <value>Starting the update. Answer Yes to the Windows permission question; PrintVect closes for a moment and opens again by itself.</value>
+  </data>
+  <data name="UpdateDidNotRun" xml:space="preserve">
+    <value>The update did not run (the setup program ended with code {0}). Press Update now again and answer Yes to the Windows permission question.</value>
+  </data>
+  <data name="UpdateDownloadFailed" xml:space="preserve">
+    <value>The update could not be downloaded: {0}. Press Update now to try again.</value>
+  </data>
+  <data name="UpdateStartFailed" xml:space="preserve">
+    <value>The setup program could not be started: {0}</value>
+  </data>
+  <data name="UpdateJobsBusy" xml:space="preserve">
+    <value>{0} print job(s) are still being handled. Wait for them to finish, then press Update now again.</value>
+  </data>
+  <data name="UpdateBannerText" xml:space="preserve">
+    <value>A newer PrintVect ({0}) is ready to install.</value>
+  </data>
+  <data name="UpdateBannerLater" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="BalloonUpdateTitle" xml:space="preserve">
+    <value>A newer PrintVect is ready</value>
+  </data>
+  <data name="BalloonUpdateText" xml:space="preserve">
+    <value>PrintVect {0} is ready to install. Open PrintVect and press Update now.</value>
+  </data>
+  <data name="BalloonUpdatedTitle" xml:space="preserve">
+    <value>PrintVect was updated</value>
+  </data>
+  <data name="BalloonUpdatedText" xml:space="preserve">
+    <value>This PC now runs PrintVect {0}.</value>
+  </data>
+  <data name="DiagUpdatesSection" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="TabJobs" xml:space="preserve">
+    <value>Jobs</value>
+  </data>
+  <data name="ShareThisPcCaption" xml:space="preserve">
+    <value>This PC</value>
+  </data>
+  <data name="ShareSharingCaption" xml:space="preserve">
+    <value>Sharing with the office</value>
+  </data>
+  <data name="ShareCopyAddress" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="ShareAddressLine" xml:space="preserve">
+    <value>Other PCs find this PC as {0} ({1}).</value>
+  </data>
+  <data name="ShareAddressNone" xml:space="preserve">
+    <value>Other PCs find this PC as {0}. It has no network address right now: check the network cable.</value>
+  </data>
+  <data name="ShareAddressCopied" xml:space="preserve">
+    <value>Copied: {0}</value>
+  </data>
+  <data name="SharePrintersTitle" xml:space="preserve">
+    <value>Printers on this PC</value>
+  </data>
+  <data name="SharePrintedTodayCaption" xml:space="preserve">
+    <value>Printed today</value>
+  </data>
+  <data name="SharePrintedTodayNote" xml:space="preserve">
+    <value>jobs from other PCs</value>
+  </data>
+  <data name="ShareHowTitle" xml:space="preserve">
+    <value>How to connect a PC</value>
+  </data>
+  <data name="ShareHowSteps" xml:space="preserve">
+    <value>1. On the other PC, start PrintVect and open Use shared printers.
+2. This PC's shared printers appear there by themselves.
+3. Choose one and press Add to this PC.
+
+Not listed? Type {0} in the box there and press Look up.</value>
+  </data>
+</root>

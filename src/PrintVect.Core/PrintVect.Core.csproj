@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Protocol, discovery, spool watcher, printing, config and logging. No UI references. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>PrintVect.Core</RootNamespace>
+    <AssemblyName>PrintVect.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Framework assemblies that ship with .NET Framework 4.8 (printing). -->
+    <Reference Include="System.Printing" />
+    <Reference Include="ReachFramework" />
+    <Reference Include="System.IO.Compression" />
+    <!-- HTTPS to github.com for the update check (Update/UpdateChecker.cs); part of .NET Framework 4.8. -->
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The only NuGet package allowed in shipped code (brief, section 3). -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
