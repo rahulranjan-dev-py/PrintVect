@@ -425,6 +425,10 @@ both PCs (it ends with the log lines that explain it).
 Known limits of M6b-2, by design: an update waits while jobs are queued for a paused printer (Resume first); the
 copies window answers by itself after a minute; the ports can only be changed in the settings file.
 
+Release v0.4.0 on 2026-10-17 (Run workflow from main): **released, not tested.** The owner chose to close M6b-2
+without running these steps (the report came within a minute of the release, before any PC had downloaded it).
+Until they are run, nothing here is verified on Windows: run steps 1 to 17 when the PCs are on 0.4.0.
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
