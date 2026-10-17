@@ -50,3 +50,9 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
 - The "Computers" card, Pause queue and the PIN screen wait for the presence signal and hardening of M6b-2.
 - Colours not in the mock-ups: failed jobs in a muted red `#F27A72`; hover `#20262E`; selected row `#232B36`.
 - Small capitals labels are drawn without the 0.1em letter spacing (Windows' text drawing has no letter spacing).
+
+## Built in M6b-2 (2026-10-17)
+- "Computers" card = **PCs that use this PC** on Share my printers: name (JetBrains Mono), "Windows … · PrintVect …",
+  and a Connected (green) or "Last seen HH:MM" (grey) pill. With no PC yet, the same card shows how to connect one.
+- "Pause queue" = **Pause printer / Resume printer** above the printer list; a paused printer's status is yellow.
+- PIN screen and the copies question are small dark windows in the same cards, buttons and fonts; Windows draws their frame.

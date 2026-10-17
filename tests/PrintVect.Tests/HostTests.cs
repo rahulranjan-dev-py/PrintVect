@@ -218,7 +218,9 @@ namespace PrintVect.Tests
 
             Assert.IsFalse(noPin.Ok);
             StringAssert.Contains(noPin.Message, "PIN");
+            Assert.IsTrue(noPin.Retry, "after the PINs are set alike, the same job may go again");
             Assert.IsFalse(wrongPin.Ok);
+            Assert.IsTrue(wrongPin.Retry);
             Assert.IsTrue(rightPin.Ok, rightPin.Message);
             Assert.AreEqual(1, _engine.Requests.Count);
             Assert.AreEqual(0, Directory.GetFiles(_host.IncomingDirectory).Length, "refused jobs leave no file behind");
@@ -236,6 +238,7 @@ namespace PrintVect.Tests
             StringAssert.Contains(reply.Message, "No shared printer called \"Canon\"");
             StringAssert.Contains(reply.Message, "Counter 1 Laser");
             StringAssert.Contains(reply.Message, "Back Office");
+            Assert.IsFalse(reply.Retry, "sending the same job again would fail the same way");
         }
 
         [TestMethod]
@@ -314,6 +317,7 @@ namespace PrintVect.Tests
 
             Assert.IsFalse(reply.Ok);
             StringAssert.Contains(reply.Message, "no record");
+            Assert.IsTrue(reply.Retry, "a job the host does not know may be sent again");
         }
 
         [TestMethod]
@@ -460,6 +464,164 @@ namespace PrintVect.Tests
                 }
                 await Task.Delay(50);
             }
+        }
+
+        [TestMethod]
+        public async Task PausedPrinter_KeepsJobsUntilResume()
+        {
+            _host.UpdateSharedPrinters(new[]
+            {
+                new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true },
+                new SharedPrinter { Id = "def456", LocalName = "Other Printer", FriendlyName = "Back Office" }
+            });
+
+            ListReply list = await Client().ListPrintersAsync(CancellationToken.None);
+            Assert.AreEqual(PrinterStatuses.Paused, list.Printers[0].Status);
+
+            string jobId = Guid.NewGuid().ToString();
+            RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Paused doc", "");
+            header.JobId = jobId;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            JobReply reply = await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
+
+            Assert.IsTrue(reply.Ok);
+            Assert.AreEqual(JobStates.Queued, reply.State);
+            StringAssert.Contains(reply.Message, "is paused there");
+            Assert.IsTrue(watch.Elapsed < TimeSpan.FromSeconds(10), "a paused job is answered at once, not after the reply wait");
+            Thread.Sleep(300);
+            Assert.AreEqual(0, _engine.Requests.Count, "nothing reaches Windows while paused");
+
+            _host.UpdateSharedPrinters(new[]
+            {
+                new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = false },
+                new SharedPrinter { Id = "def456", LocalName = "Other Printer", FriendlyName = "Back Office" }
+            });
+            JobReply status = null;
+            for (int i = 0; i < 100; i++)
+            {
+                status = await Client().QueryStatusAsync(jobId, CancellationToken.None);
+                if (status.State == JobStates.Printed) break;
+                Thread.Sleep(50);
+            }
+            Assert.AreEqual(JobStates.Printed, status.State, "Resume prints the waiting job");
+        }
+
+        [TestMethod]
+        public async Task PausedJob_IsNotReportedStuck()
+        {
+            _host.StuckTimeout = TimeSpan.FromMilliseconds(500);
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true } });
+            RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Long pause", "");
+            await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
+
+            Thread.Sleep(1500);   // three stuck timeouts while paused
+            JobRecord record;
+            Assert.IsTrue(_host.Jobs.TryGet(header.JobId, out record));
+            Assert.AreEqual(JobStates.Queued, record.State, record.Message);
+
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+            for (int i = 0; i < 100 && record.State != JobStates.Printed; i++)
+            {
+                Thread.Sleep(50);
+                _host.Jobs.TryGet(header.JobId, out record);
+            }
+            Assert.AreEqual(JobStates.Printed, record.State, record.Message);
+        }
+
+        [TestMethod]
+        public async Task SharingOffWhilePaused_TheWaitingJobMaySendAgain()
+        {
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true } });
+            string jobId = Guid.NewGuid().ToString();
+            RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Paused doc", "");
+            header.JobId = jobId;
+            JobReply reply = await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
+            Assert.AreEqual(JobStates.Queued, reply.State);
+
+            _host.Stop();
+            JobRecord record = null;
+            for (int i = 0; i < 100; i++)
+            {
+                _host.Jobs.TryGet(jobId, out record);
+                if (record != null && record.State == JobStates.Error) break;
+                Thread.Sleep(50);
+            }
+            Assert.AreEqual(JobStates.Error, record.State);
+            Assert.IsTrue(record.Lost, "the sender is invited to send it again");
+            Assert.AreEqual(0, _engine.Requests.Count, "nothing was printed");
+        }
+
+        [TestMethod]
+        public async Task Hello_ListsThePcWithItsVersions()
+        {
+            RequestHeader hello = RequestHeader.ForHello("Windows 10 Pro 22H2 (build 19045.4894)", "0.4.0", new[] { "abc123" });
+            hello.Client = "COUNTER3";
+            JobReply reply = await Client().SendHelloAsync(hello, CancellationToken.None);
+
+            Assert.IsTrue(reply.Ok, reply.Message);
+            ClientPresence pc = _host.Presence.All().Single();
+            Assert.AreEqual("COUNTER3", pc.Name);
+            Assert.AreEqual("127.0.0.1", pc.Address);
+            StringAssert.StartsWith(pc.Windows, "Windows 10 Pro");
+            Assert.AreEqual("0.4.0", pc.AppVersion);
+            Assert.IsTrue(PresenceTracker.IsOnline(pc, DateTime.Now));
+            Assert.IsFalse(PresenceTracker.IsOnline(pc, DateTime.Now + PresenceTracker.OnlineFor + TimeSpan.FromMinutes(1)));
+        }
+
+        [TestMethod]
+        public async Task Job_MarksItsPcAsSeenAndKeepsTheHelloDetails()
+        {
+            RequestHeader hello = RequestHeader.ForHello("Windows 11 Pro 24H2", "0.4.0", new[] { "abc123" });
+            hello.Client = "SPM";
+            await Client().SendHelloAsync(hello, CancellationToken.None);
+
+            RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Doc", "");
+            header.Client = "SPM";
+            await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
+
+            ClientPresence pc = _host.Presence.All().Single();
+            Assert.AreEqual("SPM", pc.Name);
+            Assert.AreEqual("Windows 11 Pro 24H2", pc.Windows, "a job does not wipe what the hello said");
+        }
+
+        [TestMethod]
+        public async Task SameJobSentAgain_IsNotPrintedTwice()
+        {
+            string file = WriteXps(2000);
+            RequestHeader header = RequestHeader.ForJob("abc123", "a.xps", JobFormats.Xps, 0, "Twice?", "");
+            JobReply first = await Client().SendJobAsync(header, file, null, CancellationToken.None);
+            Assert.AreEqual(JobStates.Printed, first.State, first.Message);
+
+            JobReply again = await Client().SendJobAsync(header, file, null, CancellationToken.None);
+
+            Assert.IsTrue(again.Ok);
+            Assert.AreEqual(JobStates.Printed, again.State);
+            StringAssert.Contains(again.Message, "not printed again");
+            Assert.AreEqual(1, _engine.Requests.Count, "printed once");
+        }
+
+        [TestMethod]
+        public async Task ALostJobSentAgain_IsPrinted()
+        {
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true } });
+            string file = WriteXps(2000);
+            RequestHeader header = RequestHeader.ForJob("abc123", "a.xps", JobFormats.Xps, 0, "Lost then resent", "");
+            await Client().SendJobAsync(header, file, null, CancellationToken.None);
+            _host.Stop();   // closed while the printer was paused: the job is lost here
+            JobRecord lost = null;
+            for (int i = 0; i < 100 && (lost == null || !lost.Lost); i++)
+            {
+                _host.Jobs.TryGet(header.JobId, out lost);
+                Thread.Sleep(50);
+            }
+            Assert.IsTrue(lost.Lost);
+
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+            _host.Start(0);
+            JobReply again = await Client().SendJobAsync(header, file, null, CancellationToken.None);
+
+            Assert.AreEqual(JobStates.Printed, again.State, again.Message);
+            Assert.AreEqual(1, _engine.Requests.Count);
         }
 
         [TestMethod]

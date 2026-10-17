@@ -21,6 +21,8 @@ namespace PrintVect.Core.Client
         public long Size { get; set; }
         /// <summary>Copies asked for in the file's print ticket; 1 when none.</summary>
         public int Copies { get; set; } = 1;
+        /// <summary>The file came through the virtual printer (a program printed it), not from Send test page.</summary>
+        public bool FromPrinter { get; set; }
     }
 
     /// <summary>
@@ -277,7 +279,8 @@ namespace PrintVect.Core.Client
                 handler(this, new SpoolFileReadyEventArgs
                 {
                     JobId = jobId, FilePath = target, Format = info.Format, Document = document, Title = info.Title,
-                    User = local == null ? null : local.User, Size = size, Copies = info.Copies
+                    User = local == null ? null : local.User, Size = size, Copies = info.Copies,
+                    FromPrinter = string.Equals(Path.GetFileName(path), ClientPrinterNames.PortFileName, StringComparison.OrdinalIgnoreCase)
                 });
             }
             catch (Exception ex)

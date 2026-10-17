@@ -29,6 +29,14 @@ namespace PrintVect.Tests
             return Task.FromResult(reply);
         }
 
+        public readonly List<RequestHeader> Hellos = new List<RequestHeader>();
+
+        public Task<JobReply> HelloAsync(RemotePrinter printer, RequestHeader header, CancellationToken ct)
+        {
+            lock (Hellos) Hellos.Add(header);
+            return Task.FromResult(new JobReply { Ok = true, Message = "hello" });
+        }
+
         public Task<JobReply> StatusAsync(RemotePrinter printer, string jobId, CancellationToken ct)
         {
             lock (StatusAsked) StatusAsked.Add(jobId);
@@ -410,6 +418,193 @@ namespace PrintVect.Tests
                     Assert.AreEqual(ClientJobStates.Printed, record.State);
                     Assert.AreEqual("Printed on Laser (COUNTER1)", record.Message);
                     Assert.IsTrue(asked >= 3, "status was asked " + asked + " times");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AHostThatStopsAnsweringMidJobLeavesTheJobForRetry()
+        {
+            using (var temp = new TempFolder())
+            {
+                bool hostUp = true;
+                var sender = new FakeJobSender
+                {
+                    OnSend = h => hostUp ? new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Printing, Message = "Windows is sending the job" } : null,
+                    OnStatus = id => null   // switched off right after it took the job
+                };
+                using (ClientService service = Service(temp, sender))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, false, "Mid job");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State);
+                    StringAssert.Contains(record.Message, "COUNTER1 stopped answering");
+                    StringAssert.Contains(record.Message, "Retry waiting jobs");
+                    Assert.AreEqual(1, service.PendingCount(printer.PrinterId), "the file went from sent\\ back to pending\\");
+
+                    // The host is back: Retry sends the same job again and it prints.
+                    sender.OnStatus = id => new JobReply { Ok = true, JobId = id, State = JobStates.Printed, Message = "Printed on Laser (COUNTER1)" };
+                    ClientJobRecord retried = null;
+                    var done = new ManualResetEventSlim();
+                    service.JobFinished += (s, r) => { retried = r; done.Set(); };
+                    Assert.AreEqual(1, service.RetryPending(printer.PrinterId));
+                    Assert.IsTrue(done.Wait(TimeSpan.FromSeconds(10)), "the retried job never finished");
+                    Assert.AreEqual(ClientJobStates.Printed, retried.State);
+                    Assert.AreEqual(record.JobId, retried.JobId, "Retry keeps the job id");
+                    Assert.AreEqual(2, sender.Sent.Count);
+                    Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AJobTheHostLostGoesBackToPending()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender
+                {
+                    OnSend = h => new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Queued, Message = "Received on COUNTER1" },
+                    OnStatus = id => new JobReply { Ok = false, JobId = id, State = JobStates.Error, Retry = true,
+                                                    Message = "PrintVect on COUNTER1 was closed before this job finished." }
+                };
+                using (ClientService service = Service(temp, sender))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, false, "Lost");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State);
+                    StringAssert.Contains(record.Message, "was closed before this job finished");
+                    Assert.AreEqual(1, service.PendingCount(printer.PrinterId));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void APrintingErrorIsNotOfferedForRetry()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender
+                {
+                    OnSend = h => new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Printing, Message = "printing" },
+                    OnStatus = id => new JobReply { Ok = false, JobId = id, State = JobStates.Error, Message = "The printer is out of paper." }
+                };
+                using (ClientService service = Service(temp, sender))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, false, "Paper");
+
+                    Assert.AreEqual(ClientJobStates.Error, record.State);
+                    Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task PresenceSaysHelloOncePerHostWithItsPrinters()
+        {
+            var sender = new FakeJobSender();
+            RemotePrinter a = Printer();
+            var b = new RemotePrinter { PrinterId = "bbbbbbbbbbbbbbbb", HostName = "COUNTER1", HostIp = "127.0.0.1", FriendlyName = "Inkjet" };
+            var c = new RemotePrinter { PrinterId = "cccccccccccccccc", HostName = "SPM", HostIp = "10.0.0.2", FriendlyName = "Laser" };
+            using (var announcer = new PresenceAnnouncer(sender, () => new List<RemotePrinter> { a, b, c }))
+            {
+                await announcer.AnnounceAsync(CancellationToken.None);
+            }
+
+            Assert.AreEqual(2, sender.Hellos.Count, "one hello per host");
+            RequestHeader counter1 = sender.Hellos.Single(h => h.Printers.Contains(a.PrinterId));
+            CollectionAssert.AreEquivalent(new[] { a.PrinterId, b.PrinterId }, counter1.Printers);
+            Assert.AreEqual(RequestTypes.Hello, counter1.Type);
+            Assert.AreEqual(Environment.MachineName, counter1.Client);
+            Assert.IsFalse(string.IsNullOrEmpty(counter1.Os));
+            Assert.IsFalse(string.IsNullOrEmpty(counter1.AppVersion));
+        }
+
+        [TestMethod]
+        public void TheCopiesAnswerIsSentToTheHost()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                using (ClientService service = Service(temp, sender))
+                {
+                    ClientJobRecord asked = null;
+                    service.AskCopies = r => { asked = r; return Task.FromResult<int?>(3); };
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, false, "Three times");
+
+                    Assert.IsNotNull(asked, "a job printed from a program is asked about");
+                    Assert.AreEqual("Three times", asked.Doc);
+                    Assert.AreEqual(ClientJobStates.Printed, record.State);
+                    Assert.AreEqual(3, sender.Sent.Single().Copies);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void CancelInTheCopiesQuestionSendsNothing()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                using (ClientService service = Service(temp, sender))
+                {
+                    service.AskCopies = r => Task.FromResult<int?>(null);
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, false, "Not wanted");
+
+                    Assert.AreEqual(ClientJobStates.Cancelled, record.State);
+                    Assert.AreEqual(0, sender.Sent.Count);
+                    Assert.IsFalse(File.Exists(record.FilePath), "the cancelled file is deleted");
+                    Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void ATestPageIsNotAskedAboutCopies()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                using (ClientService service = Service(temp, sender))
+                {
+                    bool asked = false;
+                    service.AskCopies = r => { asked = true; return Task.FromResult<int?>(5); };
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+                    string sample = XpsPackages.Write(temp.File("PrintVect-test-page.xps"), false, "Test page");
+
+                    var done = new ManualResetEventSlim();
+                    service.JobFinished += (s, r) => done.Set();
+                    service.SendFile(printer.PrinterId, sample);
+                    for (int i = 0; i < 200 && !done.IsSet; i++)
+                    {
+                        service.ScanNow(printer.PrinterId);
+                        Thread.Sleep(50);
+                    }
+
+                    Assert.IsTrue(done.IsSet);
+                    Assert.IsFalse(asked);
+                    Assert.AreEqual(1, sender.Sent.Single().Copies);
                 }
             }
         }

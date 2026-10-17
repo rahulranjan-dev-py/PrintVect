@@ -36,6 +36,12 @@ namespace PrintVect.Core.Config
         /// <summary>How long sent job files are kept for diagnostics before they are deleted.</summary>
         public int KeepSentFilesHours { get; set; } = DefaultKeepSentFilesHours;
 
+        /// <summary>
+        /// Ask how many copies before a job printed on this PC is sent to another PC (M6b-2). The XPS writer usually
+        /// loses the copies chosen in a program's print window (brief 11.6), so this is on by default.
+        /// </summary>
+        public bool AskCopies { get; set; } = true;
+
         /// <summary>UI language. "en" now, "hi" in Phase 2.</summary>
         public string Language { get; set; } = DefaultLanguage;
 
@@ -66,6 +72,9 @@ namespace PrintVect.Core.Config
 
         /// <summary>What clerks see, e.g. "Counter 1 Laser".</summary>
         public string FriendlyName { get; set; }
+
+        /// <summary>Paused on this PC: jobs for it are accepted and wait until someone presses Resume (M6b-2).</summary>
+        public bool Paused { get; set; }
     }
 
     /// <summary>A printer on another PC that has been added to this PC as a virtual printer.</summary>
