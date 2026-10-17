@@ -104,6 +104,10 @@ namespace PrintVect.Tests
             Assert.IsTrue(tracker.TryGet("cut", out cut));
             Assert.AreEqual(JobStates.Error, cut.State);
             StringAssert.Contains(cut.Message, "closed");
+            Assert.IsTrue(cut.Lost, "an interrupted job invites the sender to send it again");
+            JobRecord old;
+            Assert.IsTrue(tracker.TryGet("old", out old));
+            Assert.IsFalse(old.Lost);
             Assert.AreEqual(1, tracker.CountToday(JobStates.Printed));
             Assert.AreEqual(1, tracker.CountToday(JobStates.Error));
             Assert.AreEqual("cut", tracker.Recent(1)[0].JobId, "newest first");

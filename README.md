@@ -35,8 +35,8 @@ was the working name before PrintVect was chosen).
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
 | M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, verified on Windows 10 (daily use)** |
 | M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, verified on three PCs (0.2.0 to 0.2.1 by itself)** |
-| M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, awaiting test** |
-| M6b-2 | Hardening: editable settings, plain-language errors, copies prompt, presence, Pause, PIN screen | |
+| M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, reported OK by the owner** |
+| M6b-2 | Hardening: editable settings and office PIN, copies question, PCs that use a host, Pause / Resume, jobs kept for Retry when a host is lost, plain-language errors | **done, awaiting test** |
 
 ## Requirements
 
@@ -83,20 +83,27 @@ the right of that bar says whether this PC shares its printers:
 
 - **Share my printers**: this PC's name and network addresses (with **Copy**, to tell another PC where to
   look), the **Sharing with the office** switch, and the printers on this PC. Tick the ones to offer to the
-  office and give each a name for the office such as "Counter 1 Laser". On the right: how many jobs from
-  other PCs were printed today, and how to connect another PC.
+  office and give each a name for the office such as "Counter 1 Laser". **Pause printer** keeps jobs from
+  other PCs waiting (out of paper, a jam) until **Resume printer**. On the right: how many jobs from other PCs
+  were printed today, and the **PCs that use this PC** with their Windows and PrintVect version (or, before
+  any PC has connected, how to connect one).
 - **Jobs**: the jobs other PCs sent to this PC's printers, and the jobs this PC sent to printers of other
   PCs, newest first, with today's printed count for each.
 - **Use shared printers**: the printers other PCs share appear by themselves; or type a host PC's name or
   IP and press **Look up**. Add one to this PC (Windows asks once for permission), send a test page, retry
   waiting jobs, remove it.
-- **Settings**: shared PIN, ports, start with Windows, how long to keep sent files; the **Updates** card
+- **Settings**: the office PIN (**Set PIN…**: the same PIN on every PC), start with Windows (Windows asks for
+  permission once), whether printing asks how many copies, how long to keep sent files; the **Updates** card
   (whether PrintVect looks for a newer version once a day, **Check now**, **Update now** when one is ready);
   and **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when something
   does not work. It contains the Windows version, .NET version, network addresses, firewall rule state,
   printer list and the last 200 log lines. Nothing is sent automatically.
 
 Ctrl+Tab moves to the next page.
+
+When a program prints to a PrintVect printer, a small window asks **how many copies** before the job leaves the
+PC (Windows' XPS writer loses the copies chosen in the program). Enter prints, Esc cancels; after a minute without
+an answer it prints the number shown. Settings can turn the question off.
 
 Closing the window only hides it; PrintVect keeps running in the tray. To stop it, right-click
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
@@ -178,6 +185,10 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | Settings says "Could not check for a newer version: this PC cannot reach github.com" | The PC has no internet connection right now (or a proxy blocks github.com). Printing is not affected; the check tries again the next day, or press **Check now** later. |
 | "The update did not run (the setup program ended with code ...)" | The Windows permission question was answered No, or the setup failed: the reason is in `C:\ProgramData\PrintVect\updates\update-<version>.log`. Press **Update now** again. |
 | After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
+| A job waits with "asks for the office PIN" | The two PCs have different office PINs (or one has none). Set the same PIN in Settings on both, then press **Retry waiting jobs** on the PC that printed. |
+| A job waits with "is paused there" | Someone pressed **Pause printer** on the PC that has the printer. Press **Resume printer** there (Share my printers). |
+| A job waits with "stopped answering after it received this job" | The PC with the printer was switched off or lost the network during the job. When it is back, check whether the page came out; if not, press **Retry waiting jobs**. A page that already printed is never printed twice. |
+| Update now says jobs are still being handled | A shared printer is paused with jobs waiting. Resume it (or wait until they printed), then press Update now again. |
 | Something else | Settings, Diagnostics, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
 
 ## Publishing a new version

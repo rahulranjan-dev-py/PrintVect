@@ -29,6 +29,15 @@ namespace PrintVect.Core.Protocol
 
         public string Host { get; }
         public int Port { get; }
+
+        /// <summary>How messages name the host: its PC name when known (clerks know PCs by name, not by address).</summary>
+        public string DisplayName
+        {
+            get { return string.IsNullOrWhiteSpace(_displayName) ? Host : _displayName; }
+            set { _displayName = value; }
+        }
+
+        private string _displayName;
         public TimeSpan ConnectTimeout { get; set; } = ProtocolConstants.ConnectTimeout;
         public TimeSpan TransferTimeout { get; set; } = ProtocolConstants.TransferTimeout;
 
@@ -41,6 +50,14 @@ namespace PrintVect.Core.Protocol
         public async Task<JobReply> QueryStatusAsync(string jobId, CancellationToken ct)
         {
             string line = await ExchangeAsync(RequestHeader.ForStatus(jobId), null, null, ct).ConfigureAwait(false);
+            return Framing.ParseReply<JobReply>(line);
+        }
+
+        /// <summary>Tells the host this PC uses its printers (M6b-2). An older host answers ok=false ("unknown request type").</summary>
+        public async Task<JobReply> SendHelloAsync(RequestHeader header, CancellationToken ct)
+        {
+            if (header == null) throw new ArgumentNullException(nameof(header));
+            string line = await ExchangeAsync(header, null, null, ct).ConfigureAwait(false);
             return Framing.ParseReply<JobReply>(line);
         }
 
@@ -111,17 +128,17 @@ namespace PrintVect.Core.Protocol
                 }
                 catch (Exception ex) when (timeout.IsCancellationRequested && !ct.IsCancellationRequested)
                 {
-                    throw new TimeoutException(Host + " did not finish within " + TransferTimeout.TotalMinutes
+                    throw new TimeoutException(DisplayName + " did not finish within " + TransferTimeout.TotalMinutes
                                                + " minutes. Check the network connection and try again.", ex);
                 }
                 catch (IOException ex)
                 {
-                    throw new HostUnreachableException(Host + " stopped answering during the transfer (" + ex.Message
-                                                       + "). Check that PrintVect on that PC is still running with sharing ON.", ex);
+                    throw new HostUnreachableException(DisplayName + " stopped answering during the transfer. Check that it is still switched on "
+                                                       + "and that PrintVect there runs with sharing ON (" + ex.Message + ").", ex);
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    throw new HostUnreachableException("The connection to " + Host + " was closed.", ex);
+                    throw new HostUnreachableException("The connection to " + DisplayName + " was closed.", ex);
                 }
             }
         }
@@ -143,7 +160,7 @@ namespace PrintVect.Core.Protocol
             {
                 ct.ThrowIfCancellationRequested();
                 SafeClose(client);
-                throw new HostUnreachableException(Host + " did not answer within " + ConnectTimeout.TotalSeconds
+                throw new HostUnreachableException(DisplayName + " did not answer within " + ConnectTimeout.TotalSeconds
                                                    + " seconds. Check that the PC is switched on, connected to the office network, "
                                                    + "and running PrintVect with sharing ON.");
             }
@@ -163,8 +180,8 @@ namespace PrintVect.Core.Protocol
             switch (ex.SocketErrorCode)
             {
                 case SocketError.ConnectionRefused:
-                    return Host + " is reachable but nothing is listening on port " + Port
-                           + ". On that PC, open PrintVect and turn sharing ON, and check that the Windows Firewall allows it.";
+                    return DisplayName + " is switched on, but PrintVect there is not sharing printers (nothing answers on port " + Port
+                           + "). On " + DisplayName + ", open PrintVect and turn sharing ON; if it is ON, the Windows Firewall there blocks it.";
                 case SocketError.HostNotFound:
                 case SocketError.NoData:
                 case SocketError.TryAgain:
@@ -172,9 +189,9 @@ namespace PrintVect.Core.Protocol
                 case SocketError.TimedOut:
                 case SocketError.HostUnreachable:
                 case SocketError.NetworkUnreachable:
-                    return Host + " is not reachable on the network. Check that the PC is switched on and its network cable is plugged in.";
+                    return DisplayName + " is not reachable on the network. Check that it is switched on and its network cable is plugged in.";
                 default:
-                    return "Could not connect to " + Host + ":" + Port + " (" + ex.SocketErrorCode + ": " + ex.Message + ").";
+                    return "Could not connect to " + DisplayName + " (" + Host + ":" + Port + ", " + ex.SocketErrorCode + ": " + ex.Message + ").";
             }
         }
 

@@ -18,6 +18,7 @@ namespace PrintVect.Elevate
     ///   add-printer /id &lt;printerId&gt; /name "&lt;printer&gt;" /folder "&lt;spool folder&gt;" /port "&lt;port file&gt;" [/driver "&lt;name&gt;"]
     ///   remove-printer /name "&lt;printer&gt;" [/port "&lt;port file&gt;"] [/folder "&lt;spool folder&gt;"]
     ///   remove-all
+    ///   autostart /on yes|no
     /// Exit codes: 0 ok, 1 failed, 2 usage error, 3 not running as administrator.
     /// The outcome is also written as JSON to the result file (default: spool\elevate-result.json).
     /// </summary>
@@ -89,6 +90,8 @@ namespace PrintVect.Elevate
                         return RemovePrinter(result, arguments);
                     case ElevateCommands.RemoveAll:
                         return RemoveAll(result);
+                    case ElevateCommands.Autostart:
+                        return SetAutostart(result, arguments);
                     default:
                         return Usage(result, "Unknown command \"" + command + "\".");
                 }
@@ -325,6 +328,22 @@ namespace PrintVect.Elevate
                 Log.Warn("Folder " + folder + " could not be deleted: " + ex.Message);
                 return false;
             }
+        }
+
+        /// <summary>Start with Windows on or off for every user: the Run entry PrintVect's installer creates.</summary>
+        private static ElevateResult SetAutostart(ElevateResult result, ElevateArguments arguments)
+        {
+            string value = (arguments.Get(ElevateCommands.OptionOn) ?? "").Trim().ToLowerInvariant();
+            if (value != "yes" && value != "no")
+            {
+                return Usage(result, "autostart needs /on yes or /on no.");
+            }
+            bool on = value == "yes";
+            string app = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PrintVect.App.exe");
+            Autostart.Set(on, app);
+            Log.Info("Start with Windows " + (on ? "ON: " + Autostart.CommandFor(app) : "OFF") + ".");
+            return Ok(result, on ? "PrintVect now starts with Windows (in the tray) for every user of this PC."
+                                 : "PrintVect no longer starts with Windows on this PC. Start it from the Start menu when needed.");
         }
 
         private static ElevateResult Ok(ElevateResult result, string message)

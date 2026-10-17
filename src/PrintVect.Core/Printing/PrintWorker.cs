@@ -29,6 +29,7 @@ namespace PrintVect.Core.Printing
         private readonly CancellationTokenSource _stopping = new CancellationTokenSource();
         private Thread _thread;
         private bool _closed;
+        private bool _paused;
         private PrintWorkItem _current;
         private DateTime _currentStartedUtc;
 
@@ -51,6 +52,20 @@ namespace PrintVect.Core.Printing
         public string CurrentJobId
         {
             get { lock (_gate) { return _current == null ? null : _current.Request.JobId; } }
+        }
+
+        /// <summary>Paused: jobs wait in the queue; the one already inside Windows still finishes.</summary>
+        public bool Paused
+        {
+            get { lock (_gate) { return _paused; } }
+            set
+            {
+                lock (_gate)
+                {
+                    _paused = value;
+                    Monitor.PulseAll(_gate);
+                }
+            }
         }
 
         public TimeSpan? CurrentJobAge
@@ -101,7 +116,10 @@ namespace PrintVect.Core.Printing
             }
         }
 
-        /// <summary>Stops taking new jobs. The current job finishes and queued ones are still printed.</summary>
+        /// <summary>
+        /// Stops taking new jobs. The current job finishes and queued ones are still printed, unless the printer is
+        /// paused: then they end as never printed, so their senders can send them again.
+        /// </summary>
         public void Stop()
         {
             lock (_gate)
@@ -131,17 +149,42 @@ namespace PrintVect.Core.Printing
             while (true)
             {
                 PrintWorkItem item;
+                List<PrintWorkItem> abandoned = null;
                 lock (_gate)
                 {
-                    while (_queue.Count == 0 && !_closed)
+                    while ((_queue.Count == 0 || _paused) && !_closed)
                     {
                         Monitor.Wait(_gate);
                     }
+                    if (_closed && _paused && _queue.Count > 0)
+                    {
+                        abandoned = new List<PrintWorkItem>(_queue);
+                        _queue.Clear();
+                    }
                     if (_queue.Count == 0)
                     {
-                        break;
+                        item = null;
                     }
-                    item = _queue.Dequeue();
+                    else
+                    {
+                        item = _queue.Dequeue();
+                    }
+                }
+                if (abandoned != null)
+                {
+                    foreach (PrintWorkItem waiting in abandoned)
+                    {
+                        Log.Info(waiting.Request.JobId, "Not printed: sharing was turned off while \"" + PrinterName + "\" was paused.");
+                        waiting.Completion.TrySetResult(PrintOutcome.NeverPrinted("Sharing was turned off on " + Environment.MachineName
+                            + " while " + waiting.Request.FriendlyName + " was paused, so this job was not printed."));
+                    }
+                }
+                if (item == null)
+                {
+                    break;
+                }
+                lock (_gate)
+                {
                     _current = item;
                     _currentStartedUtc = DateTime.UtcNow;
                 }

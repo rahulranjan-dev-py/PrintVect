@@ -12,6 +12,7 @@ namespace PrintVect.Core.Client
     {
         Task<JobReply> SendAsync(RemotePrinter printer, RequestHeader header, string filePath, CancellationToken ct);
         Task<JobReply> StatusAsync(RemotePrinter printer, string jobId, CancellationToken ct);
+        Task<JobReply> HelloAsync(RemotePrinter printer, RequestHeader header, CancellationToken ct);
     }
 
     /// <summary>
@@ -27,12 +28,12 @@ namespace PrintVect.Core.Client
             Addresses(printer, out first, out second);
             try
             {
-                return await new JobClient(first, printer.Port).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
+                return await Client(first, printer).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
             }
             catch (HostUnreachableException ex) when (second != null)
             {
                 Log.Warn(header.JobId, first + " did not answer (" + ex.Message + "); trying the PC name " + second + ".");
-                return await new JobClient(second, printer.Port).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
+                return await Client(second, printer).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
             }
         }
 
@@ -43,12 +44,32 @@ namespace PrintVect.Core.Client
             Addresses(printer, out first, out second);
             try
             {
-                return await new JobClient(first, printer.Port).QueryStatusAsync(jobId, ct).ConfigureAwait(false);
+                return await Client(first, printer).QueryStatusAsync(jobId, ct).ConfigureAwait(false);
             }
             catch (HostUnreachableException) when (second != null)
             {
-                return await new JobClient(second, printer.Port).QueryStatusAsync(jobId, ct).ConfigureAwait(false);
+                return await Client(second, printer).QueryStatusAsync(jobId, ct).ConfigureAwait(false);
             }
+        }
+
+        public async Task<JobReply> HelloAsync(RemotePrinter printer, RequestHeader header, CancellationToken ct)
+        {
+            if (printer == null) throw new ArgumentNullException(nameof(printer));
+            string first, second;
+            Addresses(printer, out first, out second);
+            try
+            {
+                return await Client(first, printer).SendHelloAsync(header, ct).ConfigureAwait(false);
+            }
+            catch (HostUnreachableException) when (second != null)
+            {
+                return await Client(second, printer).SendHelloAsync(header, ct).ConfigureAwait(false);
+            }
+        }
+
+        private static JobClient Client(string address, RemotePrinter printer)
+        {
+            return new JobClient(address, printer.Port) { DisplayName = printer.HostName };
         }
 
         private static void Addresses(RemotePrinter printer, out string first, out string second)
