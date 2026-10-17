@@ -17,10 +17,12 @@ namespace PrintVect.Core.Client
         public const string Error = "error";
         /// <summary>The host could not be reached; the file waits for Retry.</summary>
         public const string Pending = "pending";
+        /// <summary>The person printing pressed Cancel in the copies question; nothing was sent.</summary>
+        public const string Cancelled = "cancelled";
 
         public static bool IsFinal(string state)
         {
-            return state == Printed || state == Error || state == Pending;
+            return state == Printed || state == Error || state == Pending || state == Cancelled;
         }
     }
 

@@ -12,6 +12,12 @@ namespace PrintVect.Core.Protocol
 
         /// <summary>Asks a host for its shared printers over TCP (used by pvct-send and by "Add by IP").</summary>
         public const string List = "list";
+
+        /// <summary>
+        /// "This PC uses your printers" (M6b-2): a client tells each host it prints to that it is there, with its Windows
+        /// and PrintVect version, so the host can show the PCs that use it. Sent every few minutes; no body.
+        /// </summary>
+        public const string Hello = "hello";
     }
 
     /// <summary>Values of the "format" field: which XPS flavour the file is.</summary>
@@ -90,6 +96,31 @@ namespace PrintVect.Core.Protocol
         [Newtonsoft.Json.JsonProperty("copies", DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
         public int Copies { get; set; } = 1;
 
+        /// <summary>Hello only: the sender's Windows edition, e.g. "Windows 10 Pro 22H2 (build 19045.4894)".</summary>
+        [JsonProperty("os", NullValueHandling = NullValueHandling.Ignore)]
+        public string Os { get; set; }
+
+        /// <summary>Hello only: the sender's PrintVect version, e.g. "0.4.0".</summary>
+        [JsonProperty("appVersion", NullValueHandling = NullValueHandling.Ignore)]
+        public string AppVersion { get; set; }
+
+        /// <summary>Hello only: the ids of this host's printers that the sender has added.</summary>
+        [JsonProperty("printers", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> Printers { get; set; }
+
+        public static RequestHeader ForHello(string os, string appVersion, IEnumerable<string> printerIds)
+        {
+            return new RequestHeader
+            {
+                Type = RequestTypes.Hello,
+                Client = Environment.MachineName,
+                User = Environment.UserName,
+                Os = os,
+                AppVersion = appVersion,
+                Printers = printerIds == null ? new List<string>() : new List<string>(printerIds)
+            };
+        }
+
         public static RequestHeader ForList()
         {
             return new RequestHeader { Type = RequestTypes.List };
@@ -132,6 +163,13 @@ namespace PrintVect.Core.Protocol
 
         [JsonProperty("message")]
         public string Message { get; set; } = "";
+
+        /// <summary>
+        /// The host lost this job before it printed (PrintVect there was closed, or sharing was turned off), so
+        /// sending the same job again makes sense. Added in 0.4.0; older hosts never send it.
+        /// </summary>
+        [JsonProperty("retry", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Retry { get; set; }
 
         public static JobReply Error(string jobId, string message)
         {

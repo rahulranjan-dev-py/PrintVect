@@ -27,6 +27,9 @@ namespace PrintVect.Core.Host
         public DateTime? FinishedAt { get; set; }
         public string FilePath { get; set; }
 
+        /// <summary>The job never printed because PrintVect here was closed or sharing went off: the sender may send it again.</summary>
+        public bool Lost { get; set; }
+
         public JobRecord Clone()
         {
             return (JobRecord)MemberwiseClone();
@@ -87,7 +90,8 @@ namespace PrintVect.Core.Host
                     if (!JobStates.IsFinal(record.State))
                     {
                         record.State = JobStates.Error;
-                        record.Message = "PrintVect was closed before this job finished. Check the printer and send it again if needed.";
+                        record.Message = "PrintVect on " + Environment.MachineName + " was closed before this job finished.";
+                        record.Lost = true;
                         if (record.FinishedAt == null) record.FinishedAt = record.ReceivedAt;
                     }
                     record.Sequence = ++_sequence;
@@ -129,6 +133,20 @@ namespace PrintVect.Core.Host
             }
             Raise(snapshot);
             return snapshot;
+        }
+
+        /// <summary>Marks a job as failed because it was never printed here; a status request then invites the sender to send it again.</summary>
+        public JobRecord MarkLost(string jobId, string message)
+        {
+            lock (_gate)
+            {
+                JobRecord record;
+                if (_byId.TryGetValue(jobId ?? "", out record))
+                {
+                    record.Lost = true;
+                }
+            }
+            return Update(jobId, JobStates.Error, message);
         }
 
         public bool TryGet(string jobId, out JobRecord snapshot)

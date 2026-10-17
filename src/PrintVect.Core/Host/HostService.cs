@@ -53,6 +53,9 @@ namespace PrintVect.Core.Host
             get { return _tracker; }
         }
 
+        /// <summary>The PCs that use this host, from their hellos and jobs (M6b-2).</summary>
+        public PresenceTracker Presence { get; } = new PresenceTracker();
+
         /// <summary>The shared PIN; empty means open to the office network.</summary>
         public string Pin
         {
@@ -109,10 +112,13 @@ namespace PrintVect.Core.Host
                 {
                     Id = string.IsNullOrWhiteSpace(p.Id) ? PrinterIds.For(Environment.MachineName, p.LocalName) : p.Id,
                     LocalName = p.LocalName,
-                    FriendlyName = string.IsNullOrWhiteSpace(p.FriendlyName) ? p.LocalName : p.FriendlyName.Trim()
+                    FriendlyName = string.IsNullOrWhiteSpace(p.FriendlyName) ? p.LocalName : p.FriendlyName.Trim(),
+                    Paused = p.Paused
                 })
                 .ToArray();
+            SharedPrinter[] before = Volatile.Read(ref _shared);
             Volatile.Write(ref _shared, snapshot);
+            ApplyPauses(_dispatcher, before, snapshot);
             Log.Info("Shared printers: " + (snapshot.Length == 0
                 ? "(none)"
                 : string.Join(", ", snapshot.Select(p => "\"" + p.FriendlyName + "\" [" + p.LocalName + ", id " + p.Id + "]"))));
@@ -137,6 +143,7 @@ namespace PrintVect.Core.Host
                 Port = ((IPEndPoint)listener.LocalEndpoint).Port;
                 _stopping = new CancellationTokenSource();
                 _dispatcher = new PrintDispatcher(_engine);
+                ApplyPauses(_dispatcher, new SharedPrinter[0], Volatile.Read(ref _shared));
                 StartedAt = DateTime.Now;
 
                 CancellationToken token = _stopping.Token;
@@ -275,6 +282,9 @@ namespace PrintVect.Core.Host
                             case RequestTypes.Job:
                                 reply = await HandleJobAsync(header, stream, remote, timeout.Token).ConfigureAwait(false);
                                 break;
+                            case RequestTypes.Hello:
+                                reply = HandleHello(header, client);
+                                break;
                             default:
                                 Log.Warn(jobId, "Unknown request type \"" + header.Type + "\" from " + remote + ".");
                                 reply = JobReply.Error(jobId, "Unknown request type \"" + header.Type + "\".");
@@ -342,10 +352,38 @@ namespace PrintVect.Core.Host
                     Id = printer.Id,
                     Name = printer.LocalName,
                     Friendly = printer.FriendlyName,
-                    Status = local == null ? PrinterStatuses.Unknown : local.Status
+                    Status = printer.Paused ? PrinterStatuses.Paused : local == null ? PrinterStatuses.Unknown : local.Status
                 });
             }
             return reply;
+        }
+
+        /// <summary>What a job for a paused printer says while it waits (on both PCs' Jobs pages).</summary>
+        internal static string PausedMessage(SharedPrinter printer)
+        {
+            string host = Environment.MachineName;
+            return "Waiting on " + host + ": " + printer.FriendlyName + " is paused there. It prints when someone on " + host + " presses Resume.";
+        }
+
+        /// <summary>Tells the print threads which printers are paused; resumes printers that are no longer shared.</summary>
+        private static void ApplyPauses(PrintDispatcher dispatcher, SharedPrinter[] before, SharedPrinter[] now)
+        {
+            if (dispatcher == null)
+            {
+                return;
+            }
+            foreach (SharedPrinter gone in before.Where(b => !now.Any(n => string.Equals(n.LocalName, b.LocalName, StringComparison.OrdinalIgnoreCase))))
+            {
+                dispatcher.SetPaused(gone.LocalName, false);
+            }
+            foreach (SharedPrinter printer in now)
+            {
+                if (dispatcher.IsPaused(printer.LocalName) != printer.Paused)
+                {
+                    dispatcher.SetPaused(printer.LocalName, printer.Paused);
+                    Log.Info("\"" + printer.FriendlyName + "\" is " + (printer.Paused ? "paused: new jobs wait until Resume." : "printing again (resumed)."));
+                }
+            }
         }
 
         private JobReply HandleStatus(RequestHeader header)
@@ -358,10 +396,18 @@ namespace PrintVect.Core.Host
             JobRecord record;
             if (!_tracker.TryGet(header.JobId, out record))
             {
-                return JobReply.Error(header.JobId, Environment.MachineName + " has no record of job " + header.JobId
-                                                    + ". It may have arrived before PrintVect was last restarted.");
+                JobReply unknown = JobReply.Error(header.JobId, Environment.MachineName + " has no record of this job any more.");
+                unknown.Retry = true;
+                return unknown;
             }
-            return new JobReply { Ok = record.State != JobStates.Error, JobId = record.JobId, State = record.State, Message = record.Message };
+            return new JobReply
+            {
+                Ok = record.State != JobStates.Error,
+                JobId = record.JobId,
+                State = record.State,
+                Message = record.Message,
+                Retry = record.Lost
+            };
         }
 
         private async Task<JobReply> HandleJobAsync(RequestHeader header, NetworkStream stream, string remote, CancellationToken ct)
@@ -385,7 +431,27 @@ namespace PrintVect.Core.Host
             {
                 Log.Warn(jobId, "Refused: " + refusal);
                 await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
-                return JobReply.Error(jobId, refusal);
+                JobReply refused = JobReply.Error(jobId, refusal);
+                refused.Retry = !PinHash.Matches(Pin, header.Pin);   // once the PINs match, the same job can go again
+                return refused;
+            }
+            Presence.Seen(header.Client, RemoteAddress(remote), null, null, header.User);
+
+            // Retry on the sender after a lost connection: this PC may have the job already. Print it once only.
+            JobRecord existing;
+            if (_tracker.TryGet(jobId, out existing) && (existing.State == JobStates.Printed || !JobStates.IsFinal(existing.State)))
+            {
+                Log.Info(jobId, "Sent again, but this PC already has this job (" + existing.State + "); it is not printed twice.");
+                await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
+                return new JobReply
+                {
+                    Ok = true,
+                    JobId = jobId,
+                    State = existing.State,
+                    Message = existing.State == JobStates.Printed
+                        ? "Already printed on " + Environment.MachineName + " (" + existing.Message + "); not printed again."
+                        : existing.Message
+                };
             }
 
             string path = _spool.PathFor(jobId, header.Format);
@@ -473,13 +539,18 @@ namespace PrintVect.Core.Host
             if (dispatcher == null || stopping == null)
             {
                 string message = "Sharing was turned off on " + Environment.MachineName + " before the job could print.";
-                RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
-                return JobReply.Error(jobId, message);
+                RaiseFinished(_tracker.MarkLost(jobId, message));
+                JobReply lost = JobReply.Error(jobId, message);
+                lost.Retry = true;
+                return lost;
             }
 
             int ahead = dispatcher.PendingCount(printer.LocalName);
+            string host = Environment.MachineName;
+            bool paused = dispatcher.IsPaused(printer.LocalName);
             RaiseReceived(_tracker.Update(jobId, JobStates.Queued,
-                ahead == 0 ? "Received on " + Environment.MachineName + "; sending to the printer." : "Received on " + Environment.MachineName + "; " + ahead + " job(s) ahead of it."));
+                paused ? PausedMessage(printer)
+                : ahead == 0 ? "Received on " + host + "; sending to the printer." : "Received on " + host + "; " + ahead + " job(s) ahead of it."));
 
             var request = new PrintRequest
             {
@@ -498,10 +569,17 @@ namespace PrintVect.Core.Host
             Task finished = printing.ContinueWith(t => OnPrintFinished(jobId, path, t), TaskScheduler.Default);
             Task watchdog = WatchForStuckJobAsync(jobId, printer, finished, dispatcher, stopping.Token);
 
-            Task first = await Task.WhenAny(finished, Task.Delay(ReplyWait, ct)).ConfigureAwait(false);
-            if (first != finished)
+            if (paused)
             {
-                Log.Info(jobId, "Still not finished after " + ReplyWait.TotalSeconds + " s; answering with the current state.");
+                Log.Info(jobId, "\"" + printer.FriendlyName + "\" is paused; the job waits for Resume.");
+            }
+            else
+            {
+                Task first = await Task.WhenAny(finished, Task.Delay(ReplyWait, ct)).ConfigureAwait(false);
+                if (first != finished)
+                {
+                    Log.Info(jobId, "Still not finished after " + ReplyWait.TotalSeconds + " s; answering with the current state.");
+                }
             }
 
             JobRecord current;
@@ -515,6 +593,22 @@ namespace PrintVect.Core.Host
             };
         }
 
+        /// <summary>A client says it uses this host's printers; it is listed on the Share page with its Windows version.</summary>
+        private JobReply HandleHello(RequestHeader header, TcpClient client)
+        {
+            string name = string.IsNullOrWhiteSpace(header.Client) ? RemoteAddress(Describe(client)) : header.Client.Trim();
+            Presence.Seen(name, RemoteAddress(Describe(client)), header.Os, header.AppVersion, header.User);
+            return new JobReply { Ok = true, Message = Environment.MachineName + " knows that " + name + " uses its printers." };
+        }
+
+        /// <summary>"10.0.0.5:51234" gives "10.0.0.5".</summary>
+        private static string RemoteAddress(string endpoint)
+        {
+            if (string.IsNullOrEmpty(endpoint)) return "";
+            int colon = endpoint.LastIndexOf(':');
+            return colon > 0 ? endpoint.Substring(0, colon) : endpoint;
+        }
+
         private string Validate(RequestHeader header, out SharedPrinter printer)
         {
             printer = null;
@@ -522,7 +616,8 @@ namespace PrintVect.Core.Host
 
             if (!PinHash.Matches(Pin, header.Pin))
             {
-                return host + " requires a PIN. Enter the PIN from " + host + "'s PrintVect Settings and try again.";
+                return host + " asks for the office PIN, and this job came with a different one or none. "
+                       + "Set the same office PIN in PrintVect Settings on both PCs.";
             }
             if (!JobFormats.IsKnown(header.Format))
             {
@@ -556,10 +651,21 @@ namespace PrintVect.Core.Host
         {
             try
             {
-                Task first = await Task.WhenAny(finished, Task.Delay(StuckTimeout, stopping)).ConfigureAwait(false);
-                if (first == finished || stopping.IsCancellationRequested)
+                // Only time inside Windows counts: a job waiting behind others, or for a paused printer, is not stuck.
+                TimeSpan wait = StuckTimeout;
+                while (true)
                 {
-                    return;
+                    Task first = await Task.WhenAny(finished, Task.Delay(wait, stopping)).ConfigureAwait(false);
+                    if (first == finished || stopping.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    TimeSpan? inside = dispatcher.TimeInWindows(printer.LocalName, jobId);
+                    if (inside.HasValue && inside.Value >= StuckTimeout)
+                    {
+                        break;
+                    }
+                    wait = inside.HasValue ? StuckTimeout - inside.Value + TimeSpan.FromMilliseconds(50) : StuckTimeout;
                 }
 
                 string host = Environment.MachineName;
@@ -584,7 +690,7 @@ namespace PrintVect.Core.Host
                     ? task.Result
                     : PrintOutcome.Error("Printing failed unexpectedly: " + (task.Exception == null ? "unknown reason" : task.Exception.GetBaseException().Message));
 
-                JobRecord snapshot = _tracker.Update(jobId, outcome.State, outcome.Message);
+                JobRecord snapshot = outcome.Lost ? _tracker.MarkLost(jobId, outcome.Message) : _tracker.Update(jobId, outcome.State, outcome.Message);
                 if (outcome.State == JobStates.Printed)
                 {
                     _spool.DeleteQuietly(path, jobId);
