@@ -26,6 +26,7 @@ namespace PrintVect.App.Forms
         private readonly HostController _controller;
         private ToggleSwitch _toggle;
         private ThemedButton _refresh;
+        private ThemedButton _pause;
         private ThemedButton _copy;
         private Label _pcName;
         private Label _address;
@@ -33,6 +34,9 @@ namespace PrintVect.App.Forms
         private Label _hint;
         private Label _printedToday;
         private Label _howSteps;
+        private TableLayoutPanel _pcList;
+        private Label _pcNone;
+        private Timer _seenTimer;
         private DataGridView _grid;
         private DataGridViewCheckBoxColumn _shareColumn;
         private DataGridViewTextBoxColumn _printerColumn;
@@ -51,6 +55,11 @@ namespace PrintVect.App.Forms
 
             _controller.SharingChanged += OnSharingChanged;
             _controller.JobChanged += OnJobChanged;
+            _controller.ClientsChanged += OnClientsChanged;
+            _seenTimer = new Timer { Interval = 60 * 1000 };
+            _seenTimer.Tick += (s, e) => FillPcs();   // "connected" turns into "last seen" without any event
+            _seenTimer.Start();
+            FillPcs();
 
             ShowAddresses();
             SyncSharingState();
@@ -125,6 +134,8 @@ namespace PrintVect.App.Forms
             TableLayoutPanel column = Make.Column(0, 0, 0, 100);
             _refresh = new ThemedButton(Strings.ShareRefresh, ButtonKind.Secondary) { MinimumHeight = 36, Margin = Ui.Pad(0) };
             _refresh.Click += (s, e) => LoadPrinters();
+            _pause = new ThemedButton(Strings.SharePause, ButtonKind.Secondary) { MinimumHeight = 36, Margin = Ui.Pad(0, 0, 8, 0), Enabled = false };
+            _pause.Click += (s, e) => TogglePause();
             Label intro = Make.Muted(Strings.ShareIntro);
             _hint = Make.Wrap("", ThemeFonts.Secondary, Palette.Warning, Ui.Pad(0, 0, 0, 6));
 
@@ -148,6 +159,7 @@ namespace PrintVect.App.Forms
                 }
             };
             _grid.CellValueChanged += OnCellValueChanged;
+            _grid.CurrentCellChanged += (s, e) => UpdatePauseButton();
             _grid.EditingControlShowing += (s, e) =>
             {
                 e.Control.BackColor = Palette.Background;
@@ -159,7 +171,11 @@ namespace PrintVect.App.Forms
                 e.ThrowException = false;
             };
 
-            column.Controls.Add(Make.Heading(Make.Title(Strings.SharePrintersTitle), _refresh), 0, 0);
+            FlowLayoutPanel headButtons = Make.Row(_pause, _refresh);
+            headButtons.Margin = Ui.Pad(0);
+            headButtons.Dock = DockStyle.None;
+            headButtons.WrapContents = false;
+            column.Controls.Add(Make.Heading(Make.Title(Strings.SharePrintersTitle), headButtons), 0, 0);
             column.Controls.Add(intro, 0, 1);
             column.Controls.Add(_hint, 0, 2);
             column.Controls.Add(_grid, 0, 3);
@@ -176,16 +192,103 @@ namespace PrintVect.App.Forms
             _printedToday = Make.Label("0", ThemeFonts.Number, Palette.Text, Ui.Pad(0, 0, 0, 2));
             today.Controls.Add(Stack(Make.Caption(Strings.SharePrintedTodayCaption), _printedToday, Make.Muted(Strings.SharePrintedTodayNote)));
 
-            var how = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0) };
+            // The "Computers" card of the design: PCs that said hello or sent a job (M6b-2).
+            var pcs = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0, 0, 0, 16) };
+            _pcList = Make.Column();
+            _pcList.AutoSize = true;
+            _pcList.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            _pcList.Dock = DockStyle.Top;
+            var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Margin = Ui.Pad(0), BackColor = Palette.Card };
+            scroll.Controls.Add(_pcList);
+            NativeTheme.UseDarkScrollBars(scroll);
+            // No PC yet: the card explains how to connect one instead (the two never need the space at the same time).
+            _pcNone = Make.Muted(Strings.SharePcsNone);
             _howSteps = Make.Muted("");
-            TableLayoutPanel howColumn = Make.Column(0, 100);
-            howColumn.Controls.Add(Make.Title(Strings.ShareHowTitle), 0, 0);
-            howColumn.Controls.Add(_howSteps, 0, 1);
-            how.Controls.Add(howColumn);
+            TableLayoutPanel pcsColumn = Make.Column(0, 0, 0, 100);
+            pcsColumn.Controls.Add(Make.Title(Strings.SharePcsTitle), 0, 0);
+            pcsColumn.Controls.Add(_pcNone, 0, 1);
+            pcsColumn.Controls.Add(_howSteps, 0, 2);
+            pcsColumn.Controls.Add(scroll, 0, 3);
+            pcs.Controls.Add(pcsColumn);
+            pcs.Margin = Ui.Pad(0);
 
             side.Controls.Add(today, 0, 0);
-            side.Controls.Add(how, 0, 1);
+            side.Controls.Add(pcs, 0, 1);
             return side;
+        }
+
+        private void OnClientsChanged(object sender, EventArgs e)
+        {
+            if (!IsDisposed) FillPcs();
+        }
+
+        /// <summary>One row per PC: its name, Windows and PrintVect version, and a pill saying whether it is around.</summary>
+        private void FillPcs()
+        {
+            IList<ClientPresence> clients = _controller.Clients;
+            DateTime now = DateTime.Now;
+            _pcList.SuspendLayout();
+            foreach (Control old in _pcList.Controls.Cast<Control>().ToList())
+            {
+                old.Dispose();
+            }
+            _pcList.Controls.Clear();
+            _pcList.RowStyles.Clear();
+            _pcList.RowCount = clients.Count;
+            for (int i = 0; i < clients.Count; i++)
+            {
+                _pcList.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                _pcList.Controls.Add(PcRow(clients[i], now), 0, i);
+            }
+            _pcList.ResumeLayout(true);
+            _pcNone.Visible = clients.Count == 0;
+            _howSteps.Text = clients.Count == 0 ? string.Format(Strings.ShareHowSteps, Environment.MachineName)
+                                                : string.Format(Strings.SharePcsAnother, Environment.MachineName);
+        }
+
+        private static TableLayoutPanel PcRow(ClientPresence pc, DateTime now)
+        {
+            var row = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,
+                RowCount = 2,
+                Margin = Ui.Pad(0, 0, 0, 12),
+                BackColor = Palette.Card
+            };
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            row.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            row.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            Label name = Make.Label(pc.Name, ThemeFonts.Mono, Palette.Text, Ui.Pad(0, 2, 8, 2));
+            bool online = PresenceTracker.IsOnline(pc, now);
+            var pill = new StatusPill
+            {
+                Kind = online ? PillKind.Connected : PillKind.Offline,
+                Text = online ? Strings.SharePcOnline : string.Format(Strings.SharePcLastSeen, pc.LastSeen.ToString(
+                    pc.LastSeen.Date == now.Date ? "HH:mm" : "dd MMM HH:mm", CultureInfo.CurrentCulture)),
+                Anchor = AnchorStyles.Right
+            };
+            string details = (string.IsNullOrEmpty(pc.Windows) ? Strings.SharePcWindowsUnknown : ShortWindows(pc.Windows))
+                             + (string.IsNullOrEmpty(pc.AppVersion) ? "" : " · PrintVect " + pc.AppVersion);
+            Label detail = Make.Muted(details);
+            detail.Margin = Ui.Pad(0);
+
+            row.Controls.Add(name, 0, 0);
+            row.Controls.Add(pill, 1, 0);
+            row.Controls.Add(detail, 0, 1);
+            row.SetColumnSpan(detail, 2);
+            return row;
+        }
+
+        /// <summary>"Windows 10 Pro 22H2 (build 19045.4894)" is shown as "Windows 10 Pro 22H2".</summary>
+        private static string ShortWindows(string windows)
+        {
+            int build = windows.IndexOf(" (build", StringComparison.OrdinalIgnoreCase);
+            return build > 0 ? windows.Substring(0, build) : windows;
         }
 
         /// <summary>Controls one under the other, each as tall as its content.</summary>
@@ -219,7 +322,6 @@ namespace PrintVect.App.Forms
             _address.Text = addresses.Length == 0
                 ? string.Format(Strings.ShareAddressNone, name)
                 : string.Format(Strings.ShareAddressLine, name, string.Join(", ", addresses));
-            _howSteps.Text = string.Format(Strings.ShareHowSteps, name);
         }
 
         private void CopyAddress()
@@ -281,10 +383,58 @@ namespace PrintVect.App.Forms
             foreach (LocalPrinterInfo printer in printers)
             {
                 SharedPrinter shared = _controller.FindShared(printer.Name);
-                _grid.Rows.Add(shared != null, printer.Name, shared == null ? printer.Name : shared.FriendlyName, StatusText(printer.Status));
+                int index = _grid.Rows.Add(shared != null, printer.Name, shared == null ? printer.Name : shared.FriendlyName,
+                    StatusText(shared != null && shared.Paused ? PrinterStatuses.Paused : printer.Status));
+                _grid.Rows[index].Tag = printer.Status;
+                MarkPaused(_grid.Rows[index], shared != null && shared.Paused);
             }
+            UpdatePauseButton();
             ShowHint(printers.Count == 0 ? Strings.ShareNoPrinters : "", Palette.Warning);
             Log.Info("Share tab: " + printers.Count + " printer(s) listed.");
+        }
+
+        /// <summary>The printer of the current row, when it is shared (only a shared printer can be paused).</summary>
+        private SharedPrinter CurrentShared()
+        {
+            DataGridViewRow row = _grid.CurrentRow;
+            string printer = row == null ? null : row.Cells[_printerColumn.Index].Value as string;
+            return string.IsNullOrEmpty(printer) ? null : _controller.FindShared(printer);
+        }
+
+        private void UpdatePauseButton()
+        {
+            SharedPrinter shared = CurrentShared();
+            _pause.Enabled = shared != null;
+            _pause.Text = shared != null && shared.Paused ? Strings.ShareResume : Strings.SharePause;
+            _pause.Kind = shared != null && shared.Paused ? ButtonKind.Primary : ButtonKind.Secondary;
+            _pause.Invalidate();
+        }
+
+        private void TogglePause()
+        {
+            SharedPrinter shared = CurrentShared();
+            if (shared == null)
+            {
+                return;
+            }
+            bool pause = !shared.Paused;
+            if (!_controller.SetPaused(shared.LocalName, pause))
+            {
+                MessageBox.Show(this, string.Format(Strings.SharingSaveError, _controller.ConfigPath), Strings.AppName,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            DataGridViewRow row = _grid.CurrentRow;
+            row.Cells[_statusColumn.Index].Value = StatusText(pause ? PrinterStatuses.Paused : row.Tag as string);
+            MarkPaused(row, pause);
+            UpdatePauseButton();
+        }
+
+        /// <summary>A paused printer's status is shown in yellow, like everything that waits for someone.</summary>
+        private void MarkPaused(DataGridViewRow row, bool paused)
+        {
+            DataGridViewCell status = row.Cells[_statusColumn.Index];
+            status.Style.ForeColor = paused ? Palette.Warning : Palette.Text;
+            status.Style.SelectionForeColor = status.Style.ForeColor;
         }
 
         /// <summary>The line above the printer list: loading, no printers, or why the list could not be read.</summary>
@@ -323,6 +473,9 @@ namespace PrintVect.App.Forms
             if (e.ColumnIndex == _shareColumn.Index)
             {
                 saved = _controller.SetShared(printer, shared, friendly);
+                row.Cells[_statusColumn.Index].Value = StatusText(row.Tag as string);
+                MarkPaused(row, false);
+                UpdatePauseButton();
             }
             else if (e.ColumnIndex == _friendlyColumn.Index)
             {
@@ -413,6 +566,8 @@ namespace PrintVect.App.Forms
             {
                 _controller.SharingChanged -= OnSharingChanged;
                 _controller.JobChanged -= OnJobChanged;
+                _controller.ClientsChanged -= OnClientsChanged;
+                _seenTimer.Dispose();
             }
             base.Dispose(disposing);
         }

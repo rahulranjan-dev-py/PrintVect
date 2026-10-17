@@ -150,21 +150,6 @@
   <data name="JobState_queued" xml:space="preserve">
     <value>Waiting</value>
   </data>
-  <data name="No" xml:space="preserve">
-    <value>No</value>
-  </data>
-  <data name="Off" xml:space="preserve">
-    <value>OFF</value>
-  </data>
-  <data name="On" xml:space="preserve">
-    <value>ON</value>
-  </data>
-  <data name="PinNotSet" xml:space="preserve">
-    <value>not set (open to the office network)</value>
-  </data>
-  <data name="PinSet" xml:space="preserve">
-    <value>set</value>
-  </data>
   <data name="PrinterStatus_busy" xml:space="preserve">
     <value>Busy</value>
   </data>
@@ -190,22 +175,7 @@
     <value>Settings file: {0}</value>
   </data>
   <data name="SettingsIntro" xml:space="preserve">
-    <value>These settings are read from the file shown below. Changing them from this screen comes in a later update. Until then, ask the person who set up PrintVect if something needs to change.</value>
-  </data>
-  <data name="SettingsKeepFiles" xml:space="preserve">
-    <value>Keep sent files for: {0} hour(s)</value>
-  </data>
-  <data name="SettingsPin" xml:space="preserve">
-    <value>Shared PIN: {0}</value>
-  </data>
-  <data name="SettingsPorts" xml:space="preserve">
-    <value>Discovery port (UDP): {0}     Job port (TCP): {1}</value>
-  </data>
-  <data name="SettingsSharing" xml:space="preserve">
-    <value>Sharing my printers: {0}</value>
-  </data>
-  <data name="SettingsStartWithWindows" xml:space="preserve">
-    <value>Start with Windows: {0}</value>
+    <value>Changes are saved straight away and apply to this PC.</value>
   </data>
   <data name="ShareColFriendly" xml:space="preserve">
     <value>Name for the office</value>
@@ -220,7 +190,7 @@
     <value>Status</value>
   </data>
   <data name="ShareIntro" xml:space="preserve">
-    <value>Tick each printer you want other PCs to use. The name for the office is what people on the other PCs see, so use something like "Counter 1 Laser" (double-click it to change it).</value>
+    <value>Tick each printer you want other PCs to use. The name for the office is what people on the other PCs see, so use something like "Counter 1 Laser" (double-click it to change it). Pause printer keeps jobs waiting (out of paper, a jam) until Resume.</value>
   </data>
   <data name="ShareJobsToday" xml:space="preserve">
     <value>Jobs printed today: {0}</value>
@@ -303,9 +273,6 @@ Ask the person who installed PrintVect to check that this folder can be written 
     <value>Something went wrong inside PrintVect. The details have been written to the log file. If it happens again, open Diagnostics, press "Copy to clipboard" and send the text to the person who supports PrintVect.
 
 Details: {0}</value>
-  </data>
-  <data name="Yes" xml:space="preserve">
-    <value>Yes</value>
   </data>
   <data name="UseIntro" xml:space="preserve">
     <value>Printers that other PCs in the office share appear here by themselves. Choose one and press Add to this PC; Windows asks once for permission. The printer then appears in every program's print window.</value>
@@ -550,14 +517,133 @@ Details: {0}</value>
   <data name="SharePrintedTodayNote" xml:space="preserve">
     <value>jobs from other PCs</value>
   </data>
-  <data name="ShareHowTitle" xml:space="preserve">
-    <value>How to connect a PC</value>
-  </data>
   <data name="ShareHowSteps" xml:space="preserve">
     <value>1. On the other PC, start PrintVect and open Use shared printers.
 2. This PC's shared printers appear there by themselves.
 3. Choose one and press Add to this PC.
 
 Not listed? Type {0} in the box there and press Look up.</value>
+  </data>
+  <data name="SharePause" xml:space="preserve">
+    <value>Pause printer</value>
+  </data>
+  <data name="ShareResume" xml:space="preserve">
+    <value>Resume printer</value>
+  </data>
+  <data name="SharePcsTitle" xml:space="preserve">
+    <value>PCs that use this PC</value>
+  </data>
+  <data name="SharePcsNone" xml:space="preserve">
+    <value>None yet. To connect a PC:</value>
+  </data>
+  <data name="SharePcOnline" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="SharePcLastSeen" xml:space="preserve">
+    <value>Last seen {0}</value>
+  </data>
+  <data name="SharePcWindowsUnknown" xml:space="preserve">
+    <value>Windows version not reported (PrintVect before 0.4.0)</value>
+  </data>
+  <data name="CopiesTitle" xml:space="preserve">
+    <value>PrintVect: how many copies?</value>
+  </data>
+  <data name="CopiesDocument" xml:space="preserve">
+    <value>Print "{0}"</value>
+  </data>
+  <data name="CopiesWhere" xml:space="preserve">
+    <value>on {0} at {1}</value>
+  </data>
+  <data name="CopiesLabel" xml:space="preserve">
+    <value>Copies</value>
+  </data>
+  <data name="CopiesDontAsk" xml:space="preserve">
+    <value>Don't ask again on this PC (Settings turns it back on)</value>
+  </data>
+  <data name="CopiesPrint" xml:space="preserve">
+    <value>Print ({0})</value>
+  </data>
+  <data name="CopiesCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="JobState_cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="SettingsPinCaption" xml:space="preserve">
+    <value>Office PIN</value>
+  </data>
+  <data name="SettingsPinOn" xml:space="preserve">
+    <value>Set. Other PCs need the same PIN to print here, and this PC sends it with every job.</value>
+  </data>
+  <data name="SettingsPinOff" xml:space="preserve">
+    <value>Not set: any PC in the office can print to this PC's shared printers.</value>
+  </data>
+  <data name="SettingsPinSet" xml:space="preserve">
+    <value>Set PIN…</value>
+  </data>
+  <data name="SettingsPinChange" xml:space="preserve">
+    <value>Change PIN…</value>
+  </data>
+  <data name="SettingsPinRemove" xml:space="preserve">
+    <value>Remove PIN</value>
+  </data>
+  <data name="SettingsPinRemoveConfirm" xml:space="preserve">
+    <value>Remove the office PIN on this PC?
+
+Any PC in the office can then print here, and PCs that still ask for a PIN will refuse this PC's jobs until theirs is removed too.</value>
+  </data>
+  <data name="SettingsPinSaved" xml:space="preserve">
+    <value>Office PIN saved. Set the same PIN on every PC that prints to or from this one.</value>
+  </data>
+  <data name="SettingsPinRemoved" xml:space="preserve">
+    <value>Office PIN removed on this PC.</value>
+  </data>
+  <data name="SettingsAutostart" xml:space="preserve">
+    <value>Start PrintVect with Windows (hidden in the tray, for every user of this PC)</value>
+  </data>
+  <data name="SettingsAskCopies" xml:space="preserve">
+    <value>Ask how many copies before a document goes to another PC's printer</value>
+  </data>
+  <data name="SettingsKeepCaption" xml:space="preserve">
+    <value>Keep sent files for</value>
+  </data>
+  <data name="SettingsKeepHours" xml:space="preserve">
+    <value>{0} hour(s)</value>
+  </data>
+  <data name="SettingsPortsNote" xml:space="preserve">
+    <value>Ports: UDP {0} finds printers, TCP {1} carries the jobs. Every PC must use the same ports, so they are changed only in the settings file, together with the person who supports PrintVect.</value>
+  </data>
+  <data name="PinTitle" xml:space="preserve">
+    <value>Office PIN</value>
+  </data>
+  <data name="PinSetTitle" xml:space="preserve">
+    <value>Set the office PIN</value>
+  </data>
+  <data name="PinChangeTitle" xml:space="preserve">
+    <value>Change the office PIN</value>
+  </data>
+  <data name="PinExplain" xml:space="preserve">
+    <value>Every PC that prints through PrintVect must have the same PIN: a PC that shares printers refuses jobs with a different one. Use 4 to 12 characters; digits are easiest to pass on.</value>
+  </data>
+  <data name="PinNew" xml:space="preserve">
+    <value>New PIN</value>
+  </data>
+  <data name="PinAgain" xml:space="preserve">
+    <value>The same PIN again</value>
+  </data>
+  <data name="PinSave" xml:space="preserve">
+    <value>Save PIN</value>
+  </data>
+  <data name="PinLength" xml:space="preserve">
+    <value>The PIN needs {0} to {1} characters.</value>
+  </data>
+  <data name="PinSpaces" xml:space="preserve">
+    <value>The PIN cannot start or end with a space.</value>
+  </data>
+  <data name="PinMismatch" xml:space="preserve">
+    <value>The two entries are different. Type the same PIN twice.</value>
+  </data>
+  <data name="SharePcsAnother" xml:space="preserve">
+    <value>Another PC? On it, open Use shared printers and add one of this PC's printers ({0}).</value>
   </data>
 </root>

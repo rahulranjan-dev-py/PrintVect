@@ -172,6 +172,69 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        internal static string CopiesCancel {
+            get {
+                return ResourceManager.GetString("CopiesCancel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Print "{0}".
+        /// </summary>
+        internal static string CopiesDocument {
+            get {
+                return ResourceManager.GetString("CopiesDocument", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Don't ask again on this PC (Settings turns it back on).
+        /// </summary>
+        internal static string CopiesDontAsk {
+            get {
+                return ResourceManager.GetString("CopiesDontAsk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copies.
+        /// </summary>
+        internal static string CopiesLabel {
+            get {
+                return ResourceManager.GetString("CopiesLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Print ({0}).
+        /// </summary>
+        internal static string CopiesPrint {
+            get {
+                return ResourceManager.GetString("CopiesPrint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect: how many copies?.
+        /// </summary>
+        internal static string CopiesTitle {
+            get {
+                return ResourceManager.GetString("CopiesTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to on {0} at {1}.
+        /// </summary>
+        internal static string CopiesWhere {
+            get {
+                return ResourceManager.GetString("CopiesWhere", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Printers from other PCs (client role).
         /// </summary>
         internal static string DiagClientSection {
@@ -388,6 +451,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cancelled.
+        /// </summary>
+        internal static string JobState_cancelled {
+            get {
+                return ResourceManager.GetString("JobState_cancelled", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Failed.
         /// </summary>
         internal static string JobState_error {
@@ -442,47 +514,92 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to No.
+        ///   Looks up a localized string similar to The same PIN again.
         /// </summary>
-        internal static string No {
+        internal static string PinAgain {
             get {
-                return ResourceManager.GetString("No", resourceCulture);
+                return ResourceManager.GetString("PinAgain", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to OFF.
+        ///   Looks up a localized string similar to Change the office PIN.
         /// </summary>
-        internal static string Off {
+        internal static string PinChangeTitle {
             get {
-                return ResourceManager.GetString("Off", resourceCulture);
+                return ResourceManager.GetString("PinChangeTitle", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to ON.
+        ///   Looks up a localized string similar to Every PC that prints through PrintVect must have the same PIN: a PC that shares printers refuses job [rest of string was truncated].
         /// </summary>
-        internal static string On {
+        internal static string PinExplain {
             get {
-                return ResourceManager.GetString("On", resourceCulture);
+                return ResourceManager.GetString("PinExplain", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to not set (open to the office network).
+        ///   Looks up a localized string similar to The PIN needs {0} to {1} characters..
         /// </summary>
-        internal static string PinNotSet {
+        internal static string PinLength {
             get {
-                return ResourceManager.GetString("PinNotSet", resourceCulture);
+                return ResourceManager.GetString("PinLength", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to set.
+        ///   Looks up a localized string similar to The two entries are different. Type the same PIN twice..
         /// </summary>
-        internal static string PinSet {
+        internal static string PinMismatch {
             get {
-                return ResourceManager.GetString("PinSet", resourceCulture);
+                return ResourceManager.GetString("PinMismatch", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to New PIN.
+        /// </summary>
+        internal static string PinNew {
+            get {
+                return ResourceManager.GetString("PinNew", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Save PIN.
+        /// </summary>
+        internal static string PinSave {
+            get {
+                return ResourceManager.GetString("PinSave", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Set the office PIN.
+        /// </summary>
+        internal static string PinSetTitle {
+            get {
+                return ResourceManager.GetString("PinSetTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The PIN cannot start or end with a space..
+        /// </summary>
+        internal static string PinSpaces {
+            get {
+                return ResourceManager.GetString("PinSpaces", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN.
+        /// </summary>
+        internal static string PinTitle {
+            get {
+                return ResourceManager.GetString("PinTitle", resourceCulture);
             }
         }
 
@@ -550,6 +667,24 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Ask how many copies before a document goes to another PC's printer.
+        /// </summary>
+        internal static string SettingsAskCopies {
+            get {
+                return ResourceManager.GetString("SettingsAskCopies", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Start PrintVect with Windows (hidden in the tray, for every user of this PC).
+        /// </summary>
+        internal static string SettingsAutostart {
+            get {
+                return ResourceManager.GetString("SettingsAutostart", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Look for a newer PrintVect once a day (needs the internet; printing itself never uses it).
         /// </summary>
         internal static string SettingsCheckForUpdates {
@@ -577,7 +712,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to These settings are read from the file shown below. Changing them from this screen comes in a later u [rest of string was truncated].
+        ///   Looks up a localized string similar to Changes are saved straight away and apply to this PC..
         /// </summary>
         internal static string SettingsIntro {
             get {
@@ -586,47 +721,110 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Keep sent files for: {0} hour(s).
+        ///   Looks up a localized string similar to Keep sent files for.
         /// </summary>
-        internal static string SettingsKeepFiles {
+        internal static string SettingsKeepCaption {
             get {
-                return ResourceManager.GetString("SettingsKeepFiles", resourceCulture);
+                return ResourceManager.GetString("SettingsKeepCaption", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Shared PIN: {0}.
+        ///   Looks up a localized string similar to {0} hour(s).
         /// </summary>
-        internal static string SettingsPin {
+        internal static string SettingsKeepHours {
             get {
-                return ResourceManager.GetString("SettingsPin", resourceCulture);
+                return ResourceManager.GetString("SettingsKeepHours", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Discovery port (UDP): {0}     Job port (TCP): {1}.
+        ///   Looks up a localized string similar to Office PIN.
         /// </summary>
-        internal static string SettingsPorts {
+        internal static string SettingsPinCaption {
             get {
-                return ResourceManager.GetString("SettingsPorts", resourceCulture);
+                return ResourceManager.GetString("SettingsPinCaption", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing my printers: {0}.
+        ///   Looks up a localized string similar to Change PIN….
         /// </summary>
-        internal static string SettingsSharing {
+        internal static string SettingsPinChange {
             get {
-                return ResourceManager.GetString("SettingsSharing", resourceCulture);
+                return ResourceManager.GetString("SettingsPinChange", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Start with Windows: {0}.
+        ///   Looks up a localized string similar to Not set: any PC in the office can print to this PC's shared printers..
         /// </summary>
-        internal static string SettingsStartWithWindows {
+        internal static string SettingsPinOff {
             get {
-                return ResourceManager.GetString("SettingsStartWithWindows", resourceCulture);
+                return ResourceManager.GetString("SettingsPinOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Set. Other PCs need the same PIN to print here, and this PC sends it with every job..
+        /// </summary>
+        internal static string SettingsPinOn {
+            get {
+                return ResourceManager.GetString("SettingsPinOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove PIN.
+        /// </summary>
+        internal static string SettingsPinRemove {
+            get {
+                return ResourceManager.GetString("SettingsPinRemove", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove the office PIN on this PC?  Any PC in the office can then print here, and PCs that still ask  [rest of string was truncated].
+        /// </summary>
+        internal static string SettingsPinRemoveConfirm {
+            get {
+                return ResourceManager.GetString("SettingsPinRemoveConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN removed on this PC..
+        /// </summary>
+        internal static string SettingsPinRemoved {
+            get {
+                return ResourceManager.GetString("SettingsPinRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN saved. Set the same PIN on every PC that prints to or from this one..
+        /// </summary>
+        internal static string SettingsPinSaved {
+            get {
+                return ResourceManager.GetString("SettingsPinSaved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Set PIN….
+        /// </summary>
+        internal static string SettingsPinSet {
+            get {
+                return ResourceManager.GetString("SettingsPinSet", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Ports: UDP {0} finds printers, TCP {1} carries the jobs. Every PC must use the same ports, so they a [rest of string was truncated].
+        /// </summary>
+        internal static string SettingsPortsNote {
+            get {
+                return ResourceManager.GetString("SettingsPortsNote", resourceCulture);
             }
         }
 
@@ -730,15 +928,6 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to How to connect a PC.
-        /// </summary>
-        internal static string ShareHowTitle {
-            get {
-                return ResourceManager.GetString("ShareHowTitle", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Tick each printer you want other PCs to use. The name for the office is what people on the other PCs [rest of string was truncated].
         /// </summary>
         internal static string ShareIntro {
@@ -771,6 +960,69 @@ namespace PrintVect.App {
         internal static string ShareNoPrinters {
             get {
                 return ResourceManager.GetString("ShareNoPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pause printer.
+        /// </summary>
+        internal static string SharePause {
+            get {
+                return ResourceManager.GetString("SharePause", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Last seen {0}.
+        /// </summary>
+        internal static string SharePcLastSeen {
+            get {
+                return ResourceManager.GetString("SharePcLastSeen", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        internal static string SharePcOnline {
+            get {
+                return ResourceManager.GetString("SharePcOnline", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows version not reported (PrintVect before 0.4.0).
+        /// </summary>
+        internal static string SharePcWindowsUnknown {
+            get {
+                return ResourceManager.GetString("SharePcWindowsUnknown", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Another PC? On it, open Use shared printers and add one of this PC's printers ({0})..
+        /// </summary>
+        internal static string SharePcsAnother {
+            get {
+                return ResourceManager.GetString("SharePcsAnother", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to None yet. To connect a PC:.
+        /// </summary>
+        internal static string SharePcsNone {
+            get {
+                return ResourceManager.GetString("SharePcsNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PCs that use this PC.
+        /// </summary>
+        internal static string SharePcsTitle {
+            get {
+                return ResourceManager.GetString("SharePcsTitle", resourceCulture);
             }
         }
 
@@ -825,6 +1077,15 @@ namespace PrintVect.App {
         internal static string ShareRefresh {
             get {
                 return ResourceManager.GetString("ShareRefresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resume printer.
+        /// </summary>
+        internal static string ShareResume {
+            get {
+                return ResourceManager.GetString("ShareResume", resourceCulture);
             }
         }
 
@@ -1500,15 +1761,6 @@ namespace PrintVect.App {
         internal static string UseWatcherError {
             get {
                 return ResourceManager.GetString("UseWatcherError", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Yes.
-        /// </summary>
-        internal static string Yes {
-            get {
-                return ResourceManager.GetString("Yes", resourceCulture);
             }
         }
     }

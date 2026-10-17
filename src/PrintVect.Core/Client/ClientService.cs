@@ -63,8 +63,21 @@ namespace PrintVect.Core.Client
         public TimeSpan StatusPollInterval { get; set; } = TimeSpan.FromSeconds(10);
         public TimeSpan StatusPollMax { get; set; } = TimeSpan.FromMinutes(5);
 
+        /// <summary>
+        /// After this many status checks in a row without an answer, the host is taken to be switched off and the job
+        /// goes back to pending\ for Retry (it may not have printed). About 30 s with the default interval.
+        /// </summary>
+        public int LostAfterUnansweredChecks { get; set; } = 3;
+
         /// <summary>How long a file's size must stay unchanged before it is taken (tests shorten it).</summary>
         public TimeSpan StableFor { get; set; } = SpoolWatcher.DefaultStableFor;
+
+        /// <summary>
+        /// Asked before a job that a program printed is sent (M6b-2, the copies prompt): gets the job with the copies its
+        /// print ticket asks for, answers how many copies to print, or null to cancel. Null property: nobody is asked.
+        /// Test pages and Retry are never asked.
+        /// </summary>
+        public Func<ClientJobRecord, Task<int?>> AskCopies { get; set; }
 
         /// <summary>Raised on a thread-pool thread when a job reaches a final state (printed, error, pending).</summary>
         public event EventHandler<ClientJobRecord> JobFinished;
@@ -129,6 +142,12 @@ namespace PrintVect.Core.Client
             }
             entry.Watcher.Dispose();
             Log.Info("No longer watching for jobs for \"" + entry.Printer.FriendlyName + "\".");
+        }
+
+        /// <summary>The printers being watched right now (a copy, safe to use on any thread).</summary>
+        public IList<RemotePrinter> WatchedPrinters
+        {
+            get { lock (_gate) { return _watched.Values.Select(w => w.Printer).ToList(); } }
         }
 
         public RemotePrinter FindPrinter(string printerId)
@@ -308,7 +327,52 @@ namespace PrintVect.Core.Client
                 StartedAt = DateTime.Now
             };
             Jobs.Upsert(record);
-            Task.Run(() => SendWithRetriesAsync(printer, record, _stopping.Token));
+            bool ask = file.FromPrinter;
+            Task.Run(() => AskThenSendAsync(printer, record, ask, _stopping.Token));
+        }
+
+        private async Task AskThenSendAsync(RemotePrinter printer, ClientJobRecord record, bool fromPrinter, CancellationToken ct)
+        {
+            Func<ClientJobRecord, Task<int?>> ask = AskCopies;
+            if (fromPrinter && ask != null)
+            {
+                Update(record, ClientJobStates.Queued, "Waiting for the number of copies on this PC.");
+                int? copies;
+                try
+                {
+                    copies = await ask(record.Clone()).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(record.JobId, "The copies question failed; sending " + record.Copies + " cop(ies) as the document asked.", ex);
+                    copies = record.Copies;
+                }
+                if (ct.IsCancellationRequested)
+                {
+                    return;   // PrintVect is closing; the file stays and is offered for Retry at the next start
+                }
+                if (copies == null)
+                {
+                    Cancel(record);
+                    return;
+                }
+                record.Copies = Math.Max(1, Math.Min(copies.Value, XpsFormatSniffer.MaxCopies));
+                Log.Info(record.JobId, "Copies chosen on this PC: " + record.Copies + ".");
+            }
+            await SendWithRetriesAsync(printer, record, ct).ConfigureAwait(false);
+        }
+
+        private void Cancel(ClientJobRecord record)
+        {
+            try
+            {
+                if (File.Exists(record.FilePath)) File.Delete(record.FilePath);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(record.JobId, "The cancelled job's file could not be deleted: " + ex.Message);
+            }
+            Finish(record, ClientJobStates.Cancelled, "Cancelled on this PC; nothing was sent.", null);
         }
 
         private async Task SendWithRetriesAsync(RemotePrinter printer, ClientJobRecord record, CancellationToken ct)
@@ -355,8 +419,8 @@ namespace PrintVect.Core.Client
             }
 
             Finish(record, ClientJobStates.Pending,
-                printer.HostName + " could not be reached after " + delays.Length + " tries (" + lastError + "). "
-                + "The job is kept; ask for that PC to be switched on, then press Retry.", ClientPrinterNames.PendingFolderName);
+                printer.HostName + " did not answer (" + delays.Length + " tries). " + lastError + " The document is kept on this PC: "
+                + "when " + printer.HostName + " is back, press Retry waiting jobs.", ClientPrinterNames.PendingFolderName);
         }
 
         private async Task HandleReplyAsync(RemotePrinter printer, ClientJobRecord record, JobReply reply, CancellationToken ct)
@@ -364,6 +428,11 @@ namespace PrintVect.Core.Client
             if (reply == null)
             {
                 Finish(record, ClientJobStates.Error, printer.HostName + " gave no answer.", ClientPrinterNames.FailedFolderName);
+                return;
+            }
+            if (!reply.Ok && reply.Retry)
+            {
+                FinishLost(record, reply.Message + " Press Retry waiting jobs to send it again.");
                 return;
             }
             if (!reply.Ok)
@@ -386,6 +455,8 @@ namespace PrintVect.Core.Client
             MoveFile(record, ClientPrinterNames.SentFolderName);
             Update(record, ClientJobStates.Printing, reply.Message);
             DateTime until = DateTime.UtcNow + StatusPollMax;
+            string lastNews = reply.Message;
+            int unanswered = 0;
             while (DateTime.UtcNow < until)
             {
                 await Task.Delay(StatusPollInterval, ct).ConfigureAwait(false);
@@ -393,13 +464,27 @@ namespace PrintVect.Core.Client
                 try
                 {
                     status = await _sender.StatusAsync(printer, record.JobId, ct).ConfigureAwait(false);
+                    unanswered = 0;
                 }
                 catch (Exception ex) when (IsReachabilityProblem(ex))
                 {
-                    Log.Warn(record.JobId, "Status check failed: " + ex.Message);
+                    unanswered++;
+                    Log.Warn(record.JobId, "Status check " + unanswered + " without an answer: " + ex.Message);
+                    if (unanswered >= LostAfterUnansweredChecks)
+                    {
+                        FinishLost(record, printer.HostName + " stopped answering after it received this job (switched off or disconnected?), "
+                                           + "so it may not have printed. If the page did not come out, press Retry waiting jobs when "
+                                           + printer.HostName + " is back.");
+                        return;
+                    }
                     continue;
                 }
                 if (status == null) continue;
+                if (!status.Ok && status.Retry)
+                {
+                    FinishLost(record, status.Message + " Press Retry waiting jobs to send it again.");
+                    return;
+                }
                 if (status.State == JobStates.Printed || (status.Ok && JobStates.IsFinal(status.State) && status.State != JobStates.Error))
                 {
                     Finish(record, ClientJobStates.Printed, status.Message, null);
@@ -410,10 +495,21 @@ namespace PrintVect.Core.Client
                     Finish(record, ClientJobStates.Error, status.Message, null);
                     return;
                 }
+                lastNews = status.Message;
                 Update(record, ClientJobStates.Printing, status.Message);
             }
-            Finish(record, ClientJobStates.Printing, "Sent to " + printer.HostName + "; it was still printing after "
-                                                      + StatusPollMax.TotalMinutes + " minutes. Check the printer there.", null);
+            Finish(record, ClientJobStates.Printing, "Sent to " + printer.HostName + ". After " + StatusPollMax.TotalMinutes
+                                                      + " minutes it still says: " + lastNews + " Its Jobs page shows how it ends.", null);
+        }
+
+        /// <summary>
+        /// The job did not print but sending it again makes sense (the host lost it, was switched off, or wants the office
+        /// PIN): put the file back in pending\ so Retry waiting jobs sends it again under the same job id.
+        /// </summary>
+        private void FinishLost(ClientJobRecord record, string message)
+        {
+            Log.Warn(record.JobId, "Kept for Retry: " + message);
+            Finish(record, ClientJobStates.Pending, message, ClientPrinterNames.PendingFolderName);
         }
 
         private void Update(ClientJobRecord record, string state, string message)
@@ -441,7 +537,7 @@ namespace PrintVect.Core.Client
             try
             {
                 if (!File.Exists(record.FilePath)) return;
-                string folder = Path.Combine(Path.GetDirectoryName(record.FilePath), folderName);
+                string folder = Path.Combine(ClientPrinterNames.SpoolFolder(_paths, record.PrinterId), folderName);
                 Directory.CreateDirectory(folder);
                 string target = Path.Combine(folder, Path.GetFileName(record.FilePath));
                 if (File.Exists(target)) File.Delete(target);

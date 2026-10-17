@@ -36,7 +36,7 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
                          (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter, DeletePrinter, Users:Modify ACL
                          on spool\<id>; when no XPS writer driver is installed it installs Windows' own from the driver store
                          (InstallPrinterDriverFromPackage) or turns on the feature with DISM Printing-XPSServices-Features);
-                         M5 adds firewall rules. Results come back as exit code + JSON file (ElevateLauncher runs it with "runas").
+                         autostart /on yes|no (HKLM Run, M6b-2). Results: exit code + JSON file (ElevateLauncher, "runas").
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability, updates (loopback HTTP).
 - installer/PrintVect.iss Inno Setup 6, compiled by CI (ISCC, /DAppVersion from Directory.Build.props, /DSourceDir =
                          collected program files): Program Files, Users:Modify on ProgramData, netsh firewall rules, HKLM Run
@@ -59,15 +59,15 @@ the UI thread). Printer statuses and printing sit behind IPrinterStatusSource / 
 unit-tested with fakes over loopback TCP (tests never load System.Printing, which Mono lacks).
 
 ## Protocol v1 (docs/protocol.md has the JSON)
-- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the
-  Use tab is open; hosts reply by UDP unicast with a JSON printer list.
-- Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header
-  + file bytes. Host answers one JSON line ({ok, jobId, state, message}) and closes.
-- Status: same framing, header {"type":"status","jobId":...}, no body.
-- List: same framing, header {"type":"list"}, no body; reply = discovery JSON + ok. Added in M1 for
-  pvct-send and for manual "Add by IP" (M3). Refused jobs are drained, then answered with ok=false.
-- Optional PIN: header carries SHA-256 hex of the PIN; empty = open on the LAN.
-- Limits: file 200 MB, connect 5 s, transfer 5 min, discovery 2 s. Manual IP/name entry always exists.
+- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the Use tab is open;
+  hosts reply by UDP unicast with a JSON printer list.
+- Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header + file bytes. Host
+  answers one JSON line ({ok, jobId, state, message}) and closes. Status: header {"type":"status","jobId"}, no body.
+- List: header {"type":"list"}, reply = discovery JSON + ok. Hello (M6b-2): {"type":"hello",client,os,appVersion,
+  printers} every 5 min to each host used -> its "PCs that use this PC". Refusals: drained, ok=false; "retry":true =
+  keep for Retry (lost job, PIN). A job id already printed or still queued gets its state back, never printed twice.
+- Office PIN: header carries its SHA-256 hex; empty = open on the LAN. Limits: file 200 MB, connect 5 s, transfer 5 min,
+  discovery 2 s. Manual IP/name entry always exists.
 
 ## Workflow
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
@@ -76,8 +76,8 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   split: M6a in-app updates (owner's request), M6b-1 the new look (docs/design), M6b-2 hardening.
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
-- Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`.
-- CI: .github/workflows/build.yml on windows-latest builds, tests and uploads the EXEs.
+- Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml
+  (windows-latest) builds, tests, makes the setup program; release.yml publishes a release (Run workflow on main).
 - Claude Code cannot see a printer or run Windows print APIs. Design every feature so the
   owner can verify it from a log file or the Diagnostics tab, and log every job step with
   its jobId on both sides.
