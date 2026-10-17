@@ -65,6 +65,9 @@ jobs:
           "VERSION=$version" >> $env:GITHUB_ENV
           "TAG=$tag" >> $env:GITHUB_ENV
           Write-Host "PrintVect $version, release $tag"
+          # "gh release view" exits with 1 when the release does not exist yet (the normal case for a pushed tag or
+          # Run workflow). The runner ends a pwsh step with the last exit code, so clear it or the step fails here.
+          $global:LASTEXITCODE = 0
 
       - name: Add MSBuild to PATH
         if: env.SKIP != '1'
