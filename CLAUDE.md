@@ -26,9 +26,10 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
 ## Architecture
 - src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, Protocol/, Host/, Printing/,
                          Client/ (spool watcher, sender), Elevation/, Discovery/, Update/. No UI references.
-- src/PrintVect.App      WinForms tray exe. Tabs: Share my printers, Use shared printers, Settings (with the Updates
-                         group), Diagnostics. Closing the window minimises to tray; Exit is in the tray menu; `/tray` starts
-                         hidden (autostart entry). Update/UpdateController drives the daily check and Update now.
+- src/PrintVect.App      WinForms tray exe in the dark design (Theme/: Palette, ThemeFonts, painted Card/ThemedButton/ToggleSwitch,
+                         DataGridView lists via Grids; never a light system control on a page). Pages: Share my printers, Jobs,
+                         Use shared printers, Settings (Updates + Diagnostics cards). Closing the window minimises to tray; Exit is
+                         in the tray menu; `/tray` starts hidden. Update/UpdateController drives the daily check and Update now.
 - src/PrintVect.Send     pvct-send.exe, the M1 command-line test sender (list / send / status). docs/samples/
                          PrintVect-test-page.xps is a ready-made one-page test file (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer, remove-all
@@ -43,7 +44,7 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
                          the app's child during an update); "Start PrintVect now" also runs after a silent update,
                          runasoriginaluser. .github/workflows/release.yml (tag v<Version> or Run workflow) publishes
                          PrintVect-Setup-<v>.exe + .sha256 as a GitHub Release. docs/design/: icon SVG (tools/make_icon.py)
-                         and visual spec; src/PrintVect.App/Fonts: OFL fonts.
+                         and visual spec; src/PrintVect.App/Fonts: OFL fonts (static Manrope from tools/make_fonts.py).
 
 Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer driver, the v3 one when installed
 because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher (FileSystemWatcher + 2 s
@@ -72,7 +73,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6 is
-  split: M6a in-app updates (owner's request), M6b the new look (docs/design) + hardening.
+  split: M6a in-app updates (owner's request), M6b-1 the new look (docs/design), M6b-2 hardening.
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`.
@@ -81,9 +82,8 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   owner can verify it from a log file or the Diagnostics tab, and log every job step with
   its jobId on both sides.
 - Commit after each milestone: `M2: client virtual printer and spool watcher`.
-- Files under %ProgramData% belong to the user who created them. The M5 installer must grant
-  Users modify rights on %ProgramData%\PrintVect; until then the logger falls back to a
-  per-user file name (PrintVect-<user>-<date>.log) so a second user can still start the app.
+- Files under %ProgramData% belong to the user who created them: the installer grants Users modify rights on
+  %ProgramData%\PrintVect, and the logger still falls back to PrintVect-<user>-<date>.log if a file is not writable.
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
   10.148.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
   broadcast and 255.255.255.255; DiscoveryResponder binds 0.0.0.0:9150 and answers from the address

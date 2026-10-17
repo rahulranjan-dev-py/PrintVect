@@ -36,10 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Fonts of the visual design (SIL Open Font License, licence text beside them); loaded privately at start-up from M6. -->
+    <!-- Fonts of the visual design (SIL Open Font License, licence text beside them); loaded privately at start-up (Theme/ThemeFonts). -->
     <Content Include="Fonts\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- The source of the static Manrope weights (tools/make_fonts.py); the app never loads it. -->
+    <Content Remove="Fonts\Manrope\Manrope-VariableFont_wght.ttf" />
   </ItemGroup>
 
 </Project>
