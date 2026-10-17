@@ -335,6 +335,11 @@ Release v0.2.0 on 2026-10-17: **steps 0 to 6 passed** (release made on the websi
 the release run, 0.2.0 installed by hand on the Windows 10 PC, the Windows 11 host and OFFICE-2; Check now,
 the offline message and the Diagnostics Updates section as expected). Version raised to 0.2.1 for steps 7 to 11.
 
+Release v0.2.1 on 2026-10-17: **M6a accepted.** Steps 7 to 11 passed: every PC found 0.2.1 by itself, the host
+updated with one click and came back as 0.2.1 with sharing still ON, a PC that answered No to the permission
+question kept running and updated on the second try, printing worked in both directions afterwards, and the
+daily check stayed off across a restart when unticked.
+
 ## M6b and later
 
 Steps are added here when each milestone is delivered.
