@@ -34,7 +34,7 @@ was the working name before PrintVect was chosen).
 | M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, verified on two Windows 11 PCs and a Windows 10 PC** |
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
 | M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, verified on Windows 10 (daily use)** |
-| M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, awaiting test** |
+| M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, verified on three PCs (0.2.0 to 0.2.1 by itself)** |
 | M6b | The new look (docs/design) and hardening: editable settings, plain-language errors, copies prompt, presence | |
 
 ## Requirements
