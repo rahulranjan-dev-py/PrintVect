@@ -331,6 +331,10 @@ Service (the setup program needs administrator rights), so an update is never in
 the setup program is still unsigned, which is why the permission window says "Unknown publisher"; a PC
 without internet simply never sees updates (install the setup program by hand there).
 
+Release v0.2.0 on 2026-10-17: **steps 0 to 6 passed** (release made on the website, setup files attached by
+the release run, 0.2.0 installed by hand on the Windows 10 PC, the Windows 11 host and NIRSACHATTISO; Check now,
+the offline message and the Diagnostics Updates section as expected). Version raised to 0.2.1 for steps 7 to 11.
+
 ## M6b and later
 
 Steps are added here when each milestone is delivered.
