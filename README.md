@@ -18,7 +18,7 @@ administrator. PrintVect side-steps all of that:
 
 Printing stays on the office LAN. The only thing PrintVect ever fetches from the internet is its own
 newer version: once a day it looks at this repository's releases on github.com and offers an update
-with one click (Settings tab; the daily look can be switched off). Nothing about the office, its
+with one click (Settings page; the daily look can be switched off). Nothing about the office, its
 printers or its documents is ever sent anywhere.
 
 ## Status
@@ -35,7 +35,8 @@ was the working name before PrintVect was chosen).
 | M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
 | M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, verified on Windows 10 (daily use)** |
 | M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, verified on three PCs (0.2.0 to 0.2.1 by itself)** |
-| M6b | The new look (docs/design) and hardening: editable settings, plain-language errors, copies prompt, presence | |
+| M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, awaiting test** |
+| M6b-2 | Hardening: editable settings, plain-language errors, copies prompt, presence, Pause, PIN screen | |
 
 ## Requirements
 
@@ -77,20 +78,25 @@ tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
 
 ## Using it
 
-The window has four tabs:
+The window (dark, in the design of `docs/design`) has four pages, chosen in the bar at the top; the pill on
+the right of that bar says whether this PC shares its printers:
 
-- **Share my printers**: the printers on this PC. Tick the ones to offer to the office, give
-  each a friendly name such as "Counter 1 Laser", and switch sharing on. The tab shows today's
-  job count and the last jobs received.
-- **Use shared printers**: type a host PC's name or IP, look its printers up, add one to this PC
-  (Windows asks once for permission), send a test page, retry waiting jobs, see the jobs sent. Hosts are
-  found automatically from M3.
-- **Settings**: shared PIN, ports, start with Windows, how long to keep sent files, and the
-  **Updates** group: whether PrintVect looks for a newer version once a day, **Check now**, and
-  **Update now** when one is ready.
-- **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when
-  something does not work. It contains the Windows version, .NET version, network addresses,
-  firewall rule state, printer list and the last 200 log lines. Nothing is sent automatically.
+- **Share my printers**: this PC's name and network addresses (with **Copy**, to tell another PC where to
+  look), the **Sharing with the office** switch, and the printers on this PC. Tick the ones to offer to the
+  office and give each a name for the office such as "Counter 1 Laser". On the right: how many jobs from
+  other PCs were printed today, and how to connect another PC.
+- **Jobs**: the jobs other PCs sent to this PC's printers, and the jobs this PC sent to printers of other
+  PCs, newest first, with today's printed count for each.
+- **Use shared printers**: the printers other PCs share appear by themselves; or type a host PC's name or
+  IP and press **Look up**. Add one to this PC (Windows asks once for permission), send a test page, retry
+  waiting jobs, remove it.
+- **Settings**: shared PIN, ports, start with Windows, how long to keep sent files; the **Updates** card
+  (whether PrintVect looks for a newer version once a day, **Check now**, **Update now** when one is ready);
+  and **Diagnostics**: press **Copy to clipboard** and paste the text into an email or chat when something
+  does not work. It contains the Windows version, .NET version, network addresses, firewall rule state,
+  printer list and the last 200 log lines. Nothing is sent automatically.
+
+Ctrl+Tab moves to the next page.
 
 Closing the window only hides it; PrintVect keeps running in the tray. To stop it, right-click
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
@@ -128,7 +134,7 @@ pvct-send PrintVect-test-page.xps 192.168.1.5 "Counter 1 Laser"
 pvct-send status 192.168.1.5 <job id>
 ```
 
-`192.168.1.5` is the host PC's address (shown in its Diagnostics tab under Network); a PC
+`192.168.1.5` is the host PC's address (shown on its Share my printers page, and under Network in Settings, Diagnostics); a PC
 name works too. `PrintVect-test-page.xps` is a ready-made one-page test file. Any other
 `.xps` file works: print a document to "Microsoft XPS Document Writer" to make one. Options:
 `/pin 1234` when the host has a PIN, `/doc "title"`, `/port 9151`, `/nowait`.
@@ -166,13 +172,13 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | Antivirus on Windows 7 quarantines the EXE | Add the PrintVect folder and `C:\ProgramData\PrintVect` to its exclusions; the program is unsigned for now. |
 | "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
 | "Neither Microsoft XPS Document Writer nor ... v4 is installed" when adding a printer | PrintVect installs Windows' own XPS Document Writer itself. If it still fails: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK, restart if asked, then Add again. |
-| "is not reachable on the network" from another PC | Check the host's IP address in its Diagnostics tab, then add the firewall rule above on the host. |
+| "is not reachable on the network" from another PC | Check the host's IP address on its Share my printers page, then add the firewall rule above on the host. |
 | The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host (Settings, Printers & scanners, the printer, Open print queue). The job is in that queue and prints when the printer is ready; PrintVect keeps reporting its page progress for up to 15 minutes. |
 | Microsoft Print to PDF: the job shows Printing until you answer the Save window | That is how Windows works: choose a file name and the job becomes Printed. |
 | Settings says "Could not check for a newer version: this PC cannot reach github.com" | The PC has no internet connection right now (or a proxy blocks github.com). Printing is not affected; the check tries again the next day, or press **Check now** later. |
 | "The update did not run (the setup program ended with code ...)" | The Windows permission question was answered No, or the setup failed: the reason is in `C:\ProgramData\PrintVect\updates\update-<version>.log`. Press **Update now** again. |
 | After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
-| Something else | Diagnostics tab, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
+| Something else | Settings, Diagnostics, **Copy to clipboard**, and send the text to the person who supports PrintVect. |
 
 ## Publishing a new version
 

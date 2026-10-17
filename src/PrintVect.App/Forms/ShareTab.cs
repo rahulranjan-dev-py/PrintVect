@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using PrintVect.App.Host;
+using PrintVect.App.Theme;
 using PrintVect.Core.Config;
+using PrintVect.Core.Discovery;
 using PrintVect.Core.Host;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Printing;
@@ -14,25 +17,28 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// "Share my printers" (brief, section 7): the local printers with a Share tick box and an
-    /// editable friendly name, the Sharing ON/OFF switch, today's job count and the recent jobs.
+    /// "Share my printers" (brief, section 7; the Office screen of the design): this PC's name and addresses with the
+    /// Sharing switch, the local printers with a Share tick and an editable friendly name, today's printed count and
+    /// how another PC connects. The jobs received are on the Jobs page.
     /// </summary>
     internal sealed class ShareTab : UserControl
     {
-        private const int MaxJobRows = 50;
-
         private readonly HostController _controller;
-        private CheckBox _toggle;
-        private Button _refresh;
+        private ToggleSwitch _toggle;
+        private ThemedButton _refresh;
+        private ThemedButton _copy;
+        private Label _pcName;
+        private Label _address;
         private Label _status;
         private Label _hint;
+        private Label _printedToday;
+        private Label _howSteps;
         private DataGridView _grid;
         private DataGridViewCheckBoxColumn _shareColumn;
         private DataGridViewTextBoxColumn _printerColumn;
         private DataGridViewTextBoxColumn _friendlyColumn;
         private DataGridViewTextBoxColumn _statusColumn;
-        private Label _jobsLabel;
-        private ListView _jobs;
+        private string _addressText = "";
         private bool _loading;
         private bool _syncing;
 
@@ -40,85 +46,99 @@ namespace PrintVect.App.Forms
         {
             if (controller == null) throw new ArgumentNullException(nameof(controller));
             _controller = controller;
+            BackColor = Palette.Background;
             BuildLayout();
 
             _controller.SharingChanged += OnSharingChanged;
             _controller.JobChanged += OnJobChanged;
 
-            IList<JobRecord> recent = _controller.Jobs.Recent(MaxJobRows);
-            for (int i = recent.Count - 1; i >= 0; i--)
-            {
-                UpsertJob(recent[i]);
-            }
+            ShowAddresses();
             SyncSharingState();
             LoadPrinters();
         }
 
+        /// <summary>Raised with a short text for the status bar ("Copied ...").</summary>
+        public event EventHandler<string> Message;
+
         private void BuildLayout()
         {
             SuspendLayout();
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 7, Margin = new Padding(0) };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = Ui.Pad(0), BackColor = Palette.Background };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Ui.S(300)));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            var top = new FlowLayoutPanel
+            Card thisPc = CreateThisPcCard();
+            layout.Controls.Add(thisPc, 0, 0);
+            layout.SetColumnSpan(thisPc, 2);
+            layout.Controls.Add(CreatePrintersCard(), 0, 1);
+            layout.Controls.Add(CreateSideColumn(), 1, 1);
+            Controls.Add(layout);
+            ResumeLayout(true);
+        }
+
+        private Card CreateThisPcCard()
+        {
+            var card = new Card { Dock = DockStyle.Fill, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Ui.Pad(0, 0, 0, 16) };
+            var table = new TableLayoutPanel
             {
+                Dock = DockStyle.Fill,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill,
-                WrapContents = true,
-                Margin = new Padding(0, 0, 0, 4)
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                Margin = Ui.Pad(0)
             };
-            _toggle = new CheckBox
-            {
-                Text = Strings.ShareToggle,
-                AutoSize = true,
-                Font = new Font(Font, FontStyle.Bold),
-                Margin = new Padding(0, 5, 20, 0)
-            };
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+            table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            // Left: the PC as others see it.
+            Control[] left = new Control[4];
+            left[0] = Make.Caption(Strings.ShareThisPcCaption);
+            _pcName = Make.Label(Environment.MachineName, ThemeFonts.MonoBig, Palette.Text, Ui.Pad(0, 0, 0, 6));
+            _address = Make.Muted("");
+            _copy = new ThemedButton(Strings.ShareCopyAddress, ButtonKind.Secondary) { MinimumHeight = 36 };
+            _copy.Click += (s, e) => CopyAddress();
+            left[1] = _pcName;
+            left[2] = _address;
+            left[3] = Make.Row(_copy);
+            left[3].Margin = Ui.Pad(0);
+            table.Controls.Add(Stack(left), 0, 0);
+
+            // Right: the switch that matters most on this screen.
+            _toggle = new ToggleSwitch(Strings.ShareToggle) { WrapWidth = 300 };
             _toggle.CheckedChanged += OnToggleChanged;
-            _refresh = new Button
-            {
-                Text = Strings.ShareRefresh,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Padding = new Padding(8, 3, 8, 3),
-                Margin = new Padding(0),
-                UseVisualStyleBackColor = true
-            };
+            _status = Make.Muted("");
+            _status.Margin = Ui.Pad(52, 6, 0, 0);
+            table.Controls.Add(Stack(Make.Caption(Strings.ShareSharingCaption), _toggle, _status), 1, 0);
+
+            card.Controls.Add(table);
+            return card;
+        }
+
+        private Card CreatePrintersCard()
+        {
+            var card = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0) };
+            TableLayoutPanel column = Make.Column(0, 0, 0, 100);
+            _refresh = new ThemedButton(Strings.ShareRefresh, ButtonKind.Secondary) { MinimumHeight = 36, Margin = Ui.Pad(0) };
             _refresh.Click += (s, e) => LoadPrinters();
-            top.Controls.Add(_toggle);
-            top.Controls.Add(_refresh);
+            Label intro = Make.Muted(Strings.ShareIntro);
+            _hint = Make.Wrap("", ThemeFonts.Secondary, Palette.Warning, Ui.Pad(0, 0, 0, 6));
 
-            _status = new Label { AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 8) };
-            var intro = new Label { Text = Strings.ShareIntro, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 6) };
-            _hint = new Label { AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 4), ForeColor = SystemColors.GrayText };
-
-            _grid = new DataGridView
-            {
-                Dock = DockStyle.Fill,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                AllowUserToResizeRows = false,
-                RowHeadersVisible = false,
-                MultiSelect = false,
-                SelectionMode = DataGridViewSelectionMode.CellSelect,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = SystemColors.Window,
-                BorderStyle = BorderStyle.FixedSingle,
-                EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2,
-                Margin = new Padding(0, 0, 0, 10)
-            };
-            _shareColumn = new DataGridViewCheckBoxColumn { HeaderText = Strings.ShareColShare, FillWeight = 12, MinimumWidth = 50 };
-            _printerColumn = new DataGridViewTextBoxColumn { HeaderText = Strings.ShareColPrinter, ReadOnly = true, FillWeight = 40 };
-            _friendlyColumn = new DataGridViewTextBoxColumn { HeaderText = Strings.ShareColFriendly, FillWeight = 33 };
-            _statusColumn = new DataGridViewTextBoxColumn { HeaderText = Strings.ShareColStatus, ReadOnly = true, FillWeight = 15 };
+            _grid = Grids.Create();
+            _grid.ReadOnly = false;
+            _grid.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            _grid.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
+            _shareColumn = Grids.Tick(Strings.ShareColShare, 12);
+            _shareColumn.MinimumWidth = Ui.S(56);
+            _printerColumn = Grids.Text(Strings.ShareColPrinter, 40);
+            _friendlyColumn = Grids.Text(Strings.ShareColFriendly, 33);
+            _friendlyColumn.ReadOnly = false;
+            _friendlyColumn.DefaultCellStyle = new DataGridViewCellStyle { Font = ThemeFonts.TextSemi };
+            _statusColumn = Grids.Text(Strings.ShareColStatus, 15);
             _grid.Columns.AddRange(new DataGridViewColumn[] { _shareColumn, _printerColumn, _friendlyColumn, _statusColumn });
             _grid.CurrentCellDirtyStateChanged += (s, e) =>
             {
@@ -128,39 +148,93 @@ namespace PrintVect.App.Forms
                 }
             };
             _grid.CellValueChanged += OnCellValueChanged;
+            _grid.EditingControlShowing += (s, e) =>
+            {
+                e.Control.BackColor = Palette.Background;
+                e.Control.ForeColor = Palette.Text;
+            };
             _grid.DataError += (s, e) =>
             {
                 Log.Warn("Printer grid error: " + (e.Exception == null ? "?" : e.Exception.Message));
                 e.ThrowException = false;
             };
 
-            _jobsLabel = new Label { AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 4), Font = new Font(Font, FontStyle.Bold) };
-            _jobs = new ListView
-            {
-                Dock = DockStyle.Fill,
-                View = View.Details,
-                FullRowSelect = true,
-                HideSelection = true,
-                MultiSelect = false,
-                HeaderStyle = ColumnHeaderStyle.Nonclickable,
-                Margin = new Padding(0)
-            };
-            _jobs.Columns.Add(Strings.JobColTime, 70);
-            _jobs.Columns.Add(Strings.JobColFrom, 110);
-            _jobs.Columns.Add(Strings.JobColDocument, 170);
-            _jobs.Columns.Add(Strings.JobColPrinter, 130);
-            _jobs.Columns.Add(Strings.JobColState, 70);
-            _jobs.Columns.Add(Strings.JobColMessage, 320);
+            column.Controls.Add(Make.Heading(Make.Title(Strings.SharePrintersTitle), _refresh), 0, 0);
+            column.Controls.Add(intro, 0, 1);
+            column.Controls.Add(_hint, 0, 2);
+            column.Controls.Add(_grid, 0, 3);
+            card.Controls.Add(column);
+            return card;
+        }
 
-            layout.Controls.Add(top, 0, 0);
-            layout.Controls.Add(_status, 0, 1);
-            layout.Controls.Add(intro, 0, 2);
-            layout.Controls.Add(_hint, 0, 3);
-            layout.Controls.Add(_grid, 0, 4);
-            layout.Controls.Add(_jobsLabel, 0, 5);
-            layout.Controls.Add(_jobs, 0, 6);
-            Controls.Add(layout);
-            ResumeLayout(true);
+        private TableLayoutPanel CreateSideColumn()
+        {
+            TableLayoutPanel side = Make.Column(0, 100);
+            side.Margin = Ui.Pad(16, 0, 0, 0);
+
+            var today = new Card { Dock = DockStyle.Fill, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Ui.Pad(0, 0, 0, 16) };
+            _printedToday = Make.Label("0", ThemeFonts.Number, Palette.Text, Ui.Pad(0, 0, 0, 2));
+            today.Controls.Add(Stack(Make.Caption(Strings.SharePrintedTodayCaption), _printedToday, Make.Muted(Strings.SharePrintedTodayNote)));
+
+            var how = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0) };
+            _howSteps = Make.Muted("");
+            TableLayoutPanel howColumn = Make.Column(0, 100);
+            howColumn.Controls.Add(Make.Title(Strings.ShareHowTitle), 0, 0);
+            howColumn.Controls.Add(_howSteps, 0, 1);
+            how.Controls.Add(howColumn);
+
+            side.Controls.Add(today, 0, 0);
+            side.Controls.Add(how, 0, 1);
+            return side;
+        }
+
+        /// <summary>Controls one under the other, each as tall as its content.</summary>
+        private static TableLayoutPanel Stack(params Control[] controls)
+        {
+            TableLayoutPanel stack = Make.Column(new float[controls.Length]);
+            stack.AutoSize = true;
+            stack.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            stack.Dock = DockStyle.Top;
+            for (int i = 0; i < controls.Length; i++)
+            {
+                stack.Controls.Add(controls[i], 0, i);
+            }
+            return stack;
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (Visible && !IsDisposed)
+            {
+                ShowAddresses();   // a cable plugged in or a new address since the page was last seen
+            }
+        }
+
+        private void ShowAddresses()
+        {
+            string[] addresses = LocalNetworks.List().Select(n => n.Address.ToString()).Distinct().ToArray();
+            string name = Environment.MachineName;
+            _addressText = addresses.Length == 0 ? name : name + " (" + string.Join(", ", addresses) + ")";
+            _address.Text = addresses.Length == 0
+                ? string.Format(Strings.ShareAddressNone, name)
+                : string.Format(Strings.ShareAddressLine, name, string.Join(", ", addresses));
+            _howSteps.Text = string.Format(Strings.ShareHowSteps, name);
+        }
+
+        private void CopyAddress()
+        {
+            try
+            {
+                Clipboard.SetText(_addressText);
+                Log.Info("Share tab: copied \"" + _addressText + "\" to the clipboard.");
+                Message?.Invoke(this, string.Format(Strings.ShareAddressCopied, _addressText));
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Share tab: clipboard copy failed: " + ex.Message);
+                Message?.Invoke(this, Strings.DiagCopyFailed);
+            }
         }
 
         public void LoadPrinters()
@@ -172,7 +246,7 @@ namespace PrintVect.App.Forms
             _loading = true;
             _refresh.Enabled = false;
             _grid.Rows.Clear();
-            _hint.Text = Strings.ShareLoading;
+            ShowHint(Strings.ShareLoading, Palette.Muted);
 
             _controller.ListPrintersAsync().ContinueWith(task =>
             {
@@ -186,7 +260,7 @@ namespace PrintVect.App.Forms
                     {
                         Exception ex = task.Exception == null ? new Exception("?") : task.Exception.GetBaseException();
                         Log.Error("The printer list could not be read.", ex);
-                        _hint.Text = string.Format(Strings.SharePrintersError, ex.Message);
+                        ShowHint(string.Format(Strings.SharePrintersError, ex.Message), Palette.Warning);
                     }
                     else
                     {
@@ -209,8 +283,16 @@ namespace PrintVect.App.Forms
                 SharedPrinter shared = _controller.FindShared(printer.Name);
                 _grid.Rows.Add(shared != null, printer.Name, shared == null ? printer.Name : shared.FriendlyName, StatusText(printer.Status));
             }
-            _hint.Text = printers.Count == 0 ? Strings.ShareNoPrinters : "";
+            ShowHint(printers.Count == 0 ? Strings.ShareNoPrinters : "", Palette.Warning);
             Log.Info("Share tab: " + printers.Count + " printer(s) listed.");
+        }
+
+        /// <summary>The line above the printer list: loading, no printers, or why the list could not be read.</summary>
+        private void ShowHint(string text, Color colour)
+        {
+            _hint.ForeColor = colour;
+            _hint.Text = text;
+            _hint.Visible = text.Length > 0;
         }
 
         private void OnCellValueChanged(object sender, DataGridViewCellEventArgs e)
@@ -296,52 +378,13 @@ namespace PrintVect.App.Forms
         {
             if (!IsDisposed)
             {
-                UpsertJob(record);
+                UpdateJobCount();
             }
-        }
-
-        private void UpsertJob(JobRecord record)
-        {
-            if (record == null)
-            {
-                return;
-            }
-
-            string[] cells =
-            {
-                record.ReceivedAt.ToString("HH:mm:ss", CultureInfo.CurrentCulture),
-                record.Client ?? "",
-                record.Doc ?? "",
-                record.PrinterFriendly ?? "",
-                StateText(record.State),
-                record.Message ?? ""
-            };
-
-            ListViewItem item = _jobs.Items.ContainsKey(record.JobId) ? _jobs.Items[record.JobId] : null;
-            if (item == null)
-            {
-                item = new ListViewItem(cells) { Name = record.JobId };
-                _jobs.Items.Insert(0, item);
-                while (_jobs.Items.Count > MaxJobRows)
-                {
-                    _jobs.Items.RemoveAt(_jobs.Items.Count - 1);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < cells.Length; i++)
-                {
-                    item.SubItems[i].Text = cells[i];
-                }
-            }
-            item.ForeColor = record.State == JobStates.Error ? Color.Firebrick : SystemColors.WindowText;
-            UpdateJobCount();
         }
 
         private void UpdateJobCount()
         {
-            _jobsLabel.Text = string.Format(Strings.ShareJobsToday, _controller.Jobs.CountToday(JobStates.Printed))
-                              + "     " + Strings.ShareRecentJobs;
+            _printedToday.Text = _controller.Jobs.CountToday(JobStates.Printed).ToString(CultureInfo.CurrentCulture);
         }
 
         internal static string StatusText(string status)
@@ -362,20 +405,6 @@ namespace PrintVect.App.Forms
             }
             string text = Strings.ResourceManager.GetString(prefix + key.Replace(' ', '_'), Strings.Culture);
             return string.IsNullOrEmpty(text) ? key : text;
-        }
-
-        /// <summary>The window's font arrives after construction; keep the bold labels in step with it.</summary>
-        protected override void OnFontChanged(EventArgs e)
-        {
-            base.OnFontChanged(e);
-            if (_toggle != null)
-            {
-                _toggle.Font = new Font(Font, FontStyle.Bold);
-            }
-            if (_jobsLabel != null)
-            {
-                _jobsLabel.Font = new Font(Font, FontStyle.Bold);
-            }
         }
 
         protected override void Dispose(bool disposing)

@@ -340,6 +340,40 @@ updated with one click and came back as 0.2.1 with sharing still ON, a PC that a
 question kept running and updated on the second try, printing worked in both directions afterwards, and the
 daily check stayed off across a restart when unticked.
 
-## M6b and later
+## M6b-1: the new look
+
+The owner's Graphite design (docs/design/design-spec.md) on every page: dark window with Windows' own dark
+title bar, Manrope for text and JetBrains Mono for PC names (both shipped with PrintVect), a top bar with the
+pages and the sharing pill, cards, green switches and buttons. The pages are now **Share my printers**,
+**Jobs** (new: the job lists that were at the bottom of the two sharing pages), **Use shared printers** and
+**Settings** (Diagnostics is a card on it). Nothing about printing, sharing or finding printers changed.
+
+It arrives through the updater from M6a, which is tested once more on the way: version 0.3.0.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Make release v0.3.0 with the six clicks of M6a (tag `v0.3.0`, title `PrintVect 0.3.0`, target **main** once pull request #1 is merged, otherwise the branch **ccr-5c5bb225-3h4f6u**). | After five minutes the release lists `PrintVect-Setup-0.3.0.exe` and its `.sha256`. |
+| 1 | On each PC: Settings, **Check now**, then **Update now** in the yellow strip (Yes to Windows). | PrintVect comes back dark. Status bar at the bottom right: "Version 0.3.0". The title bar is dark too (on Windows 11 the same colour as the bar below it). |
+| 2 | Look at the top bar and click each page; then press Ctrl+Tab a few times. | Four pages in this order: Share my printers, Jobs, Use shared printers, Settings. The open one is white with a green line under it. On the right a pill: green **Sharing ON** on the host, grey **Sharing OFF** on a PC that shares nothing. Ctrl+Tab moves to the next page. |
+| 3 | Host, Share my printers. | Card **THIS PC**: the PC name in large letters, "Other PCs find this PC as DESKTOP-... (192.168.10.x, ...)" and **Copy**. Card **SHARING WITH THE OFFICE**: the switch on (green). Card **Printers on this PC** with the tick boxes, the names for the office and the status. On the right **PRINTED TODAY** with a number, and **How to connect a PC**. |
+| 4 | Press **Copy**, then paste into Notepad. | The status bar says "Copied: DESKTOP-... (...)", and Notepad gets the same text. |
+| 5 | Turn the switch off, look at the pill, turn it on again. | Pill grey "Sharing OFF" and "Sharing is OFF. Other PCs cannot print here."; then green again. |
+| 6 | Double-click the name of a shared printer, add " 2" to it, press Enter. On the Windows 10 PC open Use shared printers. | Within a few seconds the Windows 10 PC lists the printer with the new name. Change it back afterwards. |
+| 7 | Windows 10 PC: Use shared printers. | Card **Printers in the office** lists the host's printers (the PC name in the narrow typewriter-like font); **Add to this PC** is green; the "Not listed?" box and **Look up** sit beside it. Card **Printers from other PCs on this PC** lists Counter 1 Laser with **Send test page**, **Retry waiting jobs**, **Remove**. |
+| 8 | There: select Counter 1 Laser, **Send test page**. Open Jobs on both PCs. | The page prints. Windows 10 PC, **Sent from this PC**: a new row whose state turns green "Printed". Host, **Received from other PCs**: the same job, green "Printed"; the counts on the right of both titles and the host's PRINTED TODAY went up by one. |
+| 9 | Print a normal document from Word or Notepad to the PrintVect printer. | Prints as before; it appears on the Jobs pages as in step 8. |
+| 10 | Settings page. | Left: the settings, then **Updates** with its green switch and "PrintVect 0.3.0 is the latest version". Right: **Diagnostics** fills in by itself; **Copy to clipboard** (green) puts it on the clipboard and the status bar says so; **Open log folder** opens Explorer. In the text, the log lines include "Fonts: 5 of 5 font files loaded; text Manrope, names JetBrains Mono". |
+| 11 | Right-click the tray icon. | The menu is dark too (Open PrintVect, Exit). |
+| 12 | Make the window as small as it goes, then maximise it. | Nothing overlaps or is cut off in the middle of a word at the smallest size (long help texts may end early); maximised, the cards grow with the window. |
+| 13 | If any PC uses a display scale above 100 % (Settings, System, Display, Scale): look at the pages there. | Text is sharp and the same layout, just larger. |
+
+What to paste back after M6b-1: whether each step matched, **one screenshot of each page** from the host
+(Windows key + Shift + S, then paste into the chat), and anything that looks wrong or hard to read.
+
+Known limits of M6b-1, by design: the Windows permission window and PrintVect's question boxes ("Remove ...?")
+stay light, because Windows draws them; on Windows 10 before version 1809 the title bar stays light; the small
+capitals labels have no extra letter spacing.
+
+## M6b-2 and later
 
 Steps are added here when each milestone is delivered.

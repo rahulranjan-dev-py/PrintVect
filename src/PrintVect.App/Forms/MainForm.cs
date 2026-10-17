@@ -1,63 +1,42 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Printing;
-using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using PrintVect.App.Client;
 using PrintVect.App.Host;
+using PrintVect.App.Theme;
 using PrintVect.App.Update;
 using PrintVect.Core;
 using PrintVect.Core.Config;
-using PrintVect.Core.Diagnostics;
-using PrintVect.Core.Logging;
 using PrintVect.Core.Update;
 
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// The single window with four tabs (brief, section 7). Built in code rather than with the
-    /// designer so it stays readable in a diff. The Share tab arrived in M1, the Use tab in M2,
-    /// the Updates group of the Settings tab and the update banner above the tabs in M6a.
+    /// The single window (brief, section 7), in the owner's Graphite design since M6b (docs/design/design-spec.md):
+    /// a 56 px top bar with the tabs and the sharing pill, the yellow update strip when a newer PrintVect is ready,
+    /// the page, and a slim status bar. Built in code rather than with the designer so it stays readable in a diff.
     /// </summary>
     internal sealed class MainForm : Form
     {
         private const int MessageDisplaySeconds = 8;
 
-        private readonly AppPaths _paths;
-        private readonly ConfigStore _store;
-        private readonly AppConfig _config;
         private readonly HostController _controller;
-        private readonly ClientController _client;
         private readonly UpdateController _updates;
+        private readonly List<NavTab> _tabs = new List<NavTab>();
+        private readonly List<Control> _pages = new List<Control>();
 
-        private TabControl _tabs;
-        private ShareTab _shareTab;
-        private UseTab _useTab;
-        private TabPage _settingsTab;
-        private TabPage _diagnosticsTab;
-        private TextBox _settingsText;
-        private TextBox _diagnosticsText;
-        private Button _refreshButton;
-        private Button _copyButton;
-        private Button _openLogsButton;
-        private CheckBox _updateAutoCheck;
-        private Label _updateStatus;
-        private ProgressBar _updateProgress;
-        private Button _checkNowButton;
-        private Button _updateNowButton;
+        private Panel _pageHost;
+        private Panel _tabStrip;
+        private SettingsTab _settingsTab;
+        private StatusPill _sharingPill;
         private TableLayoutPanel _banner;
         private Label _bannerLabel;
-        private Button _bannerUpdate;
+        private ThemedButton _bannerUpdate;
         private Version _bannerDismissed;
-        private ToolStripStatusLabel _sharingLabel;
-        private ToolStripStatusLabel _messageLabel;
+        private Label _messageLabel;
         private Timer _messageTimer;
-        private bool _diagnosticsLoaded;
-        private bool _collecting;
+        private int _current = -1;
 
         public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController controller, ClientController client,
             UpdateController updates)
@@ -65,72 +44,57 @@ namespace PrintVect.App.Forms
             if (controller == null) throw new ArgumentNullException(nameof(controller));
             if (client == null) throw new ArgumentNullException(nameof(client));
             if (updates == null) throw new ArgumentNullException(nameof(updates));
-            _client = client;
-            _updates = updates;
-            _paths = paths;
-            _store = store;
-            _config = config;
             _controller = controller;
-            BuildLayout();
-            FillSettings();
-            RefreshUpdateUi();
+            _updates = updates;
+            BuildLayout(paths, store, config, client);
+            RefreshBanner();
             UpdateSharingStatus(_controller.IsSharing);
-            _controller.SharingChanged += (s, e) =>
-            {
-                UpdateSharingStatus(_controller.IsSharing);
-                FillSettings();
-            };
-            _updates.Changed += (s, e) => RefreshUpdateUi();
+            _controller.SharingChanged += (s, e) => UpdateSharingStatus(_controller.IsSharing);
+            _updates.Changed += (s, e) => RefreshBanner();
         }
 
         public void UpdateSharingStatus(bool sharingOn)
         {
-            _sharingLabel.Text = sharingOn ? Strings.StatusSharingOn : Strings.StatusSharingOff;
+            _sharingPill.Text = sharingOn ? Strings.StatusSharingOn : Strings.StatusSharingOff;
+            _sharingPill.Kind = sharingOn ? PillKind.Connected : PillKind.Offline;
         }
 
-        /// <summary>Opens the Settings tab, where the Updates group lives (the update balloon leads here).</summary>
+        /// <summary>Opens the Settings page, where the Updates card lives (the update balloon leads here).</summary>
         public void ShowSettings()
         {
-            if (!IsDisposed && _settingsTab != null)
+            if (!IsDisposed)
             {
-                _tabs.SelectedTab = _settingsTab;
+                Select(_pages.IndexOf(_settingsTab));
             }
         }
 
-        private void BuildLayout()
+        private void BuildLayout(AppPaths paths, ConfigStore store, AppConfig config, ClientController client)
         {
             SuspendLayout();
+            AutoScaleMode = AutoScaleMode.None;   // sizes come from Ui.S, fonts are in points
             Text = Strings.AppName;
             Icon = AppIcon.Window;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(780, 540);
-            MinimumSize = new Size(640, 440);
-            Font = SystemFonts.MessageBoxFont;
-            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Palette.Background;
+            ForeColor = Palette.Text;
+            Font = ThemeFonts.Text;
+            ClientSize = new Size(Ui.S(1040), Ui.S(680));
+            MinimumSize = new Size(Ui.S(880), Ui.S(600));
+            KeyPreview = true;
 
-            var status = new StatusStrip { SizingGrip = true };
-            _sharingLabel = new ToolStripStatusLabel(Strings.StatusSharingOff)
-            {
-                BorderSides = ToolStripStatusLabelBorderSides.Right
-            };
-            _messageLabel = new ToolStripStatusLabel("") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
-            var versionLabel = new ToolStripStatusLabel(string.Format(Strings.StatusVersion, AppInfo.Version));
-            status.Items.AddRange(new ToolStripItem[] { _sharingLabel, _messageLabel, versionLabel });
+            _pageHost = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background, Padding = Ui.Pad(24, 20, 24, 20) };
+            var share = new ShareTab(_controller) { Dock = DockStyle.Fill };
+            share.Message += (s, text) => ShowMessage(text);
+            var jobs = new JobsTab(_controller, client) { Dock = DockStyle.Fill };
+            var use = new UseTab(client) { Dock = DockStyle.Fill };
+            _settingsTab = new SettingsTab(paths, store, config, _controller, client, _updates) { Dock = DockStyle.Fill };
+            _settingsTab.Message += (s, text) => ShowMessage(text);
 
-            _tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 6) };
-            _tabs.TabPages.Add(CreateShareTab());
-            _tabs.TabPages.Add(CreateUseTab());
-            _settingsTab = CreateSettingsTab();
-            _tabs.TabPages.Add(_settingsTab);
-            _diagnosticsTab = CreateDiagnosticsTab();
-            _tabs.TabPages.Add(_diagnosticsTab);
-            _tabs.SelectedIndexChanged += (s, e) =>
-            {
-                if (_tabs.SelectedTab == _diagnosticsTab && !_diagnosticsLoaded)
-                {
-                    RefreshDiagnostics();
-                }
-            };
+            Panel topBar = CreateTopBar();
+            AddPage(Strings.TabShare, share);
+            AddPage(Strings.TabJobs, jobs);
+            AddPage(Strings.TabUse, use);
+            AddPage(Strings.TabSettings, _settingsTab);
 
             _messageTimer = new Timer { Interval = MessageDisplaySeconds * 1000 };
             _messageTimer.Tick += (s, e) =>
@@ -139,13 +103,103 @@ namespace PrintVect.App.Forms
                 _messageLabel.Text = "";
             };
 
-            Controls.Add(_tabs);
+            Controls.Add(_pageHost);
             Controls.Add(CreateBanner());
-            Controls.Add(status);
+            Controls.Add(topBar);
+            Controls.Add(CreateStatusBar());
+            Ui.Solidify(this);
+            Select(0);
             ResumeLayout(true);
         }
 
-        /// <summary>A strip above the tabs that appears when a newer PrintVect is ready (M6a).</summary>
+        private Panel CreateTopBar()
+        {
+            var bar = new BorderedPanel(bottom: true) { Dock = DockStyle.Top, Height = Ui.S(56), BackColor = Palette.TopBar, Padding = Ui.Pad(20, 0, 20, 0) };
+
+            var logo = new PictureBox
+            {
+                Image = new Icon(AppIcon.Window, Ui.S(24), Ui.S(24)).ToBitmap(),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                Dock = DockStyle.Left,
+                Width = Ui.S(32),
+                BackColor = Palette.TopBar
+            };
+            var name = new Label
+            {
+                Text = Strings.AppName,
+                Font = ThemeFonts.CardTitle,
+                ForeColor = Palette.Text,
+                BackColor = Palette.TopBar,
+                Dock = DockStyle.Left,
+                AutoSize = false,
+                Width = TextRenderer.MeasureText(Strings.AppName, ThemeFonts.CardTitle).Width + Ui.S(28),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = Ui.Pad(6, 0, 0, 0)
+            };
+
+            _sharingPill = new StatusPill { Anchor = AnchorStyles.Right, Kind = PillKind.Offline };
+            var right = new TableLayoutPanel { Dock = DockStyle.Right, AutoSize = true, ColumnCount = 1, RowCount = 1, BackColor = Palette.TopBar };
+            right.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            right.Controls.Add(_sharingPill, 0, 0);
+
+            _tabStrip = new Panel { Dock = DockStyle.Fill, BackColor = Palette.TopBar };
+            bar.Controls.Add(_tabStrip);
+            bar.Controls.Add(right);
+            bar.Controls.Add(name);
+            bar.Controls.Add(logo);
+            return bar;
+        }
+
+        private void AddPage(string title, Control page)
+        {
+            int index = _pages.Count;
+            var tab = new NavTab(title);
+            tab.Click += (s, e) => Select(index);
+            _tabs.Add(tab);
+            _tabStrip.Controls.Add(tab);
+            tab.BringToFront();   // docked left: the last one added sits rightmost
+            _pages.Add(page);
+            page.Visible = false;
+            _pageHost.Controls.Add(page);
+        }
+
+        private void Select(int index)
+        {
+            if (index < 0 || index >= _pages.Count || index == _current)
+            {
+                return;
+            }
+            for (int i = 0; i < _pages.Count; i++)
+            {
+                _tabs[i].Active = i == index;
+            }
+            // Show the new page before hiding the old one so the window never flashes empty.
+            _pages[index].Visible = true;
+            if (_current >= 0)
+            {
+                _pages[_current].Visible = false;
+            }
+            _current = index;
+        }
+
+        /// <summary>Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+PageDown / PageUp move between pages, like the old tabs.</summary>
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            int count = _pages.Count;
+            if (keyData == (Keys.Control | Keys.Tab) || keyData == (Keys.Control | Keys.PageDown))
+            {
+                Select((_current + 1) % count);
+                return true;
+            }
+            if (keyData == (Keys.Control | Keys.Shift | Keys.Tab) || keyData == (Keys.Control | Keys.PageUp))
+            {
+                Select((_current + count - 1) % count);
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        /// <summary>A strip above the pages that appears when a newer PrintVect is ready (M6a).</summary>
         private TableLayoutPanel CreateBanner()
         {
             _banner = new TableLayoutPanel
@@ -155,8 +209,8 @@ namespace PrintVect.App.Forms
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 3,
                 RowCount = 1,
-                BackColor = SystemColors.Info,
-                Padding = new Padding(12, 6, 12, 6),
+                BackColor = Palette.Warning,
+                Padding = Ui.Pad(24, 8, 24, 8),
                 Visible = false
             };
             _banner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -164,19 +218,12 @@ namespace PrintVect.App.Forms
             _banner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             _banner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            _bannerLabel = new Label
-            {
-                AutoSize = true,
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = SystemColors.InfoText,
-                Margin = new Padding(0, 0, 8, 0)
-            };
-            _bannerUpdate = CreateButton(Strings.SettingsUpdateNow, (s, e) => StartUpdate());
-            _bannerUpdate.Anchor = AnchorStyles.None;
-            Button later = CreateButton(Strings.UpdateBannerLater, (s, e) => DismissBanner());
-            later.Anchor = AnchorStyles.None;
-            later.Margin = new Padding(0);
+            _bannerLabel = Make.Label("", ThemeFonts.TextSemi, Palette.OnWarning, Ui.Pad(0, 0, 8, 0));
+            _bannerLabel.TextAlign = ContentAlignment.MiddleLeft;
+            _bannerUpdate = new ThemedButton(Strings.SettingsUpdateNow, ButtonKind.OnWarning) { Anchor = AnchorStyles.None };
+            _bannerUpdate.Click += (s, e) => _settingsTab.StartUpdate();
+            var later = new ThemedButton(Strings.UpdateBannerLater, ButtonKind.OnWarning) { Anchor = AnchorStyles.None, Margin = Ui.Pad(0) };
+            later.Click += (s, e) => DismissBanner();
 
             _banner.Controls.Add(_bannerLabel, 0, 0);
             _banner.Controls.Add(_bannerUpdate, 1, 0);
@@ -184,464 +231,55 @@ namespace PrintVect.App.Forms
             return _banner;
         }
 
-        private TabPage CreateShareTab()
+        private Panel CreateStatusBar()
         {
-            var page = new TabPage(Strings.TabShare) { Padding = new Padding(16), UseVisualStyleBackColor = true };
-            _shareTab = new ShareTab(_controller) { Dock = DockStyle.Fill };
-            page.Controls.Add(_shareTab);
-            return page;
+            var bar = new BorderedPanel(bottom: false) { Dock = DockStyle.Bottom, Height = Ui.S(30), BackColor = Palette.TopBar, Padding = Ui.Pad(24, 0, 24, 0) };
+            _messageLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                Font = ThemeFonts.Secondary,
+                ForeColor = Palette.Text,
+                BackColor = Palette.TopBar,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                UseMnemonic = false
+            };
+            var version = new Label
+            {
+                Text = string.Format(Strings.StatusVersion, AppInfo.Version),
+                Dock = DockStyle.Right,
+                AutoSize = true,
+                Font = ThemeFonts.Secondary,
+                ForeColor = Palette.Muted,
+                BackColor = Palette.TopBar,
+                Padding = Ui.Pad(0, 7, 0, 0)
+            };
+            bar.Controls.Add(_messageLabel);
+            bar.Controls.Add(version);
+            return bar;
         }
 
-        private TabPage CreateUseTab()
+        private void RefreshBanner()
         {
-            var page = new TabPage(Strings.TabUse) { Padding = new Padding(16), UseVisualStyleBackColor = true };
-            _useTab = new UseTab(_client) { Dock = DockStyle.Fill };
-            page.Controls.Add(_useTab);
-            return page;
-        }
-
-        private TabPage CreateSettingsTab()
-        {
-            var page = new TabPage(Strings.TabSettings) { Padding = new Padding(16), UseVisualStyleBackColor = true };
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-            var intro = new Label
-            {
-                Text = Strings.SettingsIntro,
-                AutoSize = true,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0, 0, 0, 12)
-            };
-            _settingsText = new TextBox
-            {
-                Multiline = true,
-                ReadOnly = true,
-                Dock = DockStyle.Fill,
-                ScrollBars = ScrollBars.Vertical,
-                BackColor = SystemColors.Window,
-                Margin = new Padding(0)
-            };
-
-            layout.Controls.Add(intro, 0, 0);
-            layout.Controls.Add(_settingsText, 0, 1);
-            layout.Controls.Add(CreateUpdatesGroup(), 0, 2);
-            page.Controls.Add(layout);
-            return page;
-        }
-
-        /// <summary>The Updates group of the Settings tab (M6a): daily check switch, status, Check now, Update now.</summary>
-        private GroupBox CreateUpdatesGroup()
-        {
-            var group = new GroupBox
-            {
-                Text = Strings.SettingsUpdatesGroup,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0, 12, 0, 0),
-                Padding = new Padding(10, 4, 10, 10)
-            };
-            var table = new TableLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                ColumnCount = 1,
-                RowCount = 4
-            };
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (int i = 0; i < 4; i++)
-            {
-                table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            }
-
-            _updateAutoCheck = new CheckBox
-            {
-                Text = Strings.SettingsCheckForUpdates,
-                AutoSize = true,
-                Checked = _updates.AutoCheck,
-                Margin = new Padding(0, 4, 0, 6)
-            };
-            _updateAutoCheck.CheckedChanged += (s, e) => _updates.SetAutoCheck(_updateAutoCheck.Checked);
-            _updateStatus = new Label { AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 8) };
-            _updateProgress = new ProgressBar
-            {
-                Dock = DockStyle.Fill,
-                Height = 14,
-                Minimum = 0,
-                Maximum = 100,
-                Visible = false,
-                Margin = new Padding(0, 0, 0, 8)
-            };
-            var buttons = new FlowLayoutPanel
-            {
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true,
-                Margin = new Padding(0)
-            };
-            _updateNowButton = CreateButton(Strings.SettingsUpdateNow, (s, e) => StartUpdate());
-            _updateNowButton.Visible = false;
-            _checkNowButton = CreateButton(Strings.SettingsCheckNow, (s, e) => CheckForUpdatesNow());
-            buttons.Controls.AddRange(new Control[] { _updateNowButton, _checkNowButton });
-
-            table.Controls.Add(_updateAutoCheck, 0, 0);
-            table.Controls.Add(_updateStatus, 0, 1);
-            table.Controls.Add(_updateProgress, 0, 2);
-            table.Controls.Add(buttons, 0, 3);
-            group.Controls.Add(table);
-            return group;
-        }
-
-        private void RefreshUpdateUi()
-        {
-            if (IsDisposed || _updateStatus == null)
+            if (IsDisposed || _banner == null)
             {
                 return;
             }
-            UpdatePhase phase = _updates.Phase;
             ReleaseInfo available = _updates.Available;
-            DownloadProgress progress = _updates.Progress;
-
-            string text;
-            switch (phase)
-            {
-                case UpdatePhase.Checking:
-                    text = Strings.UpdateStatusChecking;
-                    break;
-                case UpdatePhase.Downloading:
-                    long total = progress != null && progress.Total > 0 ? progress.Total
-                        : (available != null && available.Installer != null ? available.Installer.Size : 0);
-                    text = string.Format(Strings.UpdateDownloading, available == null ? "?" : AppVersions.Format(available.Version),
-                        Megabytes(progress == null ? 0 : progress.Done), Megabytes(total));
-                    break;
-                case UpdatePhase.Installing:
-                    text = Strings.UpdateStarting;
-                    break;
-                default:
-                    text = IdleUpdateText();
-                    break;
-            }
-            _updateStatus.Text = text;
-
-            bool idle = phase == UpdatePhase.Idle;
-            _checkNowButton.Enabled = idle;
-            _updateNowButton.Visible = available != null;
-            _updateNowButton.Enabled = idle;
-            if (_updateAutoCheck.Checked != _updates.AutoCheck)
-            {
-                _updateAutoCheck.Checked = _updates.AutoCheck;
-            }
-
-            bool busy = phase == UpdatePhase.Downloading || phase == UpdatePhase.Installing;
-            _updateProgress.Visible = busy;
-            if (busy)
-            {
-                bool known = phase == UpdatePhase.Downloading && progress != null && progress.Total > 0;
-                _updateProgress.Style = known ? ProgressBarStyle.Continuous : ProgressBarStyle.Marquee;
-                if (known)
-                {
-                    _updateProgress.Value = (int)Math.Max(0, Math.Min(100, progress.Done * 100 / progress.Total));
-                }
-            }
-
             bool showBanner = available != null && (_bannerDismissed == null || _bannerDismissed != available.Version);
             if (showBanner)
             {
                 _bannerLabel.Text = string.Format(Strings.UpdateBannerText, AppVersions.Format(available.Version));
-                _bannerUpdate.Enabled = idle;
+                _bannerUpdate.Enabled = _updates.Phase == UpdatePhase.Idle;
             }
             _banner.Visible = showBanner;
-        }
-
-        private string IdleUpdateText()
-        {
-            if (!string.IsNullOrEmpty(_updates.LastInstallError))
-            {
-                return _updates.LastInstallError;
-            }
-            UpdateCheckResult result = _updates.LastResult;
-            if (result == null)
-            {
-                return _updates.AutoCheck ? Strings.UpdateStatusNeverChecked : Strings.UpdateStatusOff;
-            }
-            string when = FormatTime(result.CheckedAt);
-            switch (result.Outcome)
-            {
-                case UpdateCheckOutcome.UpdateAvailable:
-                    return string.Format(Strings.UpdateStatusAvailable, AppVersions.Format(result.Release.Version), AppInfo.Version);
-                case UpdateCheckOutcome.Failed:
-                    return string.Format(Strings.UpdateStatusFailed, result.Error, when);
-                default:
-                    return string.Format(Strings.UpdateStatusUpToDate, AppInfo.Version, when);
-            }
-        }
-
-        private async void CheckForUpdatesNow()
-        {
-            try
-            {
-                await _updates.CheckNowAsync();
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Update check: unexpected failure from the Check now button.", ex);
-                ShowMessage(ex.Message);
-            }
-        }
-
-        private async void StartUpdate()
-        {
-            try
-            {
-                string problem = await _updates.InstallAsync();
-                if (!string.IsNullOrEmpty(problem) && !IsDisposed)
-                {
-                    MessageBox.Show(this, problem, Strings.AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Update: unexpected failure from the Update now button.", ex);
-                ShowMessage(ex.Message);
-            }
         }
 
         private void DismissBanner()
         {
             ReleaseInfo available = _updates.Available;
             _bannerDismissed = available == null ? null : available.Version;
-            RefreshUpdateUi();
-        }
-
-        private static string Megabytes(long bytes)
-        {
-            return (bytes / 1048576.0).ToString("0.0", CultureInfo.InvariantCulture);
-        }
-
-        private static string FormatTime(DateTime time)
-        {
-            return time.Date == DateTime.Today
-                ? time.ToString("HH:mm", CultureInfo.InvariantCulture)
-                : time.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-        }
-
-        private TabPage CreateDiagnosticsTab()
-        {
-            var page = new TabPage(Strings.TabDiagnostics) { Padding = new Padding(16), UseVisualStyleBackColor = true };
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-            var intro = new Label
-            {
-                Text = Strings.DiagIntro,
-                AutoSize = true,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0, 0, 0, 10)
-            };
-
-            var buttons = new FlowLayoutPanel
-            {
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true,
-                Margin = new Padding(0, 0, 0, 8)
-            };
-            _refreshButton = CreateButton(Strings.DiagRefresh, (s, e) => RefreshDiagnostics());
-            _copyButton = CreateButton(Strings.DiagCopy, (s, e) => CopyDiagnostics());
-            _openLogsButton = CreateButton(Strings.DiagOpenLogs, (s, e) => OpenLogFolder());
-            buttons.Controls.AddRange(new Control[] { _refreshButton, _copyButton, _openLogsButton });
-
-            _diagnosticsText = new TextBox
-            {
-                Multiline = true,
-                ReadOnly = true,
-                Dock = DockStyle.Fill,
-                ScrollBars = ScrollBars.Both,
-                WordWrap = false,
-                Font = new Font(FontFamily.GenericMonospace, 9f),
-                BackColor = SystemColors.Window,
-                Margin = new Padding(0)
-            };
-
-            layout.Controls.Add(intro, 0, 0);
-            layout.Controls.Add(buttons, 0, 1);
-            layout.Controls.Add(_diagnosticsText, 0, 2);
-            page.Controls.Add(layout);
-            return page;
-        }
-
-        private static Button CreateButton(string text, EventHandler onClick)
-        {
-            var button = new Button
-            {
-                Text = text,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Padding = new Padding(8, 3, 8, 3),
-                Margin = new Padding(0, 0, 8, 0),
-                UseVisualStyleBackColor = true
-            };
-            button.Click += onClick;
-            return button;
-        }
-
-        private void FillSettings()
-        {
-            var lines = new List<string>
-            {
-                string.Format(Strings.SettingsConfigFile, _store.Path),
-                "",
-                string.Format(Strings.SettingsSharing, _config.SharingEnabled ? Strings.On : Strings.Off),
-                string.Format(Strings.SettingsPorts, _config.DiscoveryPort, _config.JobPort),
-                string.Format(Strings.SettingsPin, string.IsNullOrEmpty(_config.Pin) ? Strings.PinNotSet : Strings.PinSet),
-                string.Format(Strings.SettingsStartWithWindows, _config.StartWithWindows ? Strings.Yes : Strings.No),
-                string.Format(Strings.SettingsKeepFiles, _config.KeepSentFilesHours)
-            };
-            _settingsText.Lines = lines.ToArray();
-        }
-
-        private void RefreshDiagnostics()
-        {
-            if (_collecting)
-            {
-                return;
-            }
-            _collecting = true;
-            _diagnosticsLoaded = true;
-            SetDiagnosticsButtonsEnabled(false);
-            _diagnosticsText.Text = Strings.DiagCollecting;
-            Log.Info("Diagnostics: collecting.");
-
-            AppPaths paths = _paths;
-            AppConfig config = _config;
-            string[] hostLines = _controller.DescribeForDiagnostics().ToArray();
-            string[] clientLines = _client.DescribeForDiagnostics().ToArray();
-            string[] updateLines = _updates.DescribeForDiagnostics().ToArray();
-            Task.Factory.StartNew(() => CollectDiagnosticsText(paths, config, hostLines, clientLines, updateLines))
-                .ContinueWith(task =>
-                {
-                    string text;
-                    if (task.IsFaulted)
-                    {
-                        Exception ex = task.Exception == null ? null : task.Exception.GetBaseException();
-                        Log.Error("Diagnostics: collection failed.", ex);
-                        text = string.Format(Strings.DiagFailed, ex == null ? "?" : ex.Message);
-                    }
-                    else
-                    {
-                        text = task.Result;
-                        Log.Info("Diagnostics: collected " + text.Length + " characters.");
-                    }
-
-                    if (IsDisposed)
-                    {
-                        return;
-                    }
-                    _diagnosticsText.Text = text;
-                    _diagnosticsText.SelectionStart = 0;
-                    _diagnosticsText.SelectionLength = 0;
-                    _diagnosticsText.ScrollToCaret();
-                    _collecting = false;
-                    SetDiagnosticsButtonsEnabled(true);
-                }, TaskScheduler.FromCurrentSynchronizationContext());
-        }
-
-        /// <summary>Runs on a background thread: never touches controls.</summary>
-        private static string CollectDiagnosticsText(AppPaths paths, AppConfig config, string[] hostLines, string[] clientLines,
-            string[] updateLines)
-        {
-            DiagnosticsReport report = DiagnosticsReport.Collect(paths, config, r =>
-            {
-                r.AddSection(Strings.DiagHostSection, hostLines);
-                r.AddSection(Strings.DiagClientSection, clientLines);
-                r.AddSection(Strings.DiagUpdatesSection, updateLines);
-                r.AddSection(Strings.DiagPrintersSection, DescribePrinters());
-            });
-            return report.ToString();
-        }
-
-        private static IEnumerable<string> DescribePrinters()
-        {
-            var lines = new List<string>();
-            try
-            {
-                string defaultPrinter = "";
-                try
-                {
-                    defaultPrinter = new PrinterSettings().PrinterName ?? "";
-                }
-                catch (Exception ex)
-                {
-                    Log.Warn("Diagnostics: default printer not readable: " + ex.Message);
-                }
-
-                foreach (string name in PrinterSettings.InstalledPrinters)
-                {
-                    lines.Add("- " + name + (string.Equals(name, defaultPrinter, StringComparison.OrdinalIgnoreCase)
-                        ? Strings.DiagDefaultPrinterSuffix : ""));
-                }
-                if (lines.Count == 0)
-                {
-                    lines.Add(Strings.DiagNoPrinters);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("Diagnostics: printer list not readable: " + ex.Message);
-                lines.Add(string.Format(Strings.DiagPrintersError, ex.Message));
-            }
-            return lines;
-        }
-
-        private void SetDiagnosticsButtonsEnabled(bool enabled)
-        {
-            _refreshButton.Enabled = enabled;
-            _copyButton.Enabled = enabled;
-        }
-
-        private void CopyDiagnostics()
-        {
-            string text = _diagnosticsText.Text;
-            if (string.IsNullOrEmpty(text) || _collecting)
-            {
-                return;
-            }
-            try
-            {
-                Clipboard.SetText(text);
-                Log.Info("Diagnostics: copied to the clipboard.");
-                ShowMessage(Strings.DiagCopied);
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("Diagnostics: clipboard copy failed: " + ex.Message);
-                ShowMessage(Strings.DiagCopyFailed);
-            }
-        }
-
-        private void OpenLogFolder()
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo("explorer.exe", "\"" + _paths.LogsDir + "\"") { UseShellExecute = true });
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("Could not open the log folder in Explorer: " + ex.Message);
-                ShowMessage(string.Format(Strings.DiagOpenLogsFailed, _paths.LogsDir));
-            }
+            RefreshBanner();
         }
 
         private void ShowMessage(string text)
@@ -649,6 +287,12 @@ namespace PrintVect.App.Forms
             _messageLabel.Text = text;
             _messageTimer.Stop();
             _messageTimer.Start();
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            NativeTheme.UseDarkTitleBar(this);
         }
 
         protected override void Dispose(bool disposing)
@@ -659,6 +303,28 @@ namespace PrintVect.App.Forms
                 _messageTimer = null;
             }
             base.Dispose(disposing);
+        }
+
+        /// <summary>A panel with a 1 px border line along its bottom (top bar) or top (status bar).</summary>
+        private sealed class BorderedPanel : Panel
+        {
+            private readonly bool _bottom;
+
+            public BorderedPanel(bool bottom)
+            {
+                _bottom = bottom;
+                SetStyle(ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                using (var pen = new Pen(Palette.Border))
+                {
+                    int y = _bottom ? Height - 1 : 0;
+                    e.Graphics.DrawLine(pen, 0, y, Width, y);
+                }
+            }
         }
     }
 }

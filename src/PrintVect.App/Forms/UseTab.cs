@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using PrintVect.App.Client;
+using PrintVect.App.Theme;
 using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Discovery;
@@ -17,31 +17,25 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// "Use shared printers" (brief, section 7): the printers found in the office by themselves
-    /// (UDP discovery runs while this tab is visible) or by a typed PC name, Add to this PC
-    /// (virtual printer through the Elevate helper), Remove, Send test page, Retry waiting jobs,
-    /// and the jobs sent from this PC.
+    /// "Use shared printers" (brief, section 7; the Printers screen of the design): the printers found in the office
+    /// by themselves (UDP discovery runs while this page is visible) or by a typed PC name, Add to this PC (virtual
+    /// printer through the Elevate helper), and the printers from other PCs already on this PC with Remove, Send test
+    /// page and Retry waiting jobs. The jobs sent are on the Jobs page.
     /// </summary>
     internal sealed class UseTab : UserControl
     {
-        private const int MaxJobRows = 50;
-
         private readonly ClientController _controller;
-        private Label _foundLabel;
         private Label _foundStatus;
-        private ListView _found;
-        private Button _add;
-        private TextBox _hostBox;
-        private Button _lookup;
+        private DataGridView _found;
+        private ThemedButton _add;
+        private InputBox _hostBox;
+        private ThemedButton _lookup;
         private Label _lookupStatus;
-        private Label _mineLabel;
-        private ListView _mine;
-        private Button _remove;
-        private Button _testPage;
-        private Button _retry;
+        private DataGridView _mine;
+        private ThemedButton _remove;
+        private ThemedButton _testPage;
+        private ThemedButton _retry;
         private Label _mineHint;
-        private Label _jobsLabel;
-        private ListView _jobs;
         private CancellationTokenSource _lookupCancel;
         private bool _busy;
 
@@ -55,56 +49,50 @@ namespace PrintVect.App.Forms
         {
             if (controller == null) throw new ArgumentNullException(nameof(controller));
             _controller = controller;
+            BackColor = Palette.Background;
             BuildLayout();
             _controller.JobChanged += OnJobChanged;
             _controller.PrintersChanged += OnPrintersChanged;
             _controller.FoundChanged += OnFoundChanged;
-
-            IList<ClientJobRecord> recent = _controller.Jobs.Recent(MaxJobRows);
-            for (int i = recent.Count - 1; i >= 0; i--)
-            {
-                UpsertJob(recent[i]);
-            }
             FillFound();
             FillMine();
-            UpdateJobCount();
         }
 
         private void BuildLayout()
         {
             SuspendLayout();
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Margin = new Padding(0) };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // intro
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // found label + status
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 34));  // found printers
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // add + manual look-up
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // my printers label
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 30));  // my printers
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // buttons
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));     // jobs label
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 36));  // jobs
+            TableLayoutPanel layout = Make.Column(60, 40);
+            layout.BackColor = Palette.Background;
+            layout.Controls.Add(CreateFoundCard(), 0, 0);
+            layout.Controls.Add(CreateMineCard(), 0, 1);
+            Controls.Add(layout);
+            ResumeLayout(true);
+        }
 
-            var intro = new Label { Text = Strings.UseIntro, AutoSize = true, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 8) };
+        private Card CreateFoundCard()
+        {
+            var card = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0, 0, 0, 16) };
+            TableLayoutPanel column = Make.Column(0, 0, 0, 100, 0, 0);
 
-            var foundHead = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 0, 0, 4) };
-            _foundLabel = new Label { Text = Strings.UseFoundLabel, AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 10, 0) };
-            _foundStatus = new Label { AutoSize = true, Margin = new Padding(0), ForeColor = SystemColors.GrayText };
-            foundHead.Controls.AddRange(new Control[] { _foundLabel, _foundStatus });
+            _foundStatus = Make.Wrap("", ThemeFonts.TextSemi, Palette.Text, Ui.Pad(0, 0, 0, 8));
+            Label intro = Make.Muted(Strings.UseIntro);
 
-            _found = CreateList();
-            _found.Columns.Add(Strings.UseColPrinter, 230);
-            _found.Columns.Add(Strings.UseColHost, 150);
-            _found.Columns.Add(Strings.UseColStatus, 160);
-            _found.Margin = new Padding(0, 0, 0, 4);
-            _found.DoubleClick += (s, e) => AddSelected();
+            _found = Grids.Create();
+            _found.Columns.AddRange(new DataGridViewColumn[]
+            {
+                Grids.Text(Strings.UseColPrinter, 42), Grids.Text(Strings.UseColHost, 28, mono: true), Grids.Text(Strings.UseColStatus, 30)
+            });
+            _found.CellDoubleClick += (s, e) =>
+            {
+                if (e.RowIndex >= 0) AddSelected();
+            };
 
-            var addRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 0, 0, 10) };
-            _add = CreateButton(Strings.UseAdd, (s, e) => AddSelected());
-            _add.Margin = new Padding(0, 0, 18, 0);
-            var hostLabel = new Label { Text = Strings.UseHostLabel, AutoSize = true, Margin = new Padding(0, 6, 6, 0) };
-            _hostBox = new TextBox { Width = 170, Margin = new Padding(0, 2, 8, 0) };
-            _hostBox.KeyDown += (s, e) =>
+            _add = new ThemedButton(Strings.UseAdd, ButtonKind.Primary) { Margin = Ui.Pad(0, 0, 24, 0) };
+            _add.Click += (s, e) => AddSelected();
+            Label hostLabel = Make.Label(Strings.UseHostLabel, ThemeFonts.Secondary, Palette.Muted, Ui.Pad(0, 13, 8, 0));
+            hostLabel.Dock = DockStyle.None;
+            _hostBox = new InputBox(190);
+            _hostBox.Box.KeyDown += (s, e) =>
             {
                 if (e.KeyCode == Keys.Enter)
                 {
@@ -112,77 +100,49 @@ namespace PrintVect.App.Forms
                     LookUp();
                 }
             };
-            _lookup = CreateButton(Strings.UseLookup, (s, e) => LookUp());
-            _lookupStatus = new Label { AutoSize = true, Margin = new Padding(6, 6, 0, 0) };
-            addRow.Controls.AddRange(new Control[] { _add, hostLabel, _hostBox, _lookup, _lookupStatus });
+            _lookup = new ThemedButton(Strings.UseLookup, ButtonKind.Secondary);
+            _lookup.Click += (s, e) => LookUp();
+            _lookupStatus = Make.Wrap("", ThemeFonts.Secondary, Palette.Text, Ui.Pad(0, 10, 0, 0));
 
-            _mineLabel = new Label { Text = Strings.UseMyPrinters, AutoSize = true, Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 4) };
-            _mine = CreateList();
-            _mine.Columns.Add(Strings.UseColLocalPrinter, 260);
-            _mine.Columns.Add(Strings.UseColHost, 120);
-            _mine.Columns.Add(Strings.UseColAddress, 130);
-            _mine.Columns.Add(Strings.UseColWaiting, 90);
-            _mine.Margin = new Padding(0, 0, 0, 4);
-
-            var buttons = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill, WrapContents = true, Margin = new Padding(0, 0, 0, 10) };
-            _remove = CreateButton(Strings.UseRemove, (s, e) => RemoveSelected());
-            _testPage = CreateButton(Strings.UseTestPage, (s, e) => SendTestPage());
-            _retry = CreateButton(Strings.UseRetry, (s, e) => RetrySelected());
-            _mineHint = new Label { AutoSize = true, Margin = new Padding(6, 6, 0, 0), ForeColor = SystemColors.GrayText };
-            buttons.Controls.AddRange(new Control[] { _remove, _testPage, _retry, _mineHint });
-
-            _jobsLabel = new Label { AutoSize = true, Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 4) };
-            _jobs = CreateList();
-            _jobs.Columns.Add(Strings.JobColTime, 70);
-            _jobs.Columns.Add(Strings.JobColDocument, 170);
-            _jobs.Columns.Add(Strings.JobColPrinter, 120);
-            _jobs.Columns.Add(Strings.JobColHost, 100);
-            _jobs.Columns.Add(Strings.JobColState, 70);
-            _jobs.Columns.Add(Strings.JobColMessage, 330);
-
-            layout.Controls.Add(intro, 0, 0);
-            layout.Controls.Add(foundHead, 0, 1);
-            layout.Controls.Add(_found, 0, 2);
-            layout.Controls.Add(addRow, 0, 3);
-            layout.Controls.Add(_mineLabel, 0, 4);
-            layout.Controls.Add(_mine, 0, 5);
-            layout.Controls.Add(buttons, 0, 6);
-            layout.Controls.Add(_jobsLabel, 0, 7);
-            layout.Controls.Add(_jobs, 0, 8);
-            Controls.Add(layout);
-            ResumeLayout(true);
+            column.Controls.Add(Make.Title(Strings.UseFoundLabel), 0, 0);
+            column.Controls.Add(intro, 0, 1);
+            column.Controls.Add(_foundStatus, 0, 2);
+            column.Controls.Add(_found, 0, 3);
+            column.Controls.Add(Make.Row(_add, hostLabel, _hostBox, _lookup), 0, 4);
+            column.Controls.Add(_lookupStatus, 0, 5);
+            card.Controls.Add(column);
+            return card;
         }
 
-        private static ListView CreateList()
+        private Card CreateMineCard()
         {
-            return new ListView
+            var card = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0) };
+            TableLayoutPanel column = Make.Column(0, 100, 0, 0);
+
+            _mine = Grids.Create();
+            _mine.Columns.AddRange(new DataGridViewColumn[]
             {
-                Dock = DockStyle.Fill,
-                View = View.Details,
-                FullRowSelect = true,
-                HideSelection = false,
-                MultiSelect = false,
-                HeaderStyle = ColumnHeaderStyle.Nonclickable,
-                Margin = new Padding(0)
-            };
+                Grids.Text(Strings.UseColLocalPrinter, 44), Grids.Text(Strings.UseColHost, 20, mono: true),
+                Grids.Text(Strings.UseColAddress, 22, mono: true), Grids.Text(Strings.UseColWaiting, 14)
+            });
+
+            _remove = new ThemedButton(Strings.UseRemove, ButtonKind.Secondary);
+            _remove.Click += (s, e) => RemoveSelected();
+            _testPage = new ThemedButton(Strings.UseTestPage, ButtonKind.Secondary);
+            _testPage.Click += (s, e) => SendTestPage();
+            _retry = new ThemedButton(Strings.UseRetry, ButtonKind.Secondary);
+            _retry.Click += (s, e) => RetrySelected();
+            _mineHint = Make.Wrap("", ThemeFonts.Secondary, Palette.Muted, Ui.Pad(0, 10, 0, 0));
+
+            column.Controls.Add(Make.Title(Strings.UseMyPrinters), 0, 0);
+            column.Controls.Add(_mine, 0, 1);
+            column.Controls.Add(Make.Row(_testPage, _retry, _remove), 0, 2);
+            column.Controls.Add(_mineHint, 0, 3);
+            card.Controls.Add(column);
+            return card;
         }
 
-        private static Button CreateButton(string text, EventHandler onClick)
-        {
-            var button = new Button
-            {
-                Text = text,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Padding = new Padding(8, 3, 8, 3),
-                Margin = new Padding(0, 0, 8, 0),
-                UseVisualStyleBackColor = true
-            };
-            button.Click += onClick;
-            return button;
-        }
-
-        /// <summary>Discovery only runs while this tab can be seen (brief, section 6).</summary>
+        /// <summary>Discovery only runs while this page can be seen (brief, section 6).</summary>
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
@@ -200,8 +160,8 @@ namespace PrintVect.App.Forms
         {
             string selectedKey = SelectedFoundKey();
             IList<DiscoveredHost> hosts = _controller.FoundHosts;
-            _found.BeginUpdate();
-            _found.Items.Clear();
+            _found.Rows.Clear();
+            DataGridViewRow reselect = null;
             int printers = 0;
             foreach (DiscoveredHost host in hosts)
             {
@@ -215,19 +175,20 @@ namespace PrintVect.App.Forms
                     bool onThisPc = _controller.FindPrinter(printer.Id) != null;
                     string shown = string.IsNullOrWhiteSpace(printer.Friendly) ? printer.Name : printer.Friendly;
                     string status = ShareTab.StatusText(printer.Status) + (onThisPc ? ", " + Strings.UseOnThisPc : "");
-                    var item = new ListViewItem(new[] { shown, host.Host, status }) { Tag = new FoundEntry { Host = host, Printer = printer } };
-                    if (onThisPc) item.ForeColor = SystemColors.GrayText;
-                    if (FoundKey(host, printer) == selectedKey) item.Selected = true;
-                    _found.Items.Add(item);
+                    int index = _found.Rows.Add(shown, host.Host, status);
+                    DataGridViewRow row = _found.Rows[index];
+                    row.Tag = new FoundEntry { Host = host, Printer = printer };
+                    if (onThisPc)
+                    {
+                        row.DefaultCellStyle.ForeColor = Palette.Muted;
+                        row.DefaultCellStyle.SelectionForeColor = Palette.Muted;
+                    }
+                    if (FoundKey(host, printer) == selectedKey) reselect = row;
                 }
             }
-            _found.EndUpdate();
+            Grids.SelectRow(_found, reselect);
             int otherPcs = hosts.Count(h => !string.Equals(h.Host, Environment.MachineName, StringComparison.OrdinalIgnoreCase));
             _foundStatus.Text = otherPcs == 0 ? Strings.UseFoundNone : string.Format(Strings.UseFoundCount, printers, otherPcs);
-            if (_found.SelectedItems.Count == 0 && _found.Items.Count > 0)
-            {
-                _found.Items[0].Selected = true;
-            }
         }
 
         private static string FoundKey(DiscoveredHost host, PrinterInfo printer)
@@ -235,16 +196,20 @@ namespace PrintVect.App.Forms
             return host.Host + "|" + printer.Id;
         }
 
+        private FoundEntry SelectedFound()
+        {
+            return _found.SelectedRows.Count == 0 ? null : _found.SelectedRows[0].Tag as FoundEntry;
+        }
+
         private string SelectedFoundKey()
         {
-            if (_found.SelectedItems.Count == 0) return null;
-            var entry = (FoundEntry)_found.SelectedItems[0].Tag;
-            return FoundKey(entry.Host, entry.Printer);
+            FoundEntry entry = SelectedFound();
+            return entry == null ? null : FoundKey(entry.Host, entry.Printer);
         }
 
         private async void LookUp()
         {
-            string typed = _hostBox.Text.Trim();
+            string typed = _hostBox.Box.Text.Trim();
             if (typed.Length == 0 || _busy)
             {
                 return;
@@ -280,13 +245,12 @@ namespace PrintVect.App.Forms
 
         private void SelectHost(string hostName)
         {
-            foreach (ListViewItem item in _found.Items)
+            foreach (DataGridViewRow row in _found.Rows)
             {
-                var entry = (FoundEntry)item.Tag;
+                var entry = (FoundEntry)row.Tag;
                 if (string.Equals(entry.Host.Host, hostName, StringComparison.OrdinalIgnoreCase))
                 {
-                    item.Selected = true;
-                    item.EnsureVisible();
+                    Grids.SelectRow(_found, row);   // also scrolls it into view
                     return;
                 }
             }
@@ -295,12 +259,12 @@ namespace PrintVect.App.Forms
         private async void AddSelected()
         {
             if (_busy) return;
-            if (_found.SelectedItems.Count == 0)
+            FoundEntry entry = SelectedFound();
+            if (entry == null)
             {
                 _lookupStatus.Text = Strings.UseSelectFound;
                 return;
             }
-            var entry = (FoundEntry)_found.SelectedItems[0].Tag;
             PrinterInfo printer = entry.Printer;
             string friendly = string.IsNullOrWhiteSpace(printer.Friendly) ? printer.Name : printer.Friendly;
             SetBusy(true);
@@ -337,12 +301,12 @@ namespace PrintVect.App.Forms
 
         private RemotePrinter SelectedMine()
         {
-            if (_mine.SelectedItems.Count == 0)
+            if (_mine.SelectedRows.Count == 0)
             {
                 _mineHint.Text = Strings.UseSelectMine;
                 return null;
             }
-            return (RemotePrinter)_mine.SelectedItems[0].Tag;
+            return (RemotePrinter)_mine.SelectedRows[0].Tag;
         }
 
         private async void RemoveSelected()
@@ -422,31 +386,31 @@ namespace PrintVect.App.Forms
 
         private void FillMine()
         {
-            string selectedId = _mine.SelectedItems.Count == 0 ? null : ((RemotePrinter)_mine.SelectedItems[0].Tag).PrinterId;
-            _mine.BeginUpdate();
-            _mine.Items.Clear();
+            string selectedId = _mine.SelectedRows.Count == 0 ? null : ((RemotePrinter)_mine.SelectedRows[0].Tag).PrinterId;
+            _mine.Rows.Clear();
+            DataGridViewRow reselect = null;
             IList<RemotePrinter> printers = _controller.Printers;
             foreach (RemotePrinter printer in printers)
             {
                 int waiting = _controller.PendingCount(printer);
-                var item = new ListViewItem(new[]
-                {
+                int index = _mine.Rows.Add(
                     printer.LocalPrinterName ?? "",
                     printer.HostName ?? "",
                     (printer.HostIp ?? "") + ":" + printer.Port,
-                    waiting == 0 ? "" : waiting.ToString(CultureInfo.CurrentCulture)
-                }) { Tag = printer };
-                if (printer.PrinterId == selectedId) item.Selected = true;
-                _mine.Items.Add(item);
+                    waiting == 0 ? "" : waiting.ToString(CultureInfo.CurrentCulture));
+                DataGridViewRow row = _mine.Rows[index];
+                row.Tag = printer;
+                if (waiting > 0)
+                {
+                    row.Cells[3].Style.ForeColor = Palette.Warning;
+                    row.Cells[3].Style.SelectionForeColor = Palette.Warning;
+                }
+                if (printer.PrinterId == selectedId) reselect = row;
             }
-            _mine.EndUpdate();
+            Grids.SelectRow(_mine, reselect);
             if (printers.Count == 0)
             {
                 _mineHint.Text = Strings.UseNoRemotePrinters;
-            }
-            else if (_mine.SelectedItems.Count == 0)
-            {
-                _mine.Items[0].Selected = true;
             }
         }
 
@@ -462,52 +426,10 @@ namespace PrintVect.App.Forms
 
         private void OnJobChanged(object sender, ClientJobRecord record)
         {
-            if (IsDisposed) return;
-            UpsertJob(record);
-            if (ClientJobStates.IsFinal(record.State))
+            if (!IsDisposed && ClientJobStates.IsFinal(record.State))
             {
-                FillMine();
+                FillMine();   // the waiting count of that printer may have changed
             }
-        }
-
-        private void UpsertJob(ClientJobRecord record)
-        {
-            if (record == null) return;
-            string[] cells =
-            {
-                record.StartedAt.ToString("HH:mm:ss", CultureInfo.CurrentCulture),
-                record.Doc ?? "",
-                record.PrinterFriendly ?? "",
-                record.HostName ?? "",
-                ShareTab.StateText(record.State),
-                record.Message ?? ""
-            };
-
-            ListViewItem item = _jobs.Items.ContainsKey(record.JobId) ? _jobs.Items[record.JobId] : null;
-            if (item == null)
-            {
-                item = new ListViewItem(cells) { Name = record.JobId };
-                _jobs.Items.Insert(0, item);
-                while (_jobs.Items.Count > MaxJobRows)
-                {
-                    _jobs.Items.RemoveAt(_jobs.Items.Count - 1);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < cells.Length; i++)
-                {
-                    item.SubItems[i].Text = cells[i];
-                }
-            }
-            item.ForeColor = record.State == ClientJobStates.Error ? Color.Firebrick
-                : record.State == ClientJobStates.Pending ? Color.DarkOrange : SystemColors.WindowText;
-            UpdateJobCount();
-        }
-
-        private void UpdateJobCount()
-        {
-            _jobsLabel.Text = Strings.UseRecentJobs + "     " + string.Format(Strings.UseJobsToday, _controller.Jobs.CountToday(ClientJobStates.Printed));
         }
 
         private void SetBusy(bool busy)
@@ -517,14 +439,6 @@ namespace PrintVect.App.Forms
             _add.Enabled = !busy;
             _remove.Enabled = !busy;
             UseWaitCursor = busy;
-        }
-
-        protected override void OnFontChanged(EventArgs e)
-        {
-            base.OnFontChanged(e);
-            if (_foundLabel != null) _foundLabel.Font = new Font(Font, FontStyle.Bold);
-            if (_mineLabel != null) _mineLabel.Font = new Font(Font, FontStyle.Bold);
-            if (_jobsLabel != null) _jobsLabel.Font = new Font(Font, FontStyle.Bold);
         }
 
         protected override void Dispose(bool disposing)
