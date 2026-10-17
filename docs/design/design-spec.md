@@ -42,3 +42,11 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
 - Printer card = the shared printers with per-printer ticks and the master "Sharing with the office" switch.
 - "Pause queue" = stop handing new jobs to that printer (M6).
 - Window frame: Windows' own dark title bar (Windows 10 1809+ / 11) rather than a hand-drawn one.
+
+## Built in M6b-1 (2026-10-17)
+- Page names stay the plain ones the office already knows, in the mock-up's order: Share my printers (Office),
+  Jobs (Queue), Use shared printers (Printers), Settings (with Updates and Diagnostics as cards).
+- Top bar: icon, PrintVect, the pages with the green underline, and the sharing pill (Sharing ON / OFF) on the right.
+- The "Computers" card, Pause queue and the PIN screen wait for the presence signal and hardening of M6b-2.
+- Colours not in the mock-ups: failed jobs in a muted red `#F27A72`; hover `#20262E`; selected row `#232B36`.
+- Small capitals labels are drawn without the 0.1em letter spacing (Windows' text drawing has no letter spacing).

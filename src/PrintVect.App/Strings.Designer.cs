@@ -649,7 +649,34 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Friendly name.
+        ///   Looks up a localized string similar to Copied: {0}.
+        /// </summary>
+        internal static string ShareAddressCopied {
+            get {
+                return ResourceManager.GetString("ShareAddressCopied", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs find this PC as {0} ({1})..
+        /// </summary>
+        internal static string ShareAddressLine {
+            get {
+                return ResourceManager.GetString("ShareAddressLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs find this PC as {0}. It has no network address right now: check the network cable..
+        /// </summary>
+        internal static string ShareAddressNone {
+            get {
+                return ResourceManager.GetString("ShareAddressNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Name for the office.
         /// </summary>
         internal static string ShareColFriendly {
             get {
@@ -685,7 +712,34 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Tick each printer you want other PCs to use. The friendly name is what people on the other PCs will  [rest of string was truncated].
+        ///   Looks up a localized string similar to Copy.
+        /// </summary>
+        internal static string ShareCopyAddress {
+            get {
+                return ResourceManager.GetString("ShareCopyAddress", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 1. On the other PC, start PrintVect and open Use shared printers. 2. This PC's shared printers appea [rest of string was truncated].
+        /// </summary>
+        internal static string ShareHowSteps {
+            get {
+                return ResourceManager.GetString("ShareHowSteps", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to How to connect a PC.
+        /// </summary>
+        internal static string ShareHowTitle {
+            get {
+                return ResourceManager.GetString("ShareHowTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tick each printer you want other PCs to use. The name for the office is what people on the other PCs [rest of string was truncated].
         /// </summary>
         internal static string ShareIntro {
             get {
@@ -721,6 +775,24 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Printed today.
+        /// </summary>
+        internal static string SharePrintedTodayCaption {
+            get {
+                return ResourceManager.GetString("SharePrintedTodayCaption", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to jobs from other PCs.
+        /// </summary>
+        internal static string SharePrintedTodayNote {
+            get {
+                return ResourceManager.GetString("SharePrintedTodayNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Could not read the printer list: {0}.
         /// </summary>
         internal static string SharePrintersError {
@@ -730,7 +802,16 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Recent jobs received from other PCs.
+        ///   Looks up a localized string similar to Printers on this PC.
+        /// </summary>
+        internal static string SharePrintersTitle {
+            get {
+                return ResourceManager.GetString("SharePrintersTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Received from other PCs.
         /// </summary>
         internal static string ShareRecentJobs {
             get {
@@ -744,6 +825,15 @@ namespace PrintVect.App {
         internal static string ShareRefresh {
             get {
                 return ResourceManager.GetString("ShareRefresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing with the office.
+        /// </summary>
+        internal static string ShareSharingCaption {
+            get {
+                return ResourceManager.GetString("ShareSharingCaption", resourceCulture);
             }
         }
 
@@ -762,6 +852,15 @@ namespace PrintVect.App {
         internal static string ShareStatusOn {
             get {
                 return ResourceManager.GetString("ShareStatusOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC.
+        /// </summary>
+        internal static string ShareThisPcCaption {
+            get {
+                return ResourceManager.GetString("ShareThisPcCaption", resourceCulture);
             }
         }
 
@@ -811,7 +910,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing is OFF.
+        ///   Looks up a localized string similar to Sharing OFF.
         /// </summary>
         internal static string StatusSharingOff {
             get {
@@ -820,7 +919,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing is ON.
+        ///   Looks up a localized string similar to Sharing ON.
         /// </summary>
         internal static string StatusSharingOn {
             get {
@@ -843,6 +942,15 @@ namespace PrintVect.App {
         internal static string TabDiagnostics {
             get {
                 return ResourceManager.GetString("TabDiagnostics", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jobs.
+        /// </summary>
+        internal static string TabJobs {
+            get {
+                return ResourceManager.GetString("TabJobs", resourceCulture);
             }
         }
 
@@ -1153,7 +1261,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printers found in the office:.
+        ///   Looks up a localized string similar to Printers in the office.
         /// </summary>
         internal static string UseFoundLabel {
             get {
@@ -1189,7 +1297,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printers that other PCs in the office share appear here by themselves. Choose one, press Add to this [rest of string was truncated].
+        ///   Looks up a localized string similar to Printers that other PCs in the office share appear here by themselves. Choose one and press Add to t [rest of string was truncated].
         /// </summary>
         internal static string UseIntro {
             get {
@@ -1234,7 +1342,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printers from other PCs on this PC:.
+        ///   Looks up a localized string similar to Printers from other PCs on this PC.
         /// </summary>
         internal static string UseMyPrinters {
             get {
@@ -1279,7 +1387,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Jobs sent from this PC:.
+        ///   Looks up a localized string similar to Sent from this PC.
         /// </summary>
         internal static string UseRecentJobs {
             get {
@@ -1378,7 +1486,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to The test page was handed to "{0}"; watch the job list below..
+        ///   Looks up a localized string similar to The test page was handed to "{0}"; the Jobs page shows how it goes..
         /// </summary>
         internal static string UseTestPageSent {
             get {

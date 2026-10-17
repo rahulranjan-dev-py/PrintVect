@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using PrintVect.App.Client;
 using PrintVect.App.Forms;
 using PrintVect.App.Host;
+using PrintVect.App.Theme;
 using PrintVect.App.Update;
 using PrintVect.Core;
 using PrintVect.Core.Client;
@@ -74,7 +75,7 @@ namespace PrintVect.App.Tray
             _form = new MainForm(paths, store, config, _host, _client, _updates);
             _form.FormClosing += OnFormClosing;
 
-            var menu = new ContextMenuStrip();
+            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer(), Font = ThemeFonts.Text };
             var open = new ToolStripMenuItem(Strings.TrayOpen, null, (s, e) => ShowWindow());
             open.Font = new Font(menu.Font, FontStyle.Bold);
             menu.Items.Add(open);

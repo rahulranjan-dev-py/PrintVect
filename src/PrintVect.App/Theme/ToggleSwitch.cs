@@ -1,0 +1,98 @@
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Windows.Forms;
+
+namespace PrintVect.App.Theme
+{
+    /// <summary>
+    /// The design's on/off switch: green track with a white knob when on, grey when off, text to the right.
+    /// A CheckBox underneath (Checked, CheckedChanged, Space to toggle), so the code using it is unchanged.
+    /// </summary>
+    internal sealed class ToggleSwitch : CheckBox
+    {
+        private const int TrackWidth = 40;
+        private const int TrackHeight = 22;
+        private const int Gap = 12;
+
+        public ToggleSwitch(string text)
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw
+                     | ControlStyles.UserPaint, true);
+            Text = text;
+            Font = ThemeFonts.TextSemi;
+            ForeColor = Palette.Text;
+            AutoSize = true;
+            Cursor = Cursors.Hand;
+            Margin = Ui.Pad(0, 4, 0, 4);
+        }
+
+        /// <summary>Lets the text wrap inside this width (design pixels); 0 keeps it on one line.</summary>
+        public int WrapWidth { get; set; }
+
+        public override Size GetPreferredSize(Size proposedSize)
+        {
+            Size text = MeasureText();
+            return new Size(Ui.S(TrackWidth + Gap) + text.Width + Ui.S(4), Math.Max(Ui.S(TrackHeight + 6), text.Height + Ui.S(4)));
+        }
+
+        private Size MeasureText()
+        {
+            if (string.IsNullOrEmpty(Text))
+            {
+                return Size.Empty;
+            }
+            if (WrapWidth > 0)
+            {
+                return TextRenderer.MeasureText(Text, Font, new Size(Ui.S(WrapWidth), int.MaxValue), TextFormatFlags.WordBreak);
+            }
+            return TextRenderer.MeasureText(Text, Font);
+        }
+
+        protected override void OnCheckedChanged(EventArgs e)
+        {
+            Invalidate();
+            base.OnCheckedChanged(e);
+        }
+
+        protected override void OnPaint(PaintEventArgs pevent)
+        {
+            Graphics g = pevent.Graphics;
+            g.Clear(Ui.BackOf(Parent));
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int w = Ui.S(TrackWidth), h = Ui.S(TrackHeight);
+            int top = Math.Max(0, (Height - h) / 2);
+            if (WrapWidth > 0 && Height > h + Ui.S(10))
+            {
+                top = Ui.S(2);   // wrapped text: the switch sits beside the first line
+            }
+            var track = new RectangleF(0.5f, top + 0.5f, w - 1f, h - 1f);
+            Color fill = !Enabled ? Palette.Border : Checked ? Palette.Accent : Palette.Outline;
+            using (GraphicsPath path = Ui.RoundRect(track, h / 2f))
+            using (var brush = new SolidBrush(fill))
+            {
+                g.FillPath(brush, path);
+            }
+            int pad = Ui.S(3);
+            int knob = h - 2 * pad;
+            float x = Checked ? w - pad - knob : pad;
+            using (var brush = new SolidBrush(Enabled ? Palette.Knob : Palette.Muted))
+            {
+                g.FillEllipse(brush, x, top + pad, knob, knob);
+            }
+            if (Focused && ShowFocusCues)
+            {
+                using (GraphicsPath ring = Ui.RoundRect(new RectangleF(-0f, top - 0f, w, h), h / 2f))
+                using (var pen = new Pen(Palette.Text, 1f) { DashStyle = DashStyle.Dot })
+                {
+                    g.DrawPath(pen, ring);
+                }
+            }
+
+            var textRect = new Rectangle(w + Ui.S(Gap), 0, Width - w - Ui.S(Gap), Height);
+            TextFormatFlags flags = TextFormatFlags.NoPrefix | (WrapWidth > 0 ? TextFormatFlags.WordBreak : TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
+            TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? ForeColor : Palette.Muted, flags);
+        }
+    }
+}

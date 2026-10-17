@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using PrintVect.App.Theme;
 using PrintVect.App.Tray;
 using PrintVect.Core;
 using PrintVect.Core.Config;
@@ -55,6 +56,7 @@ namespace PrintVect.App
                     Log.Info(string.Format("{0} {1} starting. Command line: {2}", AppInfo.ProductName, AppInfo.Version,
                         args.Length == 0 ? "(none)" : string.Join(" ", args)));
                     Log.Info(WindowsInfo.OneLine());
+                    ThemeFonts.Load(AppDomain.CurrentDomain.BaseDirectory);
 
                     var store = new ConfigStore(paths.ConfigFile);
                     AppConfig config = store.LoadOrCreate();
