@@ -15,6 +15,8 @@ namespace PrintVect.Core.Elevation
         public const string RemovePrinter = "remove-printer";
         /// <summary>Removes every "PrintVect - ..." printer and port (used by the uninstaller, M5).</summary>
         public const string RemoveAll = "remove-all";
+        /// <summary>Turns "Start with Windows" on or off (/on yes|no): the HKLM Run entry of the installer (M6b-2).</summary>
+        public const string Autostart = "autostart";
 
         public const string OptionResult = "result";
         public const string OptionName = "name";
@@ -22,6 +24,7 @@ namespace PrintVect.Core.Elevation
         public const string OptionFolder = "folder";
         public const string OptionDriver = "driver";
         public const string OptionId = "id";
+        public const string OptionOn = "on";
     }
 
     /// <summary>

@@ -28,6 +28,9 @@ namespace PrintVect.Core.Printing
         public string State { get; private set; }
         public string Message { get; private set; }
 
+        /// <summary>The job was never handed to Windows (sharing went off while its printer was paused); the sender may send it again.</summary>
+        public bool Lost { get; private set; }
+
         public static PrintOutcome Printed(string message)
         {
             return new PrintOutcome { State = JobStates.Printed, Message = message };
@@ -36,6 +39,11 @@ namespace PrintVect.Core.Printing
         public static PrintOutcome Error(string message)
         {
             return new PrintOutcome { State = JobStates.Error, Message = message };
+        }
+
+        public static PrintOutcome NeverPrinted(string message)
+        {
+            return new PrintOutcome { State = JobStates.Error, Message = message, Lost = true };
         }
 
         public static PrintOutcome StillPrinting(string message)

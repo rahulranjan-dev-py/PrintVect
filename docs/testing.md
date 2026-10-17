@@ -374,6 +374,57 @@ Known limits of M6b-1, by design: the Windows permission window and PrintVect's 
 stay light, because Windows draws them; on Windows 10 before version 1809 the title bar stays light; the small
 capitals labels have no extra letter spacing.
 
-## M6b-2 and later
+Release v0.3.0 on 2026-10-17 (published by Run workflow from main after the release workflow fix): the owner
+reported **all steps matched**; no screenshots or Diagnostics text came back, so the Windows-only parts (dark title
+bar, dark scroll bars, scaling) are recorded as reported, not seen.
 
-Steps are added here when each milestone is delivered.
+## M6b-2: hardening
+
+What is new, all in version 0.4.0:
+
+- **PCs that use this PC** (Share my printers, right): every PC that added one of this PC's printers says hello every
+  5 minutes, with its Windows and PrintVect version; green "Connected", grey "Last seen HH:MM" after 12 minutes.
+- **Copies question**: printing from a program to a PrintVect printer first asks how many copies (− / +, the arrow
+  keys or typing a number; Enter prints, Esc cancels). Nobody answers: after 60 seconds it prints the number shown.
+  Send test page and Retry never ask. Settings can turn it off ("Don't ask again" in the window does the same).
+- **Pause printer / Resume printer** (Share my printers, for the selected shared printer): jobs from other PCs are
+  accepted and wait; Resume prints them in order. The pause survives a restart; the other PCs see "Paused".
+- **Office PIN** (Settings, Set PIN…): the same PIN on every PC. A job refused for the PIN, a job the host lost
+  (PrintVect closed there) and a job whose host stopped answering after receiving it all go to **Retry waiting
+  jobs** on the sender, with a message that says what happened.
+- **Settings** can now be changed: office PIN, Start with Windows (Windows asks for permission once), the copies
+  question, how long sent files are kept. Ports stay in the settings file (every PC must use the same ones).
+- Error messages name PCs, not IP addresses ("COUNTER1 is not reachable on the network...").
+
+Every PC needs 0.4.0: a host still on 0.3.0 logs an "unknown request type" line for each hello, and shows no PCs.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.4.0 (or Actions, release, Run workflow on main). Then on each PC: Settings, Check now, Update now. | Status bar: "Version 0.4.0" on every PC. |
+| 1 | Host, Share my printers, card **PCs that use this PC**, about a minute after the others updated. | The Windows 10 PC and NIRSACHATTISO are listed by name, with "Windows 10 ... · PrintVect 0.4.0" under the name and a green **Connected** pill. |
+| 2 | Exit PrintVect on the Windows 10 PC (tray icon, Exit). Wait 15 minutes, look at the host's card again. Start PrintVect there again. | Its pill turns grey "Last seen HH:MM". After the restart it is green again within a minute. |
+| 3 | Windows 10 PC: print one page from Notepad to "PrintVect - Mail Branch @..." | A window "how many copies?" appears at once: the document name, the printer and host, a big 1, − and +. Press + once, then **Print**. Two pages come out on the host. |
+| 4 | Print again and press **Cancel**. | Nothing prints. Jobs page, Sent from this PC: the job is grey "Cancelled". |
+| 5 | Print again and do not touch the window. | The Print button counts down from 60; at 0 the window closes and one page prints. |
+| 6 | Use shared printers, Mail Branch, **Send test page**. | No copies window; the test page prints. |
+| 7 | Host: Share my printers, click the row of the shared printer (Mail Branch), **Pause printer**. On the Windows 10 PC open Use shared printers. | Host: its status turns yellow "Paused", the button now says **Resume printer** (green). Windows 10 PC: the printer's status says "Paused". |
+| 8 | Windows 10 PC: print one page (1 copy). | Nothing prints. Both Jobs pages: "Waiting on <host>: Mail Branch is paused there. It prints when someone on <host> presses Resume." |
+| 9 | Host: **Resume printer**. | The page prints within a few seconds; both Jobs pages turn green "Printed". |
+| 10 | Host: Settings, **Set PIN…**, type 1234 twice, **Save PIN**. Windows 10 PC: print one page. | Host: "Office PIN saved...". The page does not print; the Windows 10 PC's job is yellow "Waiting": "<host> asks for the office PIN, and this job came with a different one or none... Press Retry waiting jobs to send it again." |
+| 11 | Windows 10 PC: Settings, Set PIN…, 1234 twice, Save. Use shared printers, Mail Branch, **Retry waiting jobs**. | The page prints. Afterwards remove the PIN on both PCs (Settings, Remove PIN, Yes), or set it on every PC. |
+| 12 | The brief's M6 test, host off mid-job: host Pause printer; Windows 10 PC prints one page; then on the host Exit PrintVect from the tray (or pull its network cable). | Within about 30 seconds the Windows 10 PC's job turns yellow "Waiting": "<host> stopped answering after it received this job (switched off or disconnected?), so it may not have printed. If the page did not come out, press Retry waiting jobs when <host> is back." |
+| 13 | Start PrintVect on the host again (or plug the cable back in), **Resume printer**. Windows 10 PC: **Retry waiting jobs**. | The page prints exactly once. After Exit, the host had lost the job and prints the resent one. With the cable, the host prints the job it kept on Resume and answers the Retry with "Already printed on <host> ...; not printed again." |
+| 14 | Any PC: Settings, turn **Start PrintVect with Windows** off; Yes to Windows. Sign out and in. Then turn it on again (Yes). | The status bar says "PrintVect no longer starts with Windows on this PC..."; after signing in there is no PrintVect in the tray (start it from the Start menu). Turned on again, it starts with Windows as before. |
+| 15 | Settings, Keep sent files for: press + twice. Exit PrintVect and start it again. | It says "3 hour(s)" before and after the restart. Press − twice to go back to 1. |
+| 16 | Settings, turn off **Ask how many copies**; print a page. Turn it on again. | No copies window while it is off. |
+| 17 | Host: Settings, Diagnostics, Refresh. | Under the host section: "PCs that use this PC: ..." with each PC's address, Windows and PrintVect version, and "PAUSED" after a shared printer that is paused. |
+
+What to paste back after M6b-2: whether each step matched; for any step that did not, the Diagnostics text of
+both PCs (it ends with the log lines that explain it).
+
+Known limits of M6b-2, by design: an update waits while jobs are queued for a paused printer (Resume first); the
+copies window answers by itself after a minute; the ports can only be changed in the settings file.
+
+## Later
+
+Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

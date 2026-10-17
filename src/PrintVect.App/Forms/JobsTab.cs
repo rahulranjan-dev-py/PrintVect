@@ -124,7 +124,8 @@ namespace PrintVect.App.Forms
         private void UpsertSent(ClientJobRecord record)
         {
             if (record == null) return;
-            Upsert(_sent, record.JobId, Grids.StateColour(record.State, ClientJobStates.Printed, ClientJobStates.Pending, ClientJobStates.Error),
+            Upsert(_sent, record.JobId, record.State == ClientJobStates.Cancelled ? Palette.Muted
+                    : Grids.StateColour(record.State, ClientJobStates.Printed, ClientJobStates.Pending, ClientJobStates.Error),
                 record.StartedAt.ToString("HH:mm:ss", CultureInfo.CurrentCulture),
                 record.Doc ?? "",
                 record.PrinterFriendly ?? "",

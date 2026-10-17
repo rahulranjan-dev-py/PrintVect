@@ -48,7 +48,17 @@ namespace PrintVect.App.Host
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
+            _service.Presence.Changed += (s, e) => Post(() => Raise(ClientsChanged));
         }
+
+        /// <summary>The PCs that use this PC's printers (hello or job since PrintVect started), by name.</summary>
+        public IList<ClientPresence> Clients
+        {
+            get { return _service.Presence.All(); }
+        }
+
+        /// <summary>Raised on the UI thread when a PC said hello or sent a job.</summary>
+        public event EventHandler ClientsChanged;
 
         public JobTracker Jobs
         {
@@ -213,6 +223,29 @@ namespace PrintVect.App.Host
             return TrySave();
         }
 
+        /// <summary>
+        /// Pauses or resumes a shared printer: while paused, jobs from other PCs are accepted and wait; Resume prints
+        /// them in arrival order. Kept in config.json, so a pause survives a restart. False when the file could not be written.
+        /// </summary>
+        public bool SetPaused(string localName, bool paused)
+        {
+            SharedPrinter existing = FindShared(localName);
+            if (existing == null || existing.Paused == paused)
+            {
+                return true;
+            }
+            existing.Paused = paused;
+            Log.Info("Printer \"" + existing.FriendlyName + "\" " + (paused ? "paused by the user on this PC." : "resumed by the user on this PC."));
+            _service.UpdateSharedPrinters(_config.SharedPrinters);
+            return TrySave();
+        }
+
+        /// <summary>The office PIN changed in Settings: jobs from now on must carry it (or none, when it was removed).</summary>
+        public void ApplyPin(string pin)
+        {
+            _service.Pin = pin ?? "";
+        }
+
         /// <summary>Jobs received but not yet printed or failed (an update waits for them).</summary>
         public int ActiveJobCount
         {
@@ -237,7 +270,13 @@ namespace PrintVect.App.Host
             lines.Add("Job history file: " + _history.Path);
             lines.Add("Shared printers: " + (_config.SharedPrinters.Count == 0
                 ? "(none)"
-                : string.Join("; ", _config.SharedPrinters.Select(p => "\"" + p.FriendlyName + "\" = " + p.LocalName + " [id " + p.Id + "]"))));
+                : string.Join("; ", _config.SharedPrinters.Select(p => "\"" + p.FriendlyName + "\" = " + p.LocalName + " [id " + p.Id + "]"
+                                                                        + (p.Paused ? " PAUSED" : "")))));
+            IList<ClientPresence> clients = Clients;
+            lines.Add("PCs that use this PC: " + (clients.Count == 0 ? "(none heard from since PrintVect started)"
+                : string.Join("; ", clients.Select(c => c.Name + " " + c.Address + ", " + (string.IsNullOrEmpty(c.Windows) ? "Windows not reported" : c.Windows)
+                                                        + (string.IsNullOrEmpty(c.AppVersion) ? "" : ", PrintVect " + c.AppVersion)
+                                                        + ", last seen " + c.LastSeen.ToString("HH:mm:ss", CultureInfo.InvariantCulture)))));
             lines.Add("Jobs today: received " + Jobs.CountReceivedToday() + ", printed " + Jobs.CountToday(JobStates.Printed)
                       + ", failed " + Jobs.CountToday(JobStates.Error) + "; waiting for the printer now: " + _service.PendingPrintCount);
             lines.Add("Received files folder: " + _service.IncomingDirectory);

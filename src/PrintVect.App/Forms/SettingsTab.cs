@@ -31,7 +31,6 @@ namespace PrintVect.App.Forms
         private readonly ClientController _client;
         private readonly UpdateController _updates;
 
-        private TableLayoutPanel _settingsLines;
         private ToggleSwitch _updateAutoCheck;
         private Label _updateStatus;
         private ThinProgress _updateProgress;
@@ -57,9 +56,7 @@ namespace PrintVect.App.Forms
             _updates = updates;
             BackColor = Palette.Background;
             BuildLayout();
-            FillSettings();
             RefreshUpdateUi();
-            _host.SharingChanged += OnSharingChanged;
             _updates.Changed += OnUpdatesChanged;
         }
 
@@ -76,7 +73,7 @@ namespace PrintVect.App.Forms
 
             TableLayoutPanel left = Make.Column(0, 0);
             left.Margin = Ui.Pad(0, 0, 16, 0);
-            left.Controls.Add(CreateSettingsCard(), 0, 0);
+            left.Controls.Add(new SettingsCard(_paths, _store, _config, _host, _client, text => Message?.Invoke(this, text)), 0, 0);
             left.Controls.Add(CreateUpdatesCard(), 0, 1);
 
             var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Margin = Ui.Pad(0), BackColor = Palette.Background };
@@ -90,17 +87,6 @@ namespace PrintVect.App.Forms
             layout.Controls.Add(CreateDiagnosticsCard(), 1, 0);
             Controls.Add(layout);
             ResumeLayout(true);
-        }
-
-        private Card CreateSettingsCard()
-        {
-            var card = new Card { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Ui.Pad(0, 0, 0, 16) };
-            _settingsLines = Make.Column();
-            _settingsLines.AutoSize = true;
-            _settingsLines.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            _settingsLines.Dock = DockStyle.Top;
-            card.Controls.Add(_settingsLines);
-            return card;
         }
 
         private Card CreateUpdatesCard()
@@ -186,44 +172,9 @@ namespace PrintVect.App.Forms
             }
         }
 
-        private void OnSharingChanged(object sender, EventArgs e)
-        {
-            if (!IsDisposed) FillSettings();
-        }
-
         private void OnUpdatesChanged(object sender, EventArgs e)
         {
             if (!IsDisposed) RefreshUpdateUi();
-        }
-
-        private void FillSettings()
-        {
-            var lines = new List<Control>
-            {
-                Make.Title(Strings.TabSettings),
-                Make.Muted(Strings.SettingsIntro),
-                Line(string.Format(Strings.SettingsSharing, _config.SharingEnabled ? Strings.On : Strings.Off)),
-                Line(string.Format(Strings.SettingsPorts, _config.DiscoveryPort, _config.JobPort)),
-                Line(string.Format(Strings.SettingsPin, string.IsNullOrEmpty(_config.Pin) ? Strings.PinNotSet : Strings.PinSet)),
-                Line(string.Format(Strings.SettingsStartWithWindows, _config.StartWithWindows ? Strings.Yes : Strings.No)),
-                Line(string.Format(Strings.SettingsKeepFiles, _config.KeepSentFilesHours)),
-                Make.Label(string.Format(Strings.SettingsConfigFile, _store.Path), ThemeFonts.Mono, Palette.Muted, Ui.Pad(0, 8, 0, 0))
-            };
-            _settingsLines.SuspendLayout();
-            _settingsLines.Controls.Clear();
-            _settingsLines.RowStyles.Clear();
-            _settingsLines.RowCount = lines.Count;
-            for (int i = 0; i < lines.Count; i++)
-            {
-                _settingsLines.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-                _settingsLines.Controls.Add(lines[i], 0, i);
-            }
-            _settingsLines.ResumeLayout(true);
-        }
-
-        private static Label Line(string text)
-        {
-            return Make.Label(text, ThemeFonts.Text, Palette.Text, Ui.Pad(0, 0, 0, 6));
         }
 
         private void RefreshUpdateUi()
@@ -482,7 +433,6 @@ namespace PrintVect.App.Forms
         {
             if (disposing)
             {
-                _host.SharingChanged -= OnSharingChanged;
                 _updates.Changed -= OnUpdatesChanged;
             }
             base.Dispose(disposing);

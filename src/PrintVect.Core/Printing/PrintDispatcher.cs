@@ -18,6 +18,7 @@ namespace PrintVect.Core.Printing
         private readonly object _gate = new object();
         private readonly Dictionary<string, PrintWorker> _workers = new Dictionary<string, PrintWorker>(StringComparer.OrdinalIgnoreCase);
         private readonly List<PrintWorker> _retired = new List<PrintWorker>();
+        private readonly HashSet<string> _paused = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _stopped;
 
         public PrintDispatcher(IPrintEngine engine)
@@ -41,6 +42,31 @@ namespace PrintVect.Core.Printing
             return worker.EnqueueAsync(request, onProgress);
         }
 
+        /// <summary>Pauses or resumes one printer: while paused its jobs wait; Resume prints them in arrival order.</summary>
+        public void SetPaused(string printerName, bool paused)
+        {
+            string key = printerName ?? "";
+            PrintWorker worker;
+            lock (_gate)
+            {
+                if (paused) _paused.Add(key);
+                else _paused.Remove(key);
+                _workers.TryGetValue(key, out worker);
+            }
+            if (worker != null)
+            {
+                worker.Paused = paused;
+            }
+        }
+
+        public bool IsPaused(string printerName)
+        {
+            lock (_gate)
+            {
+                return _paused.Contains(printerName ?? "");
+            }
+        }
+
         /// <summary>Jobs waiting or printing on this printer.</summary>
         public int PendingCount(string printerName)
         {
@@ -48,6 +74,20 @@ namespace PrintVect.Core.Printing
             {
                 PrintWorker worker;
                 return _workers.TryGetValue(printerName ?? "", out worker) ? worker.PendingCount : 0;
+            }
+        }
+
+        /// <summary>How long <paramref name="jobId"/> has been inside Windows, or null while it still waits its turn (or is done).</summary>
+        public TimeSpan? TimeInWindows(string printerName, string jobId)
+        {
+            lock (_gate)
+            {
+                PrintWorker worker;
+                if (!_workers.TryGetValue(printerName ?? "", out worker) || worker.CurrentJobId != jobId)
+                {
+                    return null;
+                }
+                return worker.CurrentJobAge;
             }
         }
 
@@ -124,7 +164,7 @@ namespace PrintVect.Core.Printing
             PrintWorker worker;
             if (!_workers.TryGetValue(key, out worker))
             {
-                worker = new PrintWorker(_engine, key);
+                worker = new PrintWorker(_engine, key) { Paused = _paused.Contains(key) };
                 worker.Start();
                 _workers[key] = worker;
             }
