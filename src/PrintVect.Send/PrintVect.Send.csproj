@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    pvct-send.exe: command-line test tool (brief, milestone M1). Sends an .xps/.oxps file to a
+    PrintVect host, lists a host's shared printers, or asks about a job. Standard user, no UI.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>PrintVect.Send</RootNamespace>
+    <AssemblyName>pvct-send</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\PrintVect.App\PrintVect.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PrintVect.Core\PrintVect.Core.csproj" />
+  </ItemGroup>
+
+</Project>
