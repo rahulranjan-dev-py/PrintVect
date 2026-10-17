@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using PrintVect.App.Forms;
 using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Discovery;
@@ -32,6 +33,7 @@ namespace PrintVect.App.Client
         private readonly ClientService _service;
         private readonly DiscoveryClient _discovery;
         private readonly JobHistoryStore<ClientJobRecord> _history;
+        private readonly PresenceAnnouncer _presence;
 
         public ClientController(AppPaths paths, ConfigStore store, AppConfig config, SynchronizationContext ui)
         {
@@ -49,13 +51,17 @@ namespace PrintVect.App.Client
             tracker.Restore(_history.Load());
             tracker.Changed += (s, record) => _history.QueueSave();
 
-            _service = new ClientService(paths, new TcpJobSender(), tracker)
+            var sender = new TcpJobSender();
+            _service = new ClientService(paths, sender, tracker)
             {
                 Pin = config.Pin,
-                KeepSentFilesHours = config.KeepSentFilesHours
+                KeepSentFilesHours = config.KeepSentFilesHours,
+                AskCopies = config.AskCopies ? (Func<ClientJobRecord, Task<int?>>)AskCopiesAsync : null
             };
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
+
+            _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters);
 
             _discovery = new DiscoveryClient(config.DiscoveryPort);
             _discovery.HostsChanged += (s, e) => Post(OnHostsChanged);
@@ -104,6 +110,71 @@ namespace PrintVect.App.Client
             else _discovery.Stop();
         }
 
+        /// <summary>Whether a job printed on this PC first asks how many copies (Settings, and "Don't ask again").</summary>
+        public bool AskCopies
+        {
+            get { return _config.AskCopies; }
+        }
+
+        /// <summary>Turns the copies question on or off and saves. False when config.json could not be written.</summary>
+        public bool SetAskCopies(bool ask)
+        {
+            if (_config.AskCopies == ask)
+            {
+                return true;
+            }
+            _config.AskCopies = ask;
+            _service.AskCopies = ask ? (Func<ClientJobRecord, Task<int?>>)AskCopiesAsync : null;
+            Log.Info("Copies question: " + (ask ? "on" : "off") + ".");
+            bool saved = TrySave();
+            Raise(SettingsChanged);
+            return saved;
+        }
+
+        /// <summary>The office PIN changed in Settings: every job from now on carries it.</summary>
+        public void ApplyPin(string pin)
+        {
+            _service.Pin = pin ?? "";
+        }
+
+        public void ApplyKeepSentFilesHours(int hours)
+        {
+            _service.KeepSentFilesHours = hours;
+        }
+
+        /// <summary>Raised on the UI thread when a client setting changed (the Settings page shows it).</summary>
+        public event EventHandler SettingsChanged;
+
+        /// <summary>Shows the copies window on the UI thread; completes with the answer (null = Cancel).</summary>
+        private Task<int?> AskCopiesAsync(ClientJobRecord job)
+        {
+            var answer = new TaskCompletionSource<int?>();
+            Post(() =>
+            {
+                try
+                {
+                    var dialog = new CopiesDialog(job);
+                    dialog.Answered += (copies, dontAskAgain) =>
+                    {
+                        if (dontAskAgain)
+                        {
+                            SetAskCopies(false);
+                        }
+                        Log.Info(job.JobId, copies == null ? "Copies question: cancelled." : "Copies question: " + copies + ".");
+                        answer.TrySetResult(copies);
+                    };
+                    dialog.FormClosed += (s, e) => dialog.Dispose();
+                    dialog.Show();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(job.JobId, "The copies window could not be shown; sending as the document asked.", ex);
+                    answer.TrySetResult(job.Copies);
+                }
+            });
+            return answer.Task;
+        }
+
         public IList<RemotePrinter> Printers
         {
             get { return _config.RemotePrinters.ToList(); }
@@ -133,6 +204,7 @@ namespace PrintVect.App.Client
             {
                 Task.Run(() => _service.SweepOldFiles());
             }
+            _presence.Start(PresenceAnnouncer.DefaultFirstDelay);
         }
 
         /// <summary>Asks a host PC for its printer list (the "list" request over TCP).</summary>
@@ -236,6 +308,7 @@ namespace PrintVect.App.Client
                 result.Ok = false;
                 result.Message = string.Format(Strings.UseWatcherError, localName, ex.Message);
             }
+            _presence.AnnounceNow();   // the host lists this PC straight away
             Raise(PrintersChanged);
             return result;
         }
@@ -390,6 +463,7 @@ namespace PrintVect.App.Client
 
         public void Dispose()
         {
+            _presence.Dispose();
             _discovery.Dispose();
             _service.Dispose();
             _history.Dispose();

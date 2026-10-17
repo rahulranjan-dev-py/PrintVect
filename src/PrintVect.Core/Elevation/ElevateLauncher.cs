@@ -65,7 +65,7 @@ namespace PrintVect.Core.Elevation
             catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
             {
                 Log.Warn(ExeName + " was not started: the permission prompt was cancelled.");
-                return Fail(command, "Windows asked for permission to change the printers and the request was cancelled. Try again and choose Yes.");
+                return Fail(command, "Windows asked for permission and No was chosen, so nothing was changed. Try again and choose Yes.");
             }
             catch (Exception ex)
             {
