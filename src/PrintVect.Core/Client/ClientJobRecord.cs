@@ -24,6 +24,12 @@ namespace PrintVect.Core.Client
         {
             return state == Printed || state == Error || state == Pending || state == Cancelled;
         }
+
+        /// <summary>Done with, so it may leave the list: printed, failed or cancelled (a waiting job is cancelled first).</summary>
+        public static bool IsDone(string state)
+        {
+            return state == Printed || state == Error || state == Cancelled;
+        }
     }
 
     /// <summary>One job sent (or waiting to be sent) from this PC.</summary>
@@ -133,6 +139,40 @@ namespace PrintVect.Core.Client
             {
                 return _records.Take(count).Select(r => r.Clone()).ToList();
             }
+        }
+
+        /// <summary>Raised (on the caller's thread) with the job id after a job was taken off the list.</summary>
+        public event EventHandler<string> Removed;
+
+        /// <summary>Takes a printed, failed or cancelled job off the list. A waiting or moving job stays (false).</summary>
+        public bool Remove(string jobId)
+        {
+            return RemoveWhere(r => r.JobId == jobId) == 1;
+        }
+
+        /// <summary>Takes every printed, failed and cancelled job off the list; waiting and moving jobs stay.</summary>
+        public int RemoveDone()
+        {
+            return RemoveWhere(r => true);
+        }
+
+        private int RemoveWhere(Func<ClientJobRecord, bool> match)
+        {
+            List<string> removed;
+            lock (_gate)
+            {
+                removed = _records.Where(r => ClientJobStates.IsDone(r.State) && match(r)).Select(r => r.JobId).ToList();
+                _records.RemoveAll(r => removed.Contains(r.JobId));
+            }
+            EventHandler<string> handler = Removed;
+            if (handler != null)
+            {
+                foreach (string jobId in removed)
+                {
+                    handler(this, jobId);
+                }
+            }
+            return removed.Count;
         }
 
         public ClientJobRecord Find(string jobId)

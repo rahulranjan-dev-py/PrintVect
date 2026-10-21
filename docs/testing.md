@@ -429,6 +429,23 @@ Release v0.4.0 on 2026-10-17 (Run workflow from main): **released, not tested.**
 without running these steps (the report came within a minute of the release, before any PC had downloaded it).
 Until they are run, nothing here is verified on Windows: run steps 1 to 17 when the PCs are on 0.4.0.
 
+## 0.4.1: cancel, retry and clear jobs
+
+Asked for by the owner on 2026-10-21 (screenshot of the Jobs page with a waiting job among many printed ones).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | Windows 10 PC: Exit PrintVect on the host (tray, Exit), print two pages to the host's printer. Jobs page. | Both jobs turn yellow "Waiting" after about 30 seconds; **Cancel all waiting** is now clickable. |
+| 2 | Right-click the first waiting job. | A dark menu: **Retry**, **Cancel job**, **Remove from list** (greyed), **Copy details**. |
+| 3 | Choose **Cancel job**. | It turns grey "Cancelled"; the status bar says it will not be printed. Use shared printers shows one waiting job less. |
+| 4 | Start PrintVect on the host again. Right-click the other waiting job, **Retry**. | It prints. Only that one job was sent (the cancelled one never prints). |
+| 5 | Print two more pages while the host is closed again, then press **Cancel all waiting** and **Yes**. | Both turn grey "Cancelled"; "2 waiting job(s) cancelled." |
+| 6 | Press **Clear list**, **Yes**. | Every printed, failed and cancelled job leaves the list; jobs still waiting or printing stay. The button greys out. After Exit and a new start the list is still short. |
+| 7 | Right-click any job, **Copy details**, paste into Notepad. | Time, document, printer, PC, state, message and the job id, one per line. |
+| 8 | Host: Pause printer; Windows 10 PC prints a page. On the host's Jobs page right-click that received job, **Cancel job**. Resume printer. | Host: the job turns red "Failed" with the message "Cancelled on <host> by the person at that PC; not printed.", and Resume prints nothing. Windows 10 PC: the same red row and message within a minute. |
+| 9 | Host: right-click a job that is printing right now (or one inside a stuck printer), **Cancel job**. | A message says it is already with the printer and how to open the Windows print queue. |
+| 10 | Look at the Host PC column of Sent from this PC. | Every PC name is in the same typewriter-like font (before 0.4.1 every other row was in the normal font). |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

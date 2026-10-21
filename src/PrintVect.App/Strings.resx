@@ -646,4 +646,53 @@ Any PC in the office can then print here, and PCs that still ask for a PIN will 
   <data name="SharePcsAnother" xml:space="preserve">
     <value>Another PC? On it, open Use shared printers and add one of this PC's printers ({0}).</value>
   </data>
+  <data name="JobsCancelAllWaiting" xml:space="preserve">
+    <value>Cancel all waiting</value>
+  </data>
+  <data name="JobsClearList" xml:space="preserve">
+    <value>Clear list</value>
+  </data>
+  <data name="JobsMenuRetry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="JobsMenuCancel" xml:space="preserve">
+    <value>Cancel job</value>
+  </data>
+  <data name="JobsMenuRemove" xml:space="preserve">
+    <value>Remove from list</value>
+  </data>
+  <data name="JobsMenuCopy" xml:space="preserve">
+    <value>Copy details</value>
+  </data>
+  <data name="JobsCopyId" xml:space="preserve">
+    <value>Job id</value>
+  </data>
+  <data name="JobsCopied" xml:space="preserve">
+    <value>Job details copied. You can now paste them into an email or chat.</value>
+  </data>
+  <data name="JobsConfirmCancelAll" xml:space="preserve">
+    <value>Cancel the {0} waiting job(s)?
+
+They will not be printed, and their files on this PC are deleted.</value>
+  </data>
+  <data name="JobsConfirmClear" xml:space="preserve">
+    <value>Remove the finished jobs from this list?
+
+Jobs that are still waiting or printing stay. Nothing is printed, cancelled or deleted on any printer: only the list gets shorter.</value>
+  </data>
+  <data name="JobsCancelled" xml:space="preserve">
+    <value>Cancelled "{0}"; it will not be printed.</value>
+  </data>
+  <data name="JobsCancelledAll" xml:space="preserve">
+    <value>{0} waiting job(s) cancelled.</value>
+  </data>
+  <data name="JobsCleared" xml:space="preserve">
+    <value>{0} finished job(s) removed from the list.</value>
+  </data>
+  <data name="JobsRetrying" xml:space="preserve">
+    <value>Sending "{0}" again.</value>
+  </data>
+  <data name="JobsHostCancelled" xml:space="preserve">
+    <value>Cancelled "{0}" from {1}; it will not be printed, and {1} shows it as cancelled.</value>
+  </data>
 </root>

@@ -72,6 +72,23 @@ namespace PrintVect.Tests
         };
 
         [TestMethod]
+        public void RemoveFinishedKeepsWaitingJobsAndTheTrimStillWorks()
+        {
+            var tracker = new JobTracker();
+            tracker.Add(new JobRecord { JobId = "done", State = JobStates.Printed, ReceivedAt = DateTime.Now });
+            tracker.Add(new JobRecord { JobId = "waiting", State = JobStates.Queued, ReceivedAt = DateTime.Now });
+            Assert.IsFalse(tracker.Remove("waiting"), "a waiting job stays");
+            Assert.IsTrue(tracker.Remove("done"));
+            Assert.AreEqual(1, tracker.All().Count);
+
+            for (int i = 0; i < JobTracker.MaxRecords + 5; i++)
+            {
+                tracker.Add(new JobRecord { JobId = "j" + i, State = JobStates.Printed, ReceivedAt = DateTime.Now });
+            }
+            Assert.AreEqual(JobTracker.MaxRecords, tracker.All().Count);
+        }
+
+        [TestMethod]
         public void FindsByIdFriendlyOrWindowsName()
         {
             Assert.AreEqual("id-laser", SharedPrinterResolver.Find(Printers, "id-laser").Id);
@@ -526,6 +543,35 @@ namespace PrintVect.Tests
                 _host.Jobs.TryGet(header.JobId, out record);
             }
             Assert.AreEqual(JobStates.Printed, record.State, record.Message);
+        }
+
+        [TestMethod]
+        public async Task AQueuedJobCanBeCancelledOnTheHost()
+        {
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true } });
+            RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Not wanted", "");
+            await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
+
+            Assert.IsNull(_host.CancelQueued(header.JobId), "cancelled");
+            JobReply status = null;
+            for (int i = 0; i < 100; i++)
+            {
+                status = await Client().QueryStatusAsync(header.JobId, CancellationToken.None);
+                if (status.State == JobStates.Error) break;
+                Thread.Sleep(50);
+            }
+            Assert.AreEqual(JobStates.Error, status.State);
+            StringAssert.Contains(status.Message, "Cancelled on");
+            Assert.IsFalse(status.Retry, "the person at the host did not want it: no Retry offer");
+            Assert.IsNotNull(_host.CancelQueued(header.JobId), "already finished");
+
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+            Thread.Sleep(300);
+            Assert.AreEqual(0, _engine.Requests.Count, "Resume does not print a cancelled job");
+
+            Assert.AreEqual(1, _host.Jobs.RemoveFinished());
+            JobRecord gone;
+            Assert.IsFalse(_host.Jobs.TryGet(header.JobId, out gone));
         }
 
         [TestMethod]

@@ -86,6 +86,7 @@ namespace PrintVect.App.Forms
             var share = new ShareTab(_controller) { Dock = DockStyle.Fill };
             share.Message += (s, text) => ShowMessage(text);
             var jobs = new JobsTab(_controller, client) { Dock = DockStyle.Fill };
+            jobs.Message += (s, text) => ShowMessage(text);
             var use = new UseTab(client) { Dock = DockStyle.Fill };
             _settingsTab = new SettingsTab(paths, store, config, _controller, client, _updates) { Dock = DockStyle.Fill };
             _settingsTab.Message += (s, text) => ShowMessage(text);
