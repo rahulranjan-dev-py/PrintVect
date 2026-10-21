@@ -610,6 +610,81 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void AWaitingJobCanBeCancelledOrRetriedOnItsOwn()
+        {
+            using (var temp = new TempFolder())
+            {
+                bool hostUp = false;
+                var sender = new FakeJobSender
+                {
+                    OnSend = h => hostUp ? new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Printed, Message = "Printed" } : null
+                };
+                using (ClientService service = Service(temp, sender, 0, 10))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord first = DropAndWait(service, paths, printer, false, "First");
+                    ClientJobRecord second = DropAndWait(service, paths, printer, false, "Second");
+                    Assert.AreEqual(ClientJobStates.Pending, first.State);
+                    Assert.AreEqual(ClientJobStates.Pending, second.State);
+                    Assert.AreEqual(2, service.PendingCount(printer.PrinterId));
+                    int sentBefore = sender.Sent.Count;
+
+                    Assert.IsTrue(service.CancelWaiting(first.JobId));
+                    Assert.AreEqual(ClientJobStates.Cancelled, service.Jobs.Find(first.JobId).State);
+                    Assert.AreEqual(1, service.PendingCount(printer.PrinterId), "only the cancelled job's file is gone");
+                    Assert.IsFalse(service.CancelWaiting(first.JobId), "already cancelled");
+
+                    hostUp = true;
+                    var done = new ManualResetEventSlim();
+                    service.JobFinished += (s, r) => { if (r.JobId == second.JobId) done.Set(); };
+                    Assert.IsTrue(service.RetryJob(second.JobId));
+                    Assert.IsTrue(done.Wait(TimeSpan.FromSeconds(10)));
+                    Assert.AreEqual(ClientJobStates.Printed, service.Jobs.Find(second.JobId).State);
+                    Assert.AreEqual(sentBefore + 1, sender.Sent.Count, "the cancelled job was never sent");
+                    Assert.IsFalse(service.RetryJob(first.JobId), "a cancelled job is not waiting");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void CancelAllWaitingAndClearTheList()
+        {
+            using (var temp = new TempFolder())
+            {
+                bool hostUp = true;
+                var sender = new FakeJobSender
+                {
+                    OnSend = h => hostUp ? new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Printed, Message = "Printed" } : null
+                };
+                using (ClientService service = Service(temp, sender, 0, 10))
+                {
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+                    ClientJobRecord printed = DropAndWait(service, paths, printer, false, "Printed one");
+                    hostUp = false;
+                    DropAndWait(service, paths, printer, false, "Waiting one");
+                    DropAndWait(service, paths, printer, false, "Waiting two");
+                    var removed = new List<string>();
+                    service.Jobs.Removed += (s, id) => removed.Add(id);
+
+                    Assert.AreEqual(1, service.Jobs.RemoveDone(), "only the printed job leaves; waiting jobs stay");
+                    CollectionAssert.AreEqual(new[] { printed.JobId }, removed);
+                    Assert.IsNull(service.Jobs.Find(printed.JobId));
+
+                    Assert.AreEqual(2, service.CancelAllWaiting());
+                    Assert.AreEqual(0, service.PendingCount(printer.PrinterId));
+                    Assert.IsTrue(service.Jobs.All().All(r => r.State == ClientJobStates.Cancelled));
+                    Assert.AreEqual(2, service.Jobs.RemoveDone());
+                    Assert.AreEqual(0, service.Jobs.All().Count);
+                }
+            }
+        }
+
+        [TestMethod]
         public void SetPrintersStartsAndStopsWatchers()
         {
             using (var temp = new TempFolder())

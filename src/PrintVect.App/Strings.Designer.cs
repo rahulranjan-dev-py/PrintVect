@@ -514,6 +514,141 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cancel all waiting.
+        /// </summary>
+        internal static string JobsCancelAllWaiting {
+            get {
+                return ResourceManager.GetString("JobsCancelAllWaiting", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cancelled "{0}"; it will not be printed..
+        /// </summary>
+        internal static string JobsCancelled {
+            get {
+                return ResourceManager.GetString("JobsCancelled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} waiting job(s) cancelled..
+        /// </summary>
+        internal static string JobsCancelledAll {
+            get {
+                return ResourceManager.GetString("JobsCancelledAll", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear list.
+        /// </summary>
+        internal static string JobsClearList {
+            get {
+                return ResourceManager.GetString("JobsClearList", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} finished job(s) removed from the list..
+        /// </summary>
+        internal static string JobsCleared {
+            get {
+                return ResourceManager.GetString("JobsCleared", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel the {0} waiting job(s)?  They will not be printed, and their files on this PC are deleted..
+        /// </summary>
+        internal static string JobsConfirmCancelAll {
+            get {
+                return ResourceManager.GetString("JobsConfirmCancelAll", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove the finished jobs from this list?  Jobs that are still waiting or printing stay. Nothing is p [rest of string was truncated].
+        /// </summary>
+        internal static string JobsConfirmClear {
+            get {
+                return ResourceManager.GetString("JobsConfirmClear", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Job details copied. You can now paste them into an email or chat..
+        /// </summary>
+        internal static string JobsCopied {
+            get {
+                return ResourceManager.GetString("JobsCopied", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Job id.
+        /// </summary>
+        internal static string JobsCopyId {
+            get {
+                return ResourceManager.GetString("JobsCopyId", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cancelled "{0}" from {1}; it will not be printed, and {1} shows it as cancelled..
+        /// </summary>
+        internal static string JobsHostCancelled {
+            get {
+                return ResourceManager.GetString("JobsHostCancelled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel job.
+        /// </summary>
+        internal static string JobsMenuCancel {
+            get {
+                return ResourceManager.GetString("JobsMenuCancel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy details.
+        /// </summary>
+        internal static string JobsMenuCopy {
+            get {
+                return ResourceManager.GetString("JobsMenuCopy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove from list.
+        /// </summary>
+        internal static string JobsMenuRemove {
+            get {
+                return ResourceManager.GetString("JobsMenuRemove", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry.
+        /// </summary>
+        internal static string JobsMenuRetry {
+            get {
+                return ResourceManager.GetString("JobsMenuRetry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sending "{0}" again..
+        /// </summary>
+        internal static string JobsRetrying {
+            get {
+                return ResourceManager.GetString("JobsRetrying", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The same PIN again.
         /// </summary>
         internal static string PinAgain {
