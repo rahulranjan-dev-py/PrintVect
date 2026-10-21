@@ -593,6 +593,29 @@ namespace PrintVect.Core.Host
             };
         }
 
+        /// <summary>
+        /// Cancels a received job that has not reached Windows yet (waiting for a paused printer or behind other jobs).
+        /// Returns null when it was cancelled, else a plain reason. The sender learns it from its next status question.
+        /// </summary>
+        public string CancelQueued(string jobId)
+        {
+            string host = Environment.MachineName;
+            JobRecord record;
+            if (!_tracker.TryGet(jobId, out record) || JobStates.IsFinal(record.State))
+            {
+                return "This job is already finished.";
+            }
+            PrintDispatcher dispatcher = _dispatcher;
+            PrintOutcome cancelled = PrintOutcome.Error("Cancelled on " + host + " by the person at that PC; not printed.");
+            if (dispatcher == null || !dispatcher.TryCancel(record.PrinterName, jobId, cancelled))
+            {
+                return "This job is already with the printer. To stop it, open the Windows print queue of " + record.PrinterFriendly
+                       + " on this PC (Settings, Printers & scanners, the printer, Open print queue).";
+            }
+            Log.Info(jobId, "Cancelled on this PC before it reached the printer.");
+            return null;
+        }
+
         /// <summary>A client says it uses this host's printers; it is listed on the Share page with its Windows version.</summary>
         private JobReply HandleHello(RequestHeader header, TcpClient client)
         {

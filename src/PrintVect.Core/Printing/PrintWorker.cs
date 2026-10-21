@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using PrintVect.Core.Logging;
@@ -128,6 +129,31 @@ namespace PrintVect.Core.Printing
                 Monitor.PulseAll(_gate);
             }
             _stopping.Cancel();
+        }
+
+        /// <summary>
+        /// Takes a job that has not reached Windows yet out of the queue and ends it with <paramref name="outcome"/>.
+        /// False when it is being printed right now (then only the Windows print queue can stop it) or is not here.
+        /// </summary>
+        public bool TryCancel(string jobId, PrintOutcome outcome)
+        {
+            PrintWorkItem found;
+            lock (_gate)
+            {
+                found = _queue.FirstOrDefault(i => string.Equals(i.Request.JobId, jobId, StringComparison.OrdinalIgnoreCase));
+                if (found == null)
+                {
+                    return false;
+                }
+                List<PrintWorkItem> rest = _queue.Where(i => i != found).ToList();
+                _queue.Clear();
+                foreach (PrintWorkItem item in rest)
+                {
+                    _queue.Enqueue(item);
+                }
+            }
+            found.Completion.TrySetResult(outcome);
+            return true;
         }
 
         /// <summary>Closes the worker and hands back the jobs that have not started (its thread is stuck in Windows).</summary>

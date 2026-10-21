@@ -77,6 +77,20 @@ namespace PrintVect.Core.Printing
             }
         }
 
+        /// <summary>Cancels a job that still waits its turn on <paramref name="printerName"/>; false when it is printing or not queued.</summary>
+        public bool TryCancel(string printerName, string jobId, PrintOutcome outcome)
+        {
+            PrintWorker worker;
+            lock (_gate)
+            {
+                if (!_workers.TryGetValue(printerName ?? "", out worker))
+                {
+                    return false;
+                }
+            }
+            return worker.TryCancel(jobId, outcome);
+        }
+
         /// <summary>How long <paramref name="jobId"/> has been inside Windows, or null while it still waits its turn (or is done).</summary>
         public TimeSpan? TimeInWindows(string printerName, string jobId)
         {

@@ -63,7 +63,6 @@ namespace PrintVect.App.Theme
                 Padding = new Padding(Ui.S(6), 0, Ui.S(6), 0),
                 WrapMode = DataGridViewTriState.False
             };
-            grid.AlternatingRowsDefaultCellStyle = grid.DefaultCellStyle;
             NativeTheme.UseDarkScrollBars(grid);
         }
 
