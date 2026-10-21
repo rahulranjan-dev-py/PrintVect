@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace PrintVect.App.Theme
@@ -83,23 +84,81 @@ namespace PrintVect.App.Theme
             return column;
         }
 
-        /// <summary>A tick column drawn flat, so it is visible on the dark card.</summary>
-        public static DataGridViewCheckBoxColumn Tick(string header, float weight)
+        /// <summary>
+        /// A tick column with the design's own box: 20 px, empty with a grey outline when off, green with a dark tick
+        /// when on. The grid's own flat box is tiny, looks the same either way and only reacts to a click right on it,
+        /// so the column is read-only for the grid: a click anywhere in the cell, or Space, flips the value here, which
+        /// raises CellValueChanged as before.
+        /// </summary>
+        public static DataGridViewCheckBoxColumn Tick(DataGridView grid, string header, float weight)
         {
-            return new DataGridViewCheckBoxColumn
+            var column = new DataGridViewCheckBoxColumn
             {
                 HeaderText = header,
                 FillWeight = weight,
-                FlatStyle = FlatStyle.Flat,
                 SortMode = DataGridViewColumnSortMode.NotSortable,
-                ReadOnly = false,
-                DefaultCellStyle = new DataGridViewCellStyle
+                ReadOnly = true,
+                MinimumWidth = Ui.S(56),
+                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
+            };
+            grid.CellPainting += (s, e) =>
+            {
+                if (e.RowIndex < 0 || e.ColumnIndex != column.Index) return;
+                e.PaintBackground(e.CellBounds, (e.State & DataGridViewElementStates.Selected) != 0);
+                PaintTick(e.Graphics, e.CellBounds, e.Value is bool && (bool)e.Value);
+                e.Handled = true;
+            };
+            grid.CellMouseClick += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left && e.RowIndex >= 0 && e.ColumnIndex == column.Index)
                 {
-                    Alignment = DataGridViewContentAlignment.MiddleCenter,
-                    ForeColor = Palette.Accent,
-                    SelectionForeColor = Palette.Accent
+                    Flip(grid.Rows[e.RowIndex].Cells[column.Index]);
                 }
             };
+            grid.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Space && grid.CurrentCell != null && grid.CurrentCell.ColumnIndex == column.Index)
+                {
+                    e.Handled = true;
+                    Flip(grid.CurrentCell);
+                }
+            };
+            return column;
+        }
+
+        private static void Flip(DataGridViewCell cell)
+        {
+            cell.Value = !(cell.Value is bool && (bool)cell.Value);
+        }
+
+        private static void PaintTick(Graphics g, Rectangle cell, bool on)
+        {
+            int size = Ui.S(20);
+            var box = new RectangleF(cell.X + (cell.Width - size) / 2f, cell.Y + (cell.Height - size) / 2f, size, size);
+            SmoothingMode before = g.SmoothingMode;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using (GraphicsPath path = Ui.RoundRect(box, Ui.S(5)))
+            {
+                if (on)
+                {
+                    using (var fill = new SolidBrush(Palette.Accent)) g.FillPath(fill, path);
+                    using (var pen = new Pen(Palette.OnAccent, Ui.S(2)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+                    {
+                        g.DrawLines(pen, new[]
+                        {
+                            new PointF(box.X + box.Width * 0.26f, box.Y + box.Height * 0.52f),
+                            new PointF(box.X + box.Width * 0.43f, box.Y + box.Height * 0.70f),
+                            new PointF(box.X + box.Width * 0.75f, box.Y + box.Height * 0.32f)
+                        });
+                    }
+                }
+                else
+                {
+                    using (var fill = new SolidBrush(Palette.Background)) g.FillPath(fill, path);
+                    using (var pen = new Pen(Palette.Muted, Ui.S(1) * 1.5f)) g.DrawPath(pen, path);
+                }
+            }
+            g.SmoothingMode = before;
         }
 
         /// <summary>
