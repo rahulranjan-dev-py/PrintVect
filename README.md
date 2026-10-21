@@ -37,6 +37,7 @@ was the working name before PrintVect was chosen).
 | M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, verified on three PCs (0.2.0 to 0.2.1 by itself)** |
 | M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, reported OK by the owner** |
 | M6b-2 | Hardening: editable settings and office PIN, copies question, PCs that use a host, Pause / Resume, jobs kept for Retry when a host is lost, plain-language errors | **released in 0.4.0 (2026-10-17), not tested** |
+| 0.4.1 | Jobs page: right-click Retry / Cancel job / Remove from list / Copy details, Cancel all waiting, Clear list; bigger green tick boxes on Share my printers | **done, awaiting test** |
 
 ## Requirements
 
@@ -88,7 +89,11 @@ the right of that bar says whether this PC shares its printers:
   were printed today, and the **PCs that use this PC** with their Windows and PrintVect version (or, before
   any PC has connected, how to connect one).
 - **Jobs**: the jobs other PCs sent to this PC's printers, and the jobs this PC sent to printers of other
-  PCs, newest first, with today's printed count for each.
+  PCs, newest first, with today's printed count for each. Right-click a job for **Retry** or **Cancel job**
+  (a waiting job), **Remove from list** (a finished one) or **Copy details**; Delete does the same as Cancel or
+  Remove. **Cancel all waiting** cancels every job this PC still has to send, **Clear list** removes the finished
+  jobs from a list (nothing on any printer changes). A job received here that has not reached the printer yet
+  (for example while the printer is paused) can be cancelled on this PC too.
 - **Use shared printers**: the printers other PCs share appear by themselves; or type a host PC's name or
   IP and press **Look up**. Add one to this PC (Windows asks once for permission), send a test page, retry
   waiting jobs, remove it.

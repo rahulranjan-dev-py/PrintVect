@@ -206,51 +206,142 @@ namespace PrintVect.Core.Client
                 Log.Warn("Retry: printer " + printerId + " is not watched; nothing sent.");
                 return 0;
             }
-            string root = ClientPrinterNames.SpoolFolder(_paths, printerId);
-            string pending = Path.Combine(root, ClientPrinterNames.PendingFolderName);
-            if (!Directory.Exists(pending)) return 0;
+            return PendingFiles(printerId).Count(file => Resend(printer, file));
+        }
 
-            int started = 0;
-            foreach (string file in Directory.GetFiles(pending))
+        /// <summary>Sends one waiting job again (right-click, Retry on the Jobs page). False when it is not waiting.</summary>
+        public bool RetryJob(string jobId)
+        {
+            ClientJobRecord record = Jobs.Find(jobId);
+            RemotePrinter printer = record == null ? null : FindPrinter(record.PrinterId);
+            string file = record == null ? null : PendingFileOf(record);
+            if (printer == null || file == null)
             {
-                string jobId = JobIdFromFileName(file) ?? Guid.NewGuid().ToString("D");
-                string target = Path.Combine(root, SpoolWatcher.JobPrefix + jobId + Path.GetExtension(file));
-                try
-                {
-                    if (File.Exists(target)) File.Delete(target);
-                    File.Move(file, target);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warn(jobId, "Could not move " + file + " back for a retry: " + ex.Message);
-                    continue;
-                }
-
-                ClientJobRecord record = Jobs.Find(jobId);
-                if (record == null)
-                {
-                    XpsFileInfo info = XpsFormatSniffer.Inspect(target);
-                    record = new ClientJobRecord
-                    {
-                        JobId = jobId,
-                        PrinterId = printer.PrinterId,
-                        PrinterFriendly = printer.FriendlyName,
-                        HostName = printer.HostName,
-                        Doc = DocumentName(info.Title, target),
-                        Copies = Math.Max(1, info.Copies),
-                        Format = info.Format ?? JobFormats.FromFileName(target),
-                        Size = new FileInfo(target).Length,
-                        StartedAt = DateTime.Now
-                    };
-                }
-                record.FilePath = target;
-                Update(record, ClientJobStates.Queued, "Waiting to be sent again to " + printer.HostName + ".");
-                Log.Info(jobId, "Retry: sending the waiting job to " + printer.HostName + " again.");
-                ClientJobRecord toSend = record;
-                Task.Run(() => SendWithRetriesAsync(printer, toSend, _stopping.Token));
-                started++;
+                Log.Warn(jobId, "Retry: this job is not waiting (or its printer is no longer on this PC); nothing sent.");
+                return false;
             }
-            return started;
+            return Resend(printer, file);
+        }
+
+        /// <summary>
+        /// Cancels a waiting job (right-click, Cancel on the Jobs page): its file is deleted and it is never sent.
+        /// False when the job is not waiting (it is being sent, printing, or already done).
+        /// </summary>
+        public bool CancelWaiting(string jobId)
+        {
+            ClientJobRecord record = Jobs.Find(jobId);
+            if (record == null || record.State != ClientJobStates.Pending)
+            {
+                return false;
+            }
+            string file = PendingFileOf(record);
+            if (file != null)
+            {
+                record.FilePath = file;
+            }
+            Log.Info(jobId, "Waiting job cancelled by the user on this PC.");
+            Cancel(record);
+            return true;
+        }
+
+        /// <summary>Cancels every waiting job of every printer on this PC, files without a list entry included.</summary>
+        public int CancelAllWaiting()
+        {
+            int cancelled = 0;
+            foreach (RemotePrinter printer in WatchedPrinters)
+            {
+                foreach (string file in PendingFiles(printer.PrinterId))
+                {
+                    string jobId = JobIdFromFileName(file);
+                    if (jobId != null && CancelWaiting(jobId))
+                    {
+                        cancelled++;
+                        continue;
+                    }
+                    try
+                    {
+                        File.Delete(file);
+                        cancelled++;
+                        Log.Info(jobId, "Waiting file " + file + " deleted (Cancel all waiting).");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warn(jobId, "Waiting file " + file + " could not be deleted: " + ex.Message);
+                    }
+                }
+            }
+            foreach (ClientJobRecord record in Jobs.All().Where(r => r.State == ClientJobStates.Pending))
+            {
+                if (CancelWaiting(record.JobId)) cancelled++;   // waiting rows whose printer was removed from this PC
+            }
+            return cancelled;
+        }
+
+        private IList<string> PendingFiles(string printerId)
+        {
+            string pending = Path.Combine(ClientPrinterNames.SpoolFolder(_paths, printerId), ClientPrinterNames.PendingFolderName);
+            try
+            {
+                return Directory.Exists(pending) ? Directory.GetFiles(pending) : new string[0];
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("The waiting jobs in " + pending + " could not be listed: " + ex.Message);
+                return new string[0];
+            }
+        }
+
+        /// <summary>The job's file in pending\ (where Finish put it, or found by its id after a restart), or null.</summary>
+        private string PendingFileOf(ClientJobRecord record)
+        {
+            if (!string.IsNullOrEmpty(record.FilePath) && File.Exists(record.FilePath)
+                && string.Equals(Path.GetFileName(Path.GetDirectoryName(record.FilePath)), ClientPrinterNames.PendingFolderName, StringComparison.OrdinalIgnoreCase))
+            {
+                return record.FilePath;
+            }
+            return PendingFiles(record.PrinterId).FirstOrDefault(f => string.Equals(JobIdFromFileName(f), record.JobId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Moves one file from pending\ back to the printer's folder and sends it under the job id it already has.</summary>
+        private bool Resend(RemotePrinter printer, string file)
+        {
+            string root = ClientPrinterNames.SpoolFolder(_paths, printer.PrinterId);
+            string jobId = JobIdFromFileName(file) ?? Guid.NewGuid().ToString("D");
+            string target = Path.Combine(root, SpoolWatcher.JobPrefix + jobId + Path.GetExtension(file));
+            try
+            {
+                if (File.Exists(target)) File.Delete(target);
+                File.Move(file, target);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(jobId, "Could not move " + file + " back for a retry: " + ex.Message);
+                return false;
+            }
+
+            ClientJobRecord record = Jobs.Find(jobId);
+            if (record == null)
+            {
+                XpsFileInfo info = XpsFormatSniffer.Inspect(target);
+                record = new ClientJobRecord
+                {
+                    JobId = jobId,
+                    PrinterId = printer.PrinterId,
+                    PrinterFriendly = printer.FriendlyName,
+                    HostName = printer.HostName,
+                    Doc = DocumentName(info.Title, target),
+                    Copies = Math.Max(1, info.Copies),
+                    Format = info.Format ?? JobFormats.FromFileName(target),
+                    Size = new FileInfo(target).Length,
+                    StartedAt = DateTime.Now
+                };
+            }
+            record.FilePath = target;
+            Update(record, ClientJobStates.Queued, "Waiting to be sent again to " + printer.HostName + ".");
+            Log.Info(jobId, "Retry: sending the waiting job to " + printer.HostName + " again.");
+            ClientJobRecord toSend = record;
+            Task.Run(() => SendWithRetriesAsync(printer, toSend, _stopping.Token));
+            return true;
         }
 
         /// <summary>

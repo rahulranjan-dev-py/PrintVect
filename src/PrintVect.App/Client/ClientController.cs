@@ -59,6 +59,11 @@ namespace PrintVect.App.Client
                 AskCopies = config.AskCopies ? (Func<ClientJobRecord, Task<int?>>)AskCopiesAsync : null
             };
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
+            _service.Jobs.Removed += (s, jobId) =>
+            {
+                _history.QueueSave();
+                Post(() => RaiseRemoved(jobId));
+            };
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
 
             _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters);
@@ -82,6 +87,51 @@ namespace PrintVect.App.Client
 
         /// <summary>Raised on the UI thread for every change of a job.</summary>
         public event EventHandler<ClientJobRecord> JobChanged;
+
+        /// <summary>Raised on the UI thread with the job id after a job was taken off the list.</summary>
+        public event EventHandler<string> JobRemoved;
+
+        /// <summary>Cancels one waiting job: it is never sent and its file is deleted. False when it is not waiting.</summary>
+        public bool CancelWaiting(string jobId)
+        {
+            return _service.CancelWaiting(jobId);
+        }
+
+        /// <summary>Cancels every waiting job on this PC; returns how many.</summary>
+        public int CancelAllWaiting()
+        {
+            int count = _service.CancelAllWaiting();
+            Log.Info("Cancel all waiting: " + count + " job(s) cancelled by the user.");
+            return count;
+        }
+
+        /// <summary>Sends one waiting job again. False when it is not waiting.</summary>
+        public bool RetryJob(string jobId)
+        {
+            return _service.RetryJob(jobId);
+        }
+
+        /// <summary>Takes a printed, failed or cancelled job off the list (the document itself is not touched).</summary>
+        public bool RemoveJob(string jobId)
+        {
+            return _service.Jobs.Remove(jobId);
+        }
+
+        /// <summary>Takes every printed, failed and cancelled job off the list; waiting jobs stay.</summary>
+        public int ClearDoneJobs()
+        {
+            int count = _service.Jobs.RemoveDone();
+            Log.Info("Sent jobs list cleared by the user: " + count + " finished job(s) removed.");
+            return count;
+        }
+
+        private void RaiseRemoved(string jobId)
+        {
+            EventHandler<string> handler = JobRemoved;
+            if (handler == null) return;
+            try { handler(this, jobId); }
+            catch (Exception ex) { Log.Error(jobId, "A UI job-removed listener failed.", ex); }
+        }
 
         /// <summary>Raised on the UI thread when a job is printed, failed or left waiting.</summary>
         public event EventHandler<ClientJobRecord> JobFinished;
