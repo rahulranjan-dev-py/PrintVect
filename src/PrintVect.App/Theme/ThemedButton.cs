@@ -80,6 +80,12 @@ namespace PrintVect.App.Theme
 
         protected override void OnEnabledChanged(EventArgs e)
         {
+            if (!Enabled)
+            {
+                // A button disabled under the mouse gets no MouseLeave; drop the hover look with it.
+                _hover = false;
+                _pressed = false;
+            }
             Invalidate();
             base.OnEnabledChanged(e);
         }

@@ -49,6 +49,42 @@ namespace PrintVect.App.Host
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
             _service.Presence.Changed += (s, e) => Post(() => Raise(ClientsChanged));
+            _service.Jobs.Removed += (s, jobId) =>
+            {
+                _history.QueueSave();
+                Post(() => RaiseRemoved(jobId));
+            };
+        }
+
+        /// <summary>Raised on the UI thread with the job id after a job was taken off the list.</summary>
+        public event EventHandler<string> JobRemoved;
+
+        /// <summary>Cancels a received job that has not reached the printer yet. Null when done, else a plain reason.</summary>
+        public string CancelJob(string jobId)
+        {
+            return _service.CancelQueued(jobId);
+        }
+
+        /// <summary>Takes a printed or failed job off the list.</summary>
+        public bool RemoveJob(string jobId)
+        {
+            return _service.Jobs.Remove(jobId);
+        }
+
+        /// <summary>Takes every printed and failed job off the list; jobs still waiting or printing stay.</summary>
+        public int ClearFinishedJobs()
+        {
+            int count = _service.Jobs.RemoveFinished();
+            Log.Info("Received jobs list cleared by the user: " + count + " finished job(s) removed.");
+            return count;
+        }
+
+        private void RaiseRemoved(string jobId)
+        {
+            EventHandler<string> handler = JobRemoved;
+            if (handler == null) return;
+            try { handler(this, jobId); }
+            catch (Exception ex) { Log.Error(jobId, "A UI job-removed listener failed.", ex); }
         }
 
         /// <summary>The PCs that use this PC's printers (hello or job since PrintVect started), by name.</summary>
