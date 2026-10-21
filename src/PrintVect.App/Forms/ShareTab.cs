@@ -143,21 +143,13 @@ namespace PrintVect.App.Forms
             _grid.ReadOnly = false;
             _grid.SelectionMode = DataGridViewSelectionMode.CellSelect;
             _grid.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
-            _shareColumn = Grids.Tick(Strings.ShareColShare, 12);
-            _shareColumn.MinimumWidth = Ui.S(56);
+            _shareColumn = Grids.Tick(_grid, Strings.ShareColShare, 12);
             _printerColumn = Grids.Text(Strings.ShareColPrinter, 40);
             _friendlyColumn = Grids.Text(Strings.ShareColFriendly, 33);
             _friendlyColumn.ReadOnly = false;
             _friendlyColumn.DefaultCellStyle = new DataGridViewCellStyle { Font = ThemeFonts.TextSemi };
             _statusColumn = Grids.Text(Strings.ShareColStatus, 15);
             _grid.Columns.AddRange(new DataGridViewColumn[] { _shareColumn, _printerColumn, _friendlyColumn, _statusColumn });
-            _grid.CurrentCellDirtyStateChanged += (s, e) =>
-            {
-                if (_grid.IsCurrentCellDirty && _grid.CurrentCell is DataGridViewCheckBoxCell)
-                {
-                    _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
-                }
-            };
             _grid.CellValueChanged += OnCellValueChanged;
             _grid.CurrentCellChanged += (s, e) => UpdatePauseButton();
             _grid.EditingControlShowing += (s, e) =>
