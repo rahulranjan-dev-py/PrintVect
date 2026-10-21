@@ -445,6 +445,7 @@ Asked for by the owner on 2026-10-21 (screenshot of the Jobs page with a waiting
 | 8 | Host: Pause printer; Windows 10 PC prints a page. On the host's Jobs page right-click that received job, **Cancel job**. Resume printer. | Host: the job turns red "Failed" with the message "Cancelled on <host> by the person at that PC; not printed.", and Resume prints nothing. Windows 10 PC: the same red row and message within a minute. |
 | 9 | Host: right-click a job that is printing right now (or one inside a stuck printer), **Cancel job**. | A message says it is already with the printer and how to open the Windows print queue. |
 | 10 | Look at the Host PC column of Sent from this PC. | Every PC name is in the same typewriter-like font (before 0.4.1 every other row was in the normal font). |
+| 11 | Share my printers, the Share column. Click in the empty part of a cell beside the box (not on it), then press Space. | The boxes are bigger and all in the middle of their column (before, every other one sat on the left). A shared printer shows a green box with a dark tick, an unshared one an empty box with a grey outline. The click ticks it, Space unticks it, and both are saved (they stay after Exit and a new start). |
 
 ## Later
 
