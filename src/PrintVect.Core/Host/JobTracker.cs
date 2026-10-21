@@ -44,7 +44,7 @@ namespace PrintVect.Core.Host
         private readonly object _gate = new object();
         private readonly Dictionary<string, JobRecord> _byId = new Dictionary<string, JobRecord>(StringComparer.OrdinalIgnoreCase);
         private long _sequence;
-        private readonly Queue<string> _order = new Queue<string>();
+        private Queue<string> _order = new Queue<string>();
 
         /// <summary>Raised with a snapshot after every add or update, on the caller's thread.</summary>
         public event EventHandler<JobRecord> Changed;
@@ -147,6 +147,45 @@ namespace PrintVect.Core.Host
                 }
             }
             return Update(jobId, JobStates.Error, message);
+        }
+
+        /// <summary>Raised (on the caller's thread) with the job id after a job was taken off the list.</summary>
+        public event EventHandler<string> Removed;
+
+        /// <summary>Takes a printed or failed job off the list. A job still waiting or printing stays (false).</summary>
+        public bool Remove(string jobId)
+        {
+            return RemoveWhere(r => string.Equals(r.JobId, jobId, StringComparison.OrdinalIgnoreCase)) == 1;
+        }
+
+        /// <summary>Takes every printed and failed job off the list; waiting and printing jobs stay.</summary>
+        public int RemoveFinished()
+        {
+            return RemoveWhere(r => true);
+        }
+
+        private int RemoveWhere(Func<JobRecord, bool> match)
+        {
+            List<string> removed;
+            lock (_gate)
+            {
+                removed = _byId.Values.Where(r => JobStates.IsFinal(r.State) && match(r)).Select(r => r.JobId).ToList();
+                foreach (string jobId in removed)
+                {
+                    _byId.Remove(jobId);
+                }
+                _order = new Queue<string>(_order.Where(id => _byId.ContainsKey(id)));
+            }
+            EventHandler<string> handler = Removed;
+            if (handler != null)
+            {
+                foreach (string jobId in removed)
+                {
+                    try { handler(this, jobId); }
+                    catch (Exception ex) { Log.Error(jobId, "A job-removed listener failed.", ex); }
+                }
+            }
+            return removed.Count;
         }
 
         public bool TryGet(string jobId, out JobRecord snapshot)

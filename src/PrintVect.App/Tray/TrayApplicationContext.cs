@@ -75,7 +75,7 @@ namespace PrintVect.App.Tray
             _form = new MainForm(paths, store, config, _host, _client, _updates);
             _form.FormClosing += OnFormClosing;
 
-            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer(), Font = ThemeFonts.Text };
+            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer(), Font = ThemeFonts.Text, ShowImageMargin = false };
             var open = new ToolStripMenuItem(Strings.TrayOpen, null, (s, e) => ShowWindow());
             open.Font = new Font(menu.Font, FontStyle.Bold);
             menu.Items.Add(open);
