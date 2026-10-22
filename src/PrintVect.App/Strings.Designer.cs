@@ -172,6 +172,276 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to domain network.
+        /// </summary>
+        internal static string CategoryDomain {
+            get {
+                return ResourceManager.GetString("CategoryDomain", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to private network.
+        /// </summary>
+        internal static string CategoryPrivate {
+            get {
+                return ResourceManager.GetString("CategoryPrivate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to public network.
+        /// </summary>
+        internal static string CategoryPublic {
+            get {
+                return ResourceManager.GetString("CategoryPublic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to network type unknown.
+        /// </summary>
+        internal static string CategoryUnknown {
+            get {
+                return ResourceManager.GetString("CategoryUnknown", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Firewall.
+        /// </summary>
+        internal static string CheckFirewall {
+            get {
+                return ResourceManager.GetString("CheckFirewall", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Firewall rule missing.
+        /// </summary>
+        internal static string CheckFirewallMissing {
+            get {
+                return ResourceManager.GetString("CheckFirewallMissing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The rule for {0} is missing, so other PCs cannot reach this PC. Run the PrintVect setup again..
+        /// </summary>
+        internal static string CheckFirewallMissingText {
+            get {
+                return ResourceManager.GetString("CheckFirewallMissingText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rules for TCP {0} and UDP {1} are in place.
+        /// </summary>
+        internal static string CheckFirewallOk {
+            get {
+                return ResourceManager.GetString("CheckFirewallOk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Firewall not checked.
+        /// </summary>
+        internal static string CheckFirewallUnknown {
+            get {
+                return ResourceManager.GetString("CheckFirewallUnknown", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Folders.
+        /// </summary>
+        internal static string CheckFolders {
+            get {
+                return ResourceManager.GetString("CheckFolders", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Data, spool and log folders can be written to.
+        /// </summary>
+        internal static string CheckFoldersOk {
+            get {
+                return ResourceManager.GetString("CheckFoldersOk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A folder cannot be written to.
+        /// </summary>
+        internal static string CheckFoldersProblem {
+            get {
+                return ResourceManager.GetString("CheckFoldersProblem", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network.
+        /// </summary>
+        internal static string CheckNetwork {
+            get {
+                return ResourceManager.GetString("CheckNetwork", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network: {0} connections.
+        /// </summary>
+        internal static string CheckNetworks {
+            get {
+                return ResourceManager.GetString("CheckNetworks", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}. PCs on another network may need Look up..
+        /// </summary>
+        internal static string CheckNetworksText {
+            get {
+                return ResourceManager.GetString("CheckNetworksText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No network.
+        /// </summary>
+        internal static string CheckNoNetwork {
+            get {
+                return ResourceManager.GetString("CheckNoNetwork", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC has no network address. Check the cable or the Wi-Fi..
+        /// </summary>
+        internal static string CheckNoNetworkText {
+            get {
+                return ResourceManager.GetString("CheckNoNetworkText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN not set.
+        /// </summary>
+        internal static string CheckPinOff {
+            get {
+                return ResourceManager.GetString("CheckPinOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Any PC on the office network can print here..
+        /// </summary>
+        internal static string CheckPinOffSharing {
+            get {
+                return ResourceManager.GetString("CheckPinOffSharing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open to the office network once sharing is on..
+        /// </summary>
+        internal static string CheckPinOffText {
+            get {
+                return ResourceManager.GetString("CheckPinOffText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN set.
+        /// </summary>
+        internal static string CheckPinOn {
+            get {
+                return ResourceManager.GetString("CheckPinOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Jobs from PCs without the same PIN are refused..
+        /// </summary>
+        internal static string CheckPinOnText {
+            get {
+                return ResourceManager.GetString("CheckPinOnText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} · running since {1}.
+        /// </summary>
+        internal static string CheckProgram {
+            get {
+                return ResourceManager.GetString("CheckProgram", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network “{0}” is public.
+        /// </summary>
+        internal static string CheckPublic {
+            get {
+                return ResourceManager.GetString("CheckPublic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printing to other PCs works. To share this PC's printers over it, it must be private (Share my print [rest of string was truncated].
+        /// </summary>
+        internal static string CheckPublicNotSharing {
+            get {
+                return ResourceManager.GetString("CheckPublicNotSharing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs cannot reach this PC's printers over it. On Share my printers, press Make it private..
+        /// </summary>
+        internal static string CheckPublicSharing {
+            get {
+                return ResourceManager.GetString("CheckPublicSharing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing off.
+        /// </summary>
+        internal static string CheckSharingOff {
+            get {
+                return ResourceManager.GetString("CheckSharingOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No printers shared · {0} printer(s) added from other PCs.
+        /// </summary>
+        internal static string CheckSharingOffText {
+            get {
+                return ResourceManager.GetString("CheckSharingOffText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing on.
+        /// </summary>
+        internal static string CheckSharingOn {
+            get {
+                return ResourceManager.GetString("CheckSharingOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} printer(s) shared · {1} added from other PCs.
+        /// </summary>
+        internal static string CheckSharingOnText {
+            get {
+                return ResourceManager.GetString("CheckSharingOnText", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
         internal static string CopiesCancel {
@@ -199,11 +469,29 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to One copy less.
+        /// </summary>
+        internal static string CopiesFewer {
+            get {
+                return ResourceManager.GetString("CopiesFewer", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Copies.
         /// </summary>
         internal static string CopiesLabel {
             get {
                 return ResourceManager.GetString("CopiesLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to One copy more.
+        /// </summary>
+        internal static string CopiesMore {
+            get {
+                return ResourceManager.GetString("CopiesMore", resourceCulture);
             }
         }
 
@@ -262,20 +550,20 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Copy to clipboard.
-        /// </summary>
-        internal static string DiagCopy {
-            get {
-                return ResourceManager.GetString("DiagCopy", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Could not copy to the clipboard. Select the text with the mouse and press Ctrl+C instead..
         /// </summary>
         internal static string DiagCopyFailed {
             get {
                 return ResourceManager.GetString("DiagCopyFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copy report.
+        /// </summary>
+        internal static string DiagCopyReport {
+            get {
+                return ResourceManager.GetString("DiagCopyReport", resourceCulture);
             }
         }
 
@@ -298,6 +586,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Hide full report.
+        /// </summary>
+        internal static string DiagHideReport {
+            get {
+                return ResourceManager.GetString("DiagHideReport", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Printer sharing (host role).
         /// </summary>
         internal static string DiagHostSection {
@@ -307,7 +604,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to If printing does not work, press "Copy to clipboard" and paste the text into an email or chat to the [rest of string was truncated].
+        ///   Looks up a localized string similar to If printing doesn't work, copy this report and send it to whoever supports PrintVect. Nothing is sen [rest of string was truncated].
         /// </summary>
         internal static string DiagIntro {
             get {
@@ -370,6 +667,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Show full report.
+        /// </summary>
+        internal static string DiagShowReport {
+            get {
+                return ResourceManager.GetString("DiagShowReport", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Updates.
         /// </summary>
         internal static string DiagUpdatesSection {
@@ -388,6 +694,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Copies.
+        /// </summary>
+        internal static string JobColCopies {
+            get {
+                return ResourceManager.GetString("JobColCopies", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Document.
         /// </summary>
         internal static string JobColDocument {
@@ -397,20 +712,11 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to From.
+        ///   Looks up a localized string similar to From PC.
         /// </summary>
-        internal static string JobColFrom {
+        internal static string JobColFromPc {
             get {
-                return ResourceManager.GetString("JobColFrom", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Host PC.
-        /// </summary>
-        internal static string JobColHost {
-            get {
-                return ResourceManager.GetString("JobColHost", resourceCulture);
+                return ResourceManager.GetString("JobColFromPc", resourceCulture);
             }
         }
 
@@ -433,11 +739,11 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to State.
+        ///   Looks up a localized string similar to Sent to.
         /// </summary>
-        internal static string JobColState {
+        internal static string JobColSentTo {
             get {
-                return ResourceManager.GetString("JobColState", resourceCulture);
+                return ResourceManager.GetString("JobColSentTo", resourceCulture);
             }
         }
 
@@ -541,6 +847,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Change in Settings.
+        /// </summary>
+        internal static string JobsChangeInSettings {
+            get {
+                return ResourceManager.GetString("JobsChangeInSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Clear list.
         /// </summary>
         internal static string JobsClearList {
@@ -595,11 +910,47 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Printed today: {0} · Waiting: {1}.
+        /// </summary>
+        internal static string JobsCounts {
+            get {
+                return ResourceManager.GetString("JobsCounts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Share my printers.
+        /// </summary>
+        internal static string JobsGoShare {
+            get {
+                return ResourceManager.GetString("JobsGoShare", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cancelled "{0}" from {1}; it will not be printed, and {1} shows it as cancelled..
         /// </summary>
         internal static string JobsHostCancelled {
             get {
                 return ResourceManager.GetString("JobsHostCancelled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Documents this PC sent to other PCs' printers, and documents other PCs sent here..
+        /// </summary>
+        internal static string JobsIntro {
+            get {
+                return ResourceManager.GetString("JobsIntro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copies of sent documents are kept for {0}, then deleted..
+        /// </summary>
+        internal static string JobsKeepNote {
+            get {
+                return ResourceManager.GetString("JobsKeepNote", resourceCulture);
             }
         }
 
@@ -640,11 +991,416 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to No jobs received.
+        /// </summary>
+        internal static string JobsReceivedEmpty {
+            get {
+                return ResourceManager.GetString("JobsReceivedEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sharing is off, so other PCs can't send jobs to this PC..
+        /// </summary>
+        internal static string JobsReceivedEmptyOff {
+            get {
+                return ResourceManager.GetString("JobsReceivedEmptyOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to When another PC prints to this PC's printers, the job shows here..
+        /// </summary>
+        internal static string JobsReceivedEmptyOn {
+            get {
+                return ResourceManager.GetString("JobsReceivedEmptyOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Sending "{0}" again..
         /// </summary>
         internal static string JobsRetrying {
             get {
                 return ResourceManager.GetString("JobsRetrying", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to See office printers.
+        /// </summary>
+        internal static string JobsSeeOffice {
+            get {
+                return ResourceManager.GetString("JobsSeeOffice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing sent from this PC yet.
+        /// </summary>
+        internal static string JobsSentEmpty {
+            get {
+                return ResourceManager.GetString("JobsSentEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Add a printer of another PC on Office printers, then print to it from any program. Each job shows he [rest of string was truncated].
+        /// </summary>
+        internal static string JobsSentEmptyNoPrinter {
+            get {
+                return ResourceManager.GetString("JobsSentEmptyNoPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Print from any program to {0}. Each job shows here and moves from Waiting to Printed..
+        /// </summary>
+        internal static string JobsSentEmptyText {
+            get {
+                return ResourceManager.GetString("JobsSentEmptyText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to default printer of this PC.
+        /// </summary>
+        internal static string KindDefault {
+            get {
+                return ResourceManager.GetString("KindDefault", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fax.
+        /// </summary>
+        internal static string KindFax {
+            get {
+                return ResourceManager.GetString("KindFax", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Software printer · saves a file.
+        /// </summary>
+        internal static string KindFile {
+            get {
+                return ResourceManager.GetString("KindFile", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network printer.
+        /// </summary>
+        internal static string KindNetwork {
+            get {
+                return ResourceManager.GetString("KindNetwork", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Software printer · sends to OneNote.
+        /// </summary>
+        internal static string KindOneNote {
+            get {
+                return ResourceManager.GetString("KindOneNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Software printer · saves a PDF file.
+        /// </summary>
+        internal static string KindPdf {
+            get {
+                return ResourceManager.GetString("KindPdf", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printer on {0}.
+        /// </summary>
+        internal static string KindPort {
+            get {
+                return ResourceManager.GetString("KindPort", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shared by {0} in Windows.
+        /// </summary>
+        internal static string KindShare {
+            get {
+                return ResourceManager.GetString("KindShare", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to USB printer.
+        /// </summary>
+        internal static string KindUsb {
+            get {
+                return ResourceManager.GetString("KindUsb", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Software printer · saves an XPS file.
+        /// </summary>
+        internal static string KindXps {
+            get {
+                return ResourceManager.GetString("KindXps", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office printers.
+        /// </summary>
+        internal static string NavOffice {
+            get {
+                return ResourceManager.GetString("NavOffice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to up to date.
+        /// </summary>
+        internal static string NavVersionLatest {
+            get {
+                return ResourceManager.GetString("NavVersionLatest", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Version {0} · {1}.
+        /// </summary>
+        internal static string NavVersionLine {
+            get {
+                return ResourceManager.GetString("NavVersionLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to update ready.
+        /// </summary>
+        internal static string NavVersionUpdate {
+            get {
+                return ResourceManager.GetString("NavVersionUpdate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Added to this PC.
+        /// </summary>
+        internal static string OfficeAdded {
+            get {
+                return ResourceManager.GetString("OfficeAdded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Added.
+        /// </summary>
+        internal static string OfficeAddedButton {
+            get {
+                return ResourceManager.GetString("OfficeAddedButton", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Already on this PC.
+        /// </summary>
+        internal static string OfficeAlready {
+            get {
+                return ResourceManager.GetString("OfficeAlready", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Looking….
+        /// </summary>
+        internal static string OfficeChecking {
+            get {
+                return ResourceManager.GetString("OfficeChecking", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Find a PC by name.
+        /// </summary>
+        internal static string OfficeFind {
+            get {
+                return ResourceManager.GetString("OfficeFind", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PC name or IP address.
+        /// </summary>
+        internal static string OfficeFindLabel {
+            get {
+                return ResourceManager.GetString("OfficeFindLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Found in the office, not added yet.
+        /// </summary>
+        internal static string OfficeFound {
+            get {
+                return ResourceManager.GetString("OfficeFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to In Print windows:.
+        /// </summary>
+        internal static string OfficeInPrintWindows {
+            get {
+                return ResourceManager.GetString("OfficeInPrintWindows", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printers that other PCs share. Once a printer is added, it shows in the Print window of every progra [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeIntro {
+            get {
+                return ResourceManager.GetString("OfficeIntro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Last checked {0}.
+        /// </summary>
+        internal static string OfficeLastChecked {
+            get {
+                return ResourceManager.GetString("OfficeLastChecked", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No printer of another PC is on this PC yet. Printers that other PCs share appear below: press Add to [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeNoneAdded {
+            get {
+                return ResourceManager.GetString("OfficeNoneAdded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No PC is sharing a printer right now.
+        /// </summary>
+        internal static string OfficeNoneFound {
+            get {
+                return ResourceManager.GetString("OfficeNoneFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect keeps looking every 10 seconds. If a PC should be listed, check that PrintVect is running  [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeNoneFoundText {
+            get {
+                return ResourceManager.GetString("OfficeNoneFoundText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not answering.
+        /// </summary>
+        internal static string OfficeNotAnswering {
+            get {
+                return ResourceManager.GetString("OfficeNotAnswering", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing new to add.
+        /// </summary>
+        internal static string OfficeNothingNew {
+            get {
+                return ResourceManager.GetString("OfficeNothingNew", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PrintVect found {0} printer(s) on {1} PC(s), and all of them are already on this PC. New ones appear [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeNothingNewText {
+            get {
+                return ResourceManager.GetString("OfficeNothingNewText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove {0} from this PC.
+        /// </summary>
+        internal static string OfficeRemoveAccessible {
+            get {
+                return ResourceManager.GetString("OfficeRemoveAccessible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry waiting.
+        /// </summary>
+        internal static string OfficeRetry {
+            get {
+                return ResourceManager.GetString("OfficeRetry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search again.
+        /// </summary>
+        internal static string OfficeSearchAgain {
+            get {
+                return ResourceManager.GetString("OfficeSearchAgain", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shared by.
+        /// </summary>
+        internal static string OfficeSharedBy {
+            get {
+                return ResourceManager.GetString("OfficeSharedBy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to shares {0} printer(s).
+        /// </summary>
+        internal static string OfficeShares {
+            get {
+                return ResourceManager.GetString("OfficeShares", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Test page.
+        /// </summary>
+        internal static string OfficeTestPage {
+            get {
+                return ResourceManager.GetString("OfficeTestPage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC is on {0} networks ({1}). A PC on another network may not appear above by itself: type its n [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeTwoNetworks {
+            get {
+                return ResourceManager.GetString("OfficeTwoNetworks", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} waiting.
+        /// </summary>
+        internal static string OfficeWaiting {
+            get {
+                return ResourceManager.GetString("OfficeWaiting", resourceCulture);
             }
         }
 
@@ -802,29 +1558,65 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Ask how many copies before a document goes to another PC's printer.
+        ///   Looks up a localized string similar to Before a document goes to another PC's printer.
         /// </summary>
-        internal static string SettingsAskCopies {
+        internal static string SettingsAskCopiesNote {
             get {
-                return ResourceManager.GetString("SettingsAskCopies", resourceCulture);
+                return ResourceManager.GetString("SettingsAskCopiesNote", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Start PrintVect with Windows (hidden in the tray, for every user of this PC).
+        ///   Looks up a localized string similar to Ask how many copies.
         /// </summary>
-        internal static string SettingsAutostart {
+        internal static string SettingsAskCopiesTitle {
             get {
-                return ResourceManager.GetString("SettingsAutostart", resourceCulture);
+                return ResourceManager.GetString("SettingsAskCopiesTitle", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Look for a newer PrintVect once a day (needs the internet; printing itself never uses it).
+        ///   Looks up a localized string similar to Runs hidden in the tray, for every user of this PC.
         /// </summary>
-        internal static string SettingsCheckForUpdates {
+        internal static string SettingsAutostartNote {
             get {
-                return ResourceManager.GetString("SettingsCheckForUpdates", resourceCulture);
+                return ResourceManager.GetString("SettingsAutostartNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Start PrintVect with Windows.
+        /// </summary>
+        internal static string SettingsAutostartTitle {
+            get {
+                return ResourceManager.GetString("SettingsAutostartTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Carries jobs.
+        /// </summary>
+        internal static string SettingsCarriesJobs {
+            get {
+                return ResourceManager.GetString("SettingsCarriesJobs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Check for a new version once a day.
+        /// </summary>
+        internal static string SettingsCheckDaily {
+            get {
+                return ResourceManager.GetString("SettingsCheckDaily", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Needs the internet. Printing never does..
+        /// </summary>
+        internal static string SettingsCheckDailyNote {
+            get {
+                return ResourceManager.GetString("SettingsCheckDailyNote", resourceCulture);
             }
         }
 
@@ -838,29 +1630,83 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Settings file: {0}.
+        ///   Looks up a localized string similar to Colours.
         /// </summary>
-        internal static string SettingsConfigFile {
+        internal static string SettingsColours {
             get {
-                return ResourceManager.GetString("SettingsConfigFile", resourceCulture);
+                return ResourceManager.GetString("SettingsColours", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Changes are saved straight away and apply to this PC..
+        ///   Looks up a localized string similar to Dark.
+        /// </summary>
+        internal static string SettingsColoursDark {
+            get {
+                return ResourceManager.GetString("SettingsColoursDark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Light.
+        /// </summary>
+        internal static string SettingsColoursLight {
+            get {
+                return ResourceManager.GetString("SettingsColoursLight", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to System default follows the light or dark mode of Windows.
+        /// </summary>
+        internal static string SettingsColoursNote {
+            get {
+                return ResourceManager.GetString("SettingsColoursNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to System default.
+        /// </summary>
+        internal static string SettingsColoursSystem {
+            get {
+                return ResourceManager.GetString("SettingsColoursSystem", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fewer hours.
+        /// </summary>
+        internal static string SettingsFewerHours {
+            get {
+                return ResourceManager.GetString("SettingsFewerHours", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Finds printers.
+        /// </summary>
+        internal static string SettingsFindsPrinters {
+            get {
+                return ResourceManager.GetString("SettingsFindsPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to General.
+        /// </summary>
+        internal static string SettingsGeneral {
+            get {
+                return ResourceManager.GetString("SettingsGeneral", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Changes save straight away and apply to this PC only..
         /// </summary>
         internal static string SettingsIntro {
             get {
                 return ResourceManager.GetString("SettingsIntro", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Keep sent files for.
-        /// </summary>
-        internal static string SettingsKeepCaption {
-            get {
-                return ResourceManager.GetString("SettingsKeepCaption", resourceCulture);
             }
         }
 
@@ -870,6 +1716,51 @@ namespace PrintVect.App {
         internal static string SettingsKeepHours {
             get {
                 return ResourceManager.GetString("SettingsKeepHours", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to So a failed job can be sent again.
+        /// </summary>
+        internal static string SettingsKeepNote {
+            get {
+                return ResourceManager.GetString("SettingsKeepNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Keep copies of sent documents for.
+        /// </summary>
+        internal static string SettingsKeepTitle {
+            get {
+                return ResourceManager.GetString("SettingsKeepTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to More hours.
+        /// </summary>
+        internal static string SettingsMoreHours {
+            get {
+                return ResourceManager.GetString("SettingsMoreHours", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network (for whoever supports PrintVect).
+        /// </summary>
+        internal static string SettingsNetworkTitle {
+            get {
+                return ResourceManager.GetString("SettingsNetworkTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open folder.
+        /// </summary>
+        internal static string SettingsOpenFolder {
+            get {
+                return ResourceManager.GetString("SettingsOpenFolder", resourceCulture);
             }
         }
 
@@ -892,7 +1783,16 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Not set: any PC in the office can print to this PC's shared printers..
+        ///   Looks up a localized string similar to Not set.
+        /// </summary>
+        internal static string SettingsPinNotSetPill {
+            get {
+                return ResourceManager.GetString("SettingsPinNotSetPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Without a PIN, any PC on the office network can print to this PC's shared printers..
         /// </summary>
         internal static string SettingsPinOff {
             get {
@@ -955,11 +1855,29 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Ports: UDP {0} finds printers, TCP {1} carries the jobs. Every PC must use the same ports, so they a [rest of string was truncated].
+        ///   Looks up a localized string similar to Set.
+        /// </summary>
+        internal static string SettingsPinSetPill {
+            get {
+                return ResourceManager.GetString("SettingsPinSetPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Every PC must use the same ports. They can only be changed in the settings file..
         /// </summary>
         internal static string SettingsPortsNote {
             get {
                 return ResourceManager.GetString("SettingsPortsNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Security.
+        /// </summary>
+        internal static string SettingsSecurity {
+            get {
+                return ResourceManager.GetString("SettingsSecurity", resourceCulture);
             }
         }
 
@@ -991,29 +1909,11 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Other PCs find this PC as {0} ({1})..
+        ///   Looks up a localized string similar to Name other PCs see.
         /// </summary>
-        internal static string ShareAddressLine {
+        internal static string ShareColName {
             get {
-                return ResourceManager.GetString("ShareAddressLine", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Other PCs find this PC as {0}. It has no network address right now: check the network cable..
-        /// </summary>
-        internal static string ShareAddressNone {
-            get {
-                return ResourceManager.GetString("ShareAddressNone", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Name for the office.
-        /// </summary>
-        internal static string ShareColFriendly {
-            get {
-                return ResourceManager.GetString("ShareColFriendly", resourceCulture);
+                return ResourceManager.GetString("ShareColName", resourceCulture);
             }
         }
 
@@ -1045,38 +1945,65 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Copy.
+        ///   Looks up a localized string similar to Copy PC name.
         /// </summary>
-        internal static string ShareCopyAddress {
+        internal static string ShareCopyName {
             get {
-                return ResourceManager.GetString("ShareCopyAddress", resourceCulture);
+                return ResourceManager.GetString("ShareCopyName", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to 1. On the other PC, start PrintVect and open Use shared printers. 2. This PC's shared printers appea [rest of string was truncated].
+        ///   Looks up a localized string similar to Other PCs find this PC as.
         /// </summary>
-        internal static string ShareHowSteps {
+        internal static string ShareFindAs {
             get {
-                return ResourceManager.GetString("ShareHowSteps", resourceCulture);
+                return ResourceManager.GetString("ShareFindAs", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Tick each printer you want other PCs to use. The name for the office is what people on the other PCs [rest of string was truncated].
+        ///   Looks up a localized string similar to On that PC, open PrintVect and go to Office printers..
+        /// </summary>
+        internal static string ShareHow1 {
+            get {
+                return ResourceManager.GetString("ShareHow1", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC's shared printers appear there by themselves. Press Add to this PC..
+        /// </summary>
+        internal static string ShareHow2 {
+            get {
+                return ResourceManager.GetString("ShareHow2", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not there? Type {0} and press Look up..
+        /// </summary>
+        internal static string ShareHow3 {
+            get {
+                return ResourceManager.GetString("ShareHow3", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to How another PC connects.
+        /// </summary>
+        internal static string ShareHowTitle {
+            get {
+                return ResourceManager.GetString("ShareHowTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Let other PCs in the office print on the printers connected to this PC..
         /// </summary>
         internal static string ShareIntro {
             get {
                 return ResourceManager.GetString("ShareIntro", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Jobs printed today: {0}.
-        /// </summary>
-        internal static string ShareJobsToday {
-            get {
-                return ResourceManager.GetString("ShareJobsToday", resourceCulture);
             }
         }
 
@@ -1090,6 +2017,51 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Make it private.
+        /// </summary>
+        internal static string ShareMakePrivate {
+            get {
+                return ResourceManager.GetString("ShareMakePrivate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows asks for permission to change the network. Choose Yes..
+        /// </summary>
+        internal static string ShareMakingPrivate {
+            get {
+                return ResourceManager.GetString("ShareMakingPrivate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Name other PCs see for {0}.
+        /// </summary>
+        internal static string ShareNameAccessible {
+            get {
+                return ResourceManager.GetString("ShareNameAccessible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Use a short, clear name for the office, like “Counter 1 Laser”..
+        /// </summary>
+        internal static string ShareNameHint {
+            get {
+                return ResourceManager.GetString("ShareNameHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No network address right now: check the network cable or the Wi-Fi..
+        /// </summary>
+        internal static string ShareNoAddress {
+            get {
+                return ResourceManager.GetString("ShareNoAddress", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to No printers are installed on this PC. Install the printer in Windows first, then press Refresh..
         /// </summary>
         internal static string ShareNoPrinters {
@@ -1099,11 +2071,74 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Pause printer.
+        ///   Looks up a localized string similar to {0} are not listed: they belong to other PCs, so they can't be shared again from here..
         /// </summary>
-        internal static string SharePause {
+        internal static string ShareNotListedMany {
             get {
-                return ResourceManager.GetString("SharePause", resourceCulture);
+                return ResourceManager.GetString("ShareNotListedMany", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} is not listed: it belongs to another PC, so it can't be shared again from here..
+        /// </summary>
+        internal static string ShareNotListedOne {
+            get {
+                return ResourceManager.GetString("ShareNotListedOne", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Off.
+        /// </summary>
+        internal static string ShareOffPill {
+            get {
+                return ResourceManager.GetString("ShareOffPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs can't print here..
+        /// </summary>
+        internal static string ShareOffText {
+            get {
+                return ResourceManager.GetString("ShareOffText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to On.
+        /// </summary>
+        internal static string ShareOnPill {
+            get {
+                return ResourceManager.GetString("ShareOnPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs can print to the printers ticked below..
+        /// </summary>
+        internal static string ShareOnText {
+            get {
+                return ResourceManager.GetString("ShareOnText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pause {0}.
+        /// </summary>
+        internal static string SharePauseAccessible {
+            get {
+                return ResourceManager.GetString("SharePauseAccessible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pause.
+        /// </summary>
+        internal static string SharePauseShort {
+            get {
+                return ResourceManager.GetString("SharePauseShort", resourceCulture);
             }
         }
 
@@ -1135,25 +2170,16 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Another PC? On it, open Use shared printers and add one of this PC's printers ({0})..
+        ///   Looks up a localized string similar to None yet.
         /// </summary>
-        internal static string SharePcsAnother {
+        internal static string SharePcsNoneYet {
             get {
-                return ResourceManager.GetString("SharePcsAnother", resourceCulture);
+                return ResourceManager.GetString("SharePcsNoneYet", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to None yet. To connect a PC:.
-        /// </summary>
-        internal static string SharePcsNone {
-            get {
-                return ResourceManager.GetString("SharePcsNone", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to PCs that use this PC.
+        ///   Looks up a localized string similar to PCs that print here.
         /// </summary>
         internal static string SharePcsTitle {
             get {
@@ -1162,11 +2188,38 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printed today.
+        ///   Looks up a localized string similar to Set a PIN.
         /// </summary>
-        internal static string SharePrintedTodayCaption {
+        internal static string SharePinLink {
             get {
-                return ResourceManager.GetString("SharePrintedTodayCaption", resourceCulture);
+                return ResourceManager.GetString("SharePinLink", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No office PIN. Once sharing is on, any PC on the office network can print here..
+        /// </summary>
+        internal static string SharePinNoticeOff {
+            get {
+                return ResourceManager.GetString("SharePinNoticeOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No office PIN: any PC on the office network can print here..
+        /// </summary>
+        internal static string SharePinNoticeOn {
+            get {
+                return ResourceManager.GetString("SharePinNoticeOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printed here today.
+        /// </summary>
+        internal static string SharePrintedHere {
+            get {
+                return ResourceManager.GetString("SharePrintedHere", resourceCulture);
             }
         }
 
@@ -1189,11 +2242,38 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printers on this PC.
+        ///   Looks up a localized string similar to Printers connected to this PC.
         /// </summary>
-        internal static string SharePrintersTitle {
+        internal static string SharePrintersLocal {
             get {
-                return ResourceManager.GetString("SharePrintersTitle", resourceCulture);
+                return ResourceManager.GetString("SharePrintersLocal", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The network was not changed. {0}.
+        /// </summary>
+        internal static string SharePrivateFailed {
+            get {
+                return ResourceManager.GetString("SharePrivateFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows treats the networks {0} as public, so other PCs can't reach this PC's printers over them. A  [rest of string was truncated].
+        /// </summary>
+        internal static string SharePublicMany {
+            get {
+                return ResourceManager.GetString("SharePublicMany", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows treats the network {0} as public, so other PCs can't reach this PC's printers over it. A pho [rest of string was truncated].
+        /// </summary>
+        internal static string SharePublicOne {
+            get {
+                return ResourceManager.GetString("SharePublicOne", resourceCulture);
             }
         }
 
@@ -1216,38 +2296,29 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Resume printer.
+        ///   Looks up a localized string similar to Read the printer list again.
         /// </summary>
-        internal static string ShareResume {
+        internal static string ShareRefreshList {
             get {
-                return ResourceManager.GetString("ShareResume", resourceCulture);
+                return ResourceManager.GetString("ShareRefreshList", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing with the office.
+        ///   Looks up a localized string similar to Resume {0}.
         /// </summary>
-        internal static string ShareSharingCaption {
+        internal static string ShareResumeAccessible {
             get {
-                return ResourceManager.GetString("ShareSharingCaption", resourceCulture);
+                return ResourceManager.GetString("ShareResumeAccessible", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing is OFF. Other PCs cannot print here..
+        ///   Looks up a localized string similar to Resume.
         /// </summary>
-        internal static string ShareStatusOff {
+        internal static string ShareResumeShort {
             get {
-                return ResourceManager.GetString("ShareStatusOff", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Sharing is ON. Other PCs can send print jobs to this PC on port {0}..
-        /// </summary>
-        internal static string ShareStatusOn {
-            get {
-                return ResourceManager.GetString("ShareStatusOn", resourceCulture);
+                return ResourceManager.GetString("ShareResumeShort", resourceCulture);
             }
         }
 
@@ -1261,11 +2332,137 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Share the ticked printers with the office.
+        ///   Looks up a localized string similar to Share {0}.
         /// </summary>
-        internal static string ShareToggle {
+        internal static string ShareTickAccessible {
             get {
-                return ResourceManager.GetString("ShareToggle", resourceCulture);
+                return ResourceManager.GetString("ShareTickAccessible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tick the ones other PCs may use.
+        /// </summary>
+        internal static string ShareTickHint {
+            get {
+                return ResourceManager.GetString("ShareTickHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Turn off sharing.
+        /// </summary>
+        internal static string ShareTurnOff {
+            get {
+                return ResourceManager.GetString("ShareTurnOff", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Turn on sharing.
+        /// </summary>
+        internal static string ShareTurnOn {
+            get {
+                return ResourceManager.GetString("ShareTurnOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Share with the office.
+        /// </summary>
+        internal static string ShareWithOffice {
+            get {
+                return ResourceManager.GetString("ShareWithOffice", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Share printers with the office?.
+        /// </summary>
+        internal static string SharingDialogHeading {
+            get {
+                return ResourceManager.GetString("SharingDialogHeading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tick at least one printer..
+        /// </summary>
+        internal static string SharingDialogNoPrinter {
+            get {
+                return ResourceManager.GetString("SharingDialogNoPrinter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Office PIN.
+        /// </summary>
+        internal static string SharingDialogPin {
+            get {
+                return ResourceManager.GetString("SharingDialogPin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Type the PIN again.
+        /// </summary>
+        internal static string SharingDialogPinAgain {
+            get {
+                return ResourceManager.GetString("SharingDialogPinAgain", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters. Leave it blank [rest of string was truncated].
+        /// </summary>
+        internal static string SharingDialogPinHelp {
+            get {
+                return ResourceManager.GetString("SharingDialogPinHelp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PC already has an office PIN. Other PCs need the same PIN in their Settings to print here..
+        /// </summary>
+        internal static string SharingDialogPinSet {
+            get {
+                return ResourceManager.GetString("SharingDialogPinSet", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printers to share.
+        /// </summary>
+        internal static string SharingDialogPrinters {
+            get {
+                return ResourceManager.GetString("SharingDialogPrinters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to (recommended).
+        /// </summary>
+        internal static string SharingDialogRecommended {
+            get {
+                return ResourceManager.GetString("SharingDialogRecommended", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other PCs on the office network will be able to print to the printers you choose here..
+        /// </summary>
+        internal static string SharingDialogText {
+            get {
+                return ResourceManager.GetString("SharingDialogText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Turn on sharing.
+        /// </summary>
+        internal static string SharingDialogTitle {
+            get {
+                return ResourceManager.GetString("SharingDialogTitle", resourceCulture);
             }
         }
 
@@ -1306,7 +2503,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing OFF.
+        ///   Looks up a localized string similar to Sharing off.
         /// </summary>
         internal static string StatusSharingOff {
             get {
@@ -1315,7 +2512,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sharing ON.
+        ///   Looks up a localized string similar to Sharing on.
         /// </summary>
         internal static string StatusSharingOn {
             get {
@@ -1365,15 +2562,6 @@ namespace PrintVect.App {
         internal static string TabShare {
             get {
                 return ResourceManager.GetString("TabShare", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Use shared printers.
-        /// </summary>
-        internal static string TabUse {
-            get {
-                return ResourceManager.GetString("TabUse", resourceCulture);
             }
         }
 
@@ -1522,6 +2710,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to {0} is the latest version · checked {1}.
+        /// </summary>
+        internal static string UpdateStatusLatest {
+            get {
+                return ResourceManager.GetString("UpdateStatusLatest", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Not checked yet in this run. PrintVect looks shortly after it starts and then once a day..
         /// </summary>
         internal static string UpdateStatusNeverChecked {
@@ -1536,15 +2733,6 @@ namespace PrintVect.App {
         internal static string UpdateStatusOff {
             get {
                 return ResourceManager.GetString("UpdateStatusOff", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to PrintVect {0} is the latest version (checked {1})..
-        /// </summary>
-        internal static string UpdateStatusUpToDate {
-            get {
-                return ResourceManager.GetString("UpdateStatusUpToDate", resourceCulture);
             }
         }
 
@@ -1594,123 +2782,6 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Address.
-        /// </summary>
-        internal static string UseColAddress {
-            get {
-                return ResourceManager.GetString("UseColAddress", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Host PC.
-        /// </summary>
-        internal static string UseColHost {
-            get {
-                return ResourceManager.GetString("UseColHost", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Printer on this PC.
-        /// </summary>
-        internal static string UseColLocalPrinter {
-            get {
-                return ResourceManager.GetString("UseColLocalPrinter", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Printer.
-        /// </summary>
-        internal static string UseColPrinter {
-            get {
-                return ResourceManager.GetString("UseColPrinter", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Status.
-        /// </summary>
-        internal static string UseColStatus {
-            get {
-                return ResourceManager.GetString("UseColStatus", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Waiting jobs.
-        /// </summary>
-        internal static string UseColWaiting {
-            get {
-                return ResourceManager.GetString("UseColWaiting", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to {0} printer(s) on {1} PC(s)..
-        /// </summary>
-        internal static string UseFoundCount {
-            get {
-                return ResourceManager.GetString("UseFoundCount", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Printers in the office.
-        /// </summary>
-        internal static string UseFoundLabel {
-            get {
-                return ResourceManager.GetString("UseFoundLabel", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to No PC is sharing a printer right now. PrintVect keeps looking every 10 seconds. If a PC should be li [rest of string was truncated].
-        /// </summary>
-        internal static string UseFoundNone {
-            get {
-                return ResourceManager.GetString("UseFoundNone", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to {0} shares {1} printer(s):.
-        /// </summary>
-        internal static string UseFoundPrinters {
-            get {
-                return ResourceManager.GetString("UseFoundPrinters", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Not listed? PC name or IP address:.
-        /// </summary>
-        internal static string UseHostLabel {
-            get {
-                return ResourceManager.GetString("UseHostLabel", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Printers that other PCs in the office share appear here by themselves. Choose one and press Add to t [rest of string was truncated].
-        /// </summary>
-        internal static string UseIntro {
-            get {
-                return ResourceManager.GetString("UseIntro", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Printed today: {0}.
-        /// </summary>
-        internal static string UseJobsToday {
-            get {
-                return ResourceManager.GetString("UseJobsToday", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Asking {0}....
         /// </summary>
         internal static string UseLookingUp {
@@ -1738,29 +2809,11 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Printers from other PCs on this PC.
-        /// </summary>
-        internal static string UseMyPrinters {
-            get {
-                return ResourceManager.GetString("UseMyPrinters", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to {0} shares no printers. On that PC, open PrintVect, tick a printer and turn sharing ON..
+        ///   Looks up a localized string similar to {0} shares no printers. On that PC, open PrintVect, go to Share my printers and turn on sharing..
         /// </summary>
         internal static string UseNoPrintersShared {
             get {
                 return ResourceManager.GetString("UseNoPrintersShared", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to No printer from another PC has been added yet..
-        /// </summary>
-        internal static string UseNoRemotePrinters {
-            get {
-                return ResourceManager.GetString("UseNoRemotePrinters", resourceCulture);
             }
         }
 
@@ -1770,15 +2823,6 @@ namespace PrintVect.App {
         internal static string UseNothingWaiting {
             get {
                 return ResourceManager.GetString("UseNothingWaiting", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to on this PC.
-        /// </summary>
-        internal static string UseOnThisPc {
-            get {
-                return ResourceManager.GetString("UseOnThisPc", resourceCulture);
             }
         }
 
@@ -1837,42 +2881,6 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Retry waiting jobs.
-        /// </summary>
-        internal static string UseRetry {
-            get {
-                return ResourceManager.GetString("UseRetry", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Choose a printer in the list first..
-        /// </summary>
-        internal static string UseSelectFound {
-            get {
-                return ResourceManager.GetString("UseSelectFound", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Choose one of your printers first..
-        /// </summary>
-        internal static string UseSelectMine {
-            get {
-                return ResourceManager.GetString("UseSelectMine", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Send test page.
-        /// </summary>
-        internal static string UseTestPage {
-            get {
-                return ResourceManager.GetString("UseTestPage", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to The test page {0} is missing. Copy the whole PrintVect folder again..
         /// </summary>
         internal static string UseTestPageMissing {
@@ -1896,6 +2904,24 @@ namespace PrintVect.App {
         internal static string UseWatcherError {
             get {
                 return ResourceManager.GetString("UseWatcherError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to and.
+        /// </summary>
+        internal static string WordAnd {
+            get {
+                return ResourceManager.GetString("WordAnd", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to or.
+        /// </summary>
+        internal static string WordOr {
+            get {
+                return ResourceManager.GetString("WordOr", resourceCulture);
             }
         }
     }

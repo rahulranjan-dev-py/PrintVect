@@ -447,6 +447,46 @@ Asked for by the owner on 2026-10-21 (screenshot of the Jobs page with a waiting
 | 10 | Look at the Host PC column of Sent from this PC. | Every PC name is in the same typewriter-like font (before 0.4.1 every other row was in the normal font). |
 | 11 | Share my printers, the Share column. Click in the empty part of a cell beside the box (not on it), then press Space. | The boxes are bigger and all in the middle of their column (before, every other one sat on the left). A shared printer shows a green box with a dark tick, an unshared one an empty box with a grey outline. The click ticks it, Space unticks it, and both are saved (they stay after Exit and a new start). |
 
+## 0.5.0: the redesign, colours and the hotspot fix
+
+Asked for by the owner on 2026-10-22: build the redesign canvas ("PrintVect Redesign"), with a switch for Dark, Light
+and System default, together with the fix for printing over a phone hotspot (a hotspot is a Public network in
+Windows; PrintVect's firewall rules let other PCs in on Private networks only, and the host gets a new address on
+each connection). Steps 16 to 19 need 0.5.0 on both PCs; the rest works PC by PC.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.0. On each PC: Settings, Check now, Update now. | The menu on the left ends with "Version 0.5.0 · up to date". |
+| 1 | Open PrintVect on a PC whose Windows is in light mode (the usual). | Light window: a grey-green menu on the left with the logo, a white box "THIS PC" with the PC name and a "Sharing on" (green) or "Sharing off" (grey) pill, then Office printers, Share my printers, Jobs, Settings. |
+| 2 | Settings, General, **Colours**: press **Dark**, then **Light**. | Each press turns the whole window dark or light at once (the title bar too on Windows 10 / 11), and Settings stays open. |
+| 3 | Press **System default**. In Windows: Settings, Personalisation, Colours, "Choose your app mode": **Dark**. Then back to **Light**. | PrintVect turns dark within a second or two without a restart, then light again. |
+| 4 | Pick Dark, Exit PrintVect (tray, Exit), start it again. Then pick what you prefer. | It starts dark: the choice is kept (config.json: "Theme"). |
+| 5 | Client PC: **Office printers**. | "Added to this PC" with a count; one row per printer: green "Ready" pill after a few seconds (grey "Looking…" first, "Not answering" when its PC is off), "N waiting", "Shared by <PC>", "In Print windows: PrintVect - … @<PC>", **Test page**, **Retry waiting** (grey when nothing waits), red **Remove**. |
+| 6 | Press **Test page**. | A short message bottom right ("The test page was handed to…"); the page prints on the host. |
+| 7 | Look at "Found in the office, not added yet"; press **Search again**. | Printers of other PCs that are not on this PC yet, each with **Add to this PC**; or "Nothing new to add" with how many printers were found. "Last checked" shows the time. |
+| 8 | Under **Find a PC by name** type the host's name, press **Look up**. | A box "<HOST> shares N printer(s)": each printer with "Already on this PC" (green tick) or **Add to this PC**. On a PC with two network cards a blue note says so. |
+| 9 | Host: **Share my printers**, **Turn off sharing**, then **Turn on sharing**. | Off: grey "Off" pill, "Sharing off" in the menu. Turn on opens "Share printers with the office?": the printers with ticks (the shared ones ticked), Office PIN (recommended) typed twice. Tick one, leave the PIN empty, **Turn on sharing**: green "On", "Sharing on" in the menu. |
+| 10 | Look at the printer list. | PrintVect's own printers ("PrintVect - … @<PC>") are not in it; the note under the list names them. Each printer shows its kind ("USB printer · default printer of this PC", "Software printer · saves a PDF file"). |
+| 11 | Change "Name other PCs see" of a shared printer, press Enter. On a client, Office printers. | The client shows the new name within about 10 seconds (under Found, or after Search again). |
+| 12 | Press **Pause** on a shared printer, then **Resume**. | Yellow "Paused" and the button says **Resume**; back to green "Ready". As in 0.4.0, jobs wait while paused. |
+| 13 | Without an office PIN: the yellow note "No office PIN…" on Share my printers, press **Set a PIN**. | Settings opens; Security shows "Not set" (yellow) and **Set PIN…**. |
+| 14 | **Jobs**: switch between **Sent from this PC** and **Received from other PCs**; right-click a job. | One list at a time, newest first: time, document (the message in grey under it), printer, PC, copies, a coloured status pill. Counts "Printed today · Waiting". The menu of 0.4.1 (Retry, Cancel job, Remove from list, Copy details). An empty list says what to do and has a button to the right page. |
+| 15 | **Settings**, Diagnostics. Press **Show full report**, then **Copy report**, paste into Notepad. | A checklist with green ticks (Windows, firewall rules, folders, network, sharing) and yellow marks for what needs doing (no office PIN). The report as before; it now also has "Network categories" (each network Public or Private). |
+| 16 | Hotspot, host side: connect the host's Wi-Fi to a phone hotspot (sharing on). Open Share my printers. | A yellow note: "Windows treats the network "<phone>" as public, so other PCs can't reach this PC's printers over it…" with **Make it private**. Settings, Diagnostics: "Network "<phone>" is public". |
+| 17 | Press **Make it private**, answer **Yes** to Windows. | A message "“<phone>” is now a private network…"; the note goes away (at once or within 30 seconds). In Windows: Settings, Network, the Wi-Fi: Network profile type **Private**. |
+| 18 | Hotspot, client side: connect the client to the same hotspot and print a page to the host's printer. | It prints. |
+| 19 | Switch the phone's hotspot off and on (both PCs reconnect and the host usually gets a new address). Print again from the client without opening Office printers. | It prints. Jobs shows "Looking for <host> on the network" for a moment if the old address no longer answers; the client's log has "<host> now answers at <new address> (was <old>); sending there." |
+| 20 | Make the window narrow (drag its edge). | Buttons move under the text; on Share my printers the right column goes under the printer list. Nothing is cut off; the page scrolls. |
+
+What to paste back after 0.5.0: whether each step matched; for a step that did not, a photo of the screen and the
+Diagnostics report of the PC (Copy report).
+
+Known limits of 0.5.0: **Make it private** needs the Windows permission question (Elevate helper), and a company
+policy can stop the change (the message says so: ask whoever looks after the PC). Some phone hotspots keep the
+devices on them apart ("client isolation"); then PCs on it cannot reach each other at all, whatever PrintVect does:
+use the office network or another hotspot. The copies window and the PIN window take the colours in use when they
+open.
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

@@ -69,6 +69,9 @@ namespace PrintVect.Core.Printing
         /// <summary>ready, busy, offline, paper out, paused, error or unknown.</summary>
         public string Status { get; set; }
         public bool IsDefault { get; set; }
+        /// <summary>The printer's port ("USB001", "PORTPROMPT:", "192.168.1.20") and driver, for the kind line (0.5.0).</summary>
+        public string PortName { get; set; }
+        public string DriverName { get; set; }
     }
 
     /// <summary>Names printer statuses the same way everywhere (protocol, UI, log).</summary>

@@ -67,6 +67,7 @@ namespace PrintVect.Core.Diagnostics
             report.AddSection("Program", DescribeProgram());
             report.AddSection("Windows", WindowsInfo.Describe());
             report.AddSection("Network", NetworkInfo.Describe());
+            report.AddSection("Network categories", NetworkProfiles.Describe(NetworkProfiles.Connected()));
             report.AddSection("Settings", DescribeConfig(paths, config));
             report.AddSection("Folders", DescribeFolders(paths));
             report.AddSection("Firewall rules", FirewallRules.Describe(config));
@@ -126,7 +127,7 @@ namespace PrintVect.Core.Diagnostics
                       + ", remote printers added: " + config.RemotePrinters.Count);
             lines.Add("Start with Windows: " + (config.StartWithWindows ? "yes" : "no")
                       + ", keep sent files: " + config.KeepSentFilesHours + " h, language: " + config.Language
-                      + ", daily update check: " + (config.CheckForUpdates ? "on" : "off"));
+                      + ", daily update check: " + (config.CheckForUpdates ? "on" : "off") + ", colours: " + config.Theme);
             return lines;
         }
 
@@ -137,6 +138,17 @@ namespace PrintVect.Core.Diagnostics
             lines.Add(DescribeFolder("Spool", paths.SpoolDir));
             lines.Add(DescribeFolder("Logs", paths.LogsDir));
             return lines;
+        }
+
+        /// <summary>The data folders that cannot be written to, each as "label: path (why)"; empty when all are fine.</summary>
+        public static IList<string> UnwritableFolders(AppPaths paths)
+        {
+            var problems = new List<string>();
+            foreach (string line in DescribeFolders(paths))
+            {
+                if (!line.EndsWith("(ok, writable)", StringComparison.Ordinal)) problems.Add(line);
+            }
+            return problems;
         }
 
         private static string DescribeFolder(string label, string path)

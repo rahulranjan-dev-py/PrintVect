@@ -109,7 +109,7 @@ namespace PrintVect.Core.Client
                     if (record.State == ClientJobStates.Queued || record.State == ClientJobStates.Sending)
                     {
                         record.State = ClientJobStates.Pending;
-                        record.Message = "PrintVect was closed before this job was sent. Press Retry waiting jobs.";
+                        record.Message = "PrintVect was closed before this job was sent. Press Retry waiting.";
                     }
                     else if (record.State == ClientJobStates.Printing)
                     {

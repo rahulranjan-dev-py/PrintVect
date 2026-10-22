@@ -7,47 +7,64 @@ using PrintVect.Core.Logging;
 namespace PrintVect.App.Theme
 {
     /// <summary>
-    /// The fonts of the design: Manrope for text, JetBrains Mono for PC names and addresses, both shipped in the
-    /// Fonts folder next to the program and loaded for this process only (no system-wide install). A missing file
+    /// The fonts of the design (0.5.0): Noto Sans for text, JetBrains Mono for PC names and addresses, both shipped in
+    /// the Fonts folder next to the program and loaded for this process only (no system-wide install). A missing file
     /// falls back to Segoe UI or Consolas. Sizes are the design's pixels at 100 %, turned into points.
     /// </summary>
     internal static class ThemeFonts
     {
-        private const string TextFamily = "Manrope";
-        private const string TextSemiFamily = "Manrope SemiBold";
+        private const string TextFamily = "Noto Sans";
+        private const string MediumFamily = "Noto Sans Medium";
+        private const string SemiFamily = "Noto Sans SemiBold";
         private const string MonoFamily = "JetBrains Mono";
+        private const string MonoSemiFamily = "JetBrains Mono SemiBold";
 
         private static readonly string[] Files =
         {
-            @"Manrope\Manrope-Regular.ttf", @"Manrope\Manrope-SemiBold.ttf", @"Manrope\Manrope-Bold.ttf",
-            @"JetBrainsMono\JetBrainsMono-Regular.ttf", @"JetBrainsMono\JetBrainsMono-Bold.ttf"
+            @"NotoSans\NotoSans-Regular.ttf", @"NotoSans\NotoSans-Medium.ttf", @"NotoSans\NotoSans-SemiBold.ttf",
+            @"NotoSans\NotoSans-Bold.ttf", @"JetBrainsMono\JetBrainsMono-Regular.ttf", @"JetBrainsMono\JetBrainsMono-SemiBold.ttf"
         };
 
         private static PrivateFontCollection _collection;
-        private static FontFamily _text;
-        private static FontFamily _textSemi;
-        private static FontFamily _mono;
 
         /// <summary>Base text, 14 px.</summary>
         public static Font Text { get; private set; }
-        /// <summary>Base text, 14 px, semibold: buttons, tabs, field names.</summary>
+        /// <summary>14 px medium: menu entries and outlined buttons.</summary>
+        public static Font TextMedium { get; private set; }
+        /// <summary>14 px semibold: names in a list, field names, main buttons.</summary>
         public static Font TextSemi { get; private set; }
         /// <summary>Secondary text, 13 px.</summary>
         public static Font Secondary { get; private set; }
-        /// <summary>Pills and column headings, 12 px semibold.</summary>
+        /// <summary>13 px semibold: the label above a text box.</summary>
+        public static Font SecondarySemi { get; private set; }
+        /// <summary>Pills and column headings, 12.5 px semibold.</summary>
         public static Font Small { get; private set; }
-        /// <summary>Card titles, 16 px bold.</summary>
+        /// <summary>12 px: the version line, small capitals labels (semibold).</summary>
+        public static Font Tiny { get; private set; }
+        public static Font TinySemi { get; private set; }
+        /// <summary>Page titles, 26 px semibold.</summary>
+        public static Font PageTitle { get; private set; }
+        /// <summary>Section titles above a card, 16 px semibold.</summary>
+        public static Font SectionTitle { get; private set; }
+        /// <summary>Titles inside a card, 15 px semibold.</summary>
         public static Font CardTitle { get; private set; }
-        /// <summary>Small labels, 11 px bold (shown in capitals).</summary>
-        public static Font Label { get; private set; }
-        /// <summary>A PC or printer name in large, 24 px bold.</summary>
-        public static Font Big { get; private set; }
-        /// <summary>Big numbers, 28 px bold.</summary>
+        /// <summary>A bigger card or window title, 17 px / 20 px semibold.</summary>
+        public static Font Heading { get; private set; }
+        public static Font DialogTitle { get; private set; }
+        /// <summary>A printer's name on its card, 15.5 px semibold.</summary>
+        public static Font RowTitle { get; private set; }
+        /// <summary>"PrintVect" next to the logo, 17 px bold.</summary>
+        public static Font Brand { get; private set; }
+        /// <summary>Big numbers, 28 px semibold.</summary>
         public static Font Number { get; private set; }
-        /// <summary>PC names and addresses, 13 px.</summary>
+        /// <summary>PC names and addresses: 13 px, 14 px (typed), semibold 13 / 15 / 16 px.</summary>
         public static Font Mono { get; private set; }
-        /// <summary>A PC name in large, 24 px bold monospace.</summary>
+        public static Font MonoText { get; private set; }
+        public static Font MonoSemi { get; private set; }
+        public static Font MonoName { get; private set; }
         public static Font MonoBig { get; private set; }
+        /// <summary>The full Diagnostics report, 12.5 px.</summary>
+        public static Font Report { get; private set; }
 
         /// <summary>What was loaded, for the log and the Diagnostics text.</summary>
         public static string Description { get; private set; }
@@ -76,23 +93,44 @@ namespace PrintVect.App.Theme
                 }
             }
 
-            _text = Find(TextFamily) ?? Fallback("Segoe UI");
-            _textSemi = Find(TextSemiFamily) ?? Fallback("Segoe UI Semibold") ?? _text;
-            _mono = Find(MonoFamily) ?? Fallback("Consolas") ?? FontFamily.GenericMonospace;
+            FontFamily text = Find(TextFamily) ?? Fallback("Segoe UI") ?? FontFamily.GenericSansSerif;
+            FontFamily medium = Find(MediumFamily) ?? Fallback("Segoe UI") ?? text;
+            FontFamily semi = Find(SemiFamily) ?? Fallback("Segoe UI Semibold") ?? text;
+            FontFamily mono = Find(MonoFamily) ?? Fallback("Consolas") ?? FontFamily.GenericMonospace;
+            FontFamily monoSemi = Find(MonoSemiFamily);
+            FontStyle monoSemiStyle = FontStyle.Regular;
+            if (monoSemi == null)
+            {
+                monoSemi = mono;
+                monoSemiStyle = FontStyle.Bold;   // Consolas has no semibold: bold reads the same at these sizes
+            }
+            // Without the bundled SemiBold, "semibold" text falls back to bold so headings still stand out.
+            FontStyle semiStyle = string.Equals(semi.Name, text.Name, StringComparison.OrdinalIgnoreCase) ? FontStyle.Bold : FontStyle.Regular;
 
-            Text = Make(_text, 14, FontStyle.Regular);
-            TextSemi = Make(_textSemi, 14, FontStyle.Regular);
-            Secondary = Make(_text, 13, FontStyle.Regular);
-            Small = Make(_textSemi, 12, FontStyle.Regular);
-            CardTitle = Make(_text, 16, FontStyle.Bold);
-            Label = Make(_text, 11, FontStyle.Bold);
-            Big = Make(_text, 24, FontStyle.Bold);
-            Number = Make(_text, 28, FontStyle.Bold);
-            Mono = Make(_mono, 13, FontStyle.Regular);
-            MonoBig = Make(_mono, 24, FontStyle.Bold);
+            Text = Make(text, 14f, FontStyle.Regular);
+            TextMedium = Make(medium, 14f, FontStyle.Regular);
+            TextSemi = Make(semi, 14f, semiStyle);
+            Secondary = Make(text, 13f, FontStyle.Regular);
+            SecondarySemi = Make(semi, 13f, semiStyle);
+            Small = Make(semi, 12.5f, semiStyle);
+            Tiny = Make(text, 12f, FontStyle.Regular);
+            TinySemi = Make(semi, 12f, semiStyle);
+            PageTitle = Make(semi, 26f, semiStyle);
+            SectionTitle = Make(semi, 16f, semiStyle);
+            CardTitle = Make(semi, 15f, semiStyle);
+            Heading = Make(semi, 17f, semiStyle);
+            DialogTitle = Make(semi, 20f, semiStyle);
+            RowTitle = Make(semi, 15.5f, semiStyle);
+            Brand = Make(text, 17f, FontStyle.Bold);
+            Number = Make(semi, 28f, semiStyle);
+            Mono = Make(mono, 13f, FontStyle.Regular);
+            MonoText = Make(mono, 14f, FontStyle.Regular);
+            MonoSemi = Make(monoSemi, 13f, monoSemiStyle);
+            MonoName = Make(monoSemi, 15f, monoSemiStyle);
+            MonoBig = Make(monoSemi, 16f, monoSemiStyle);
+            Report = Make(mono, 12.5f, FontStyle.Regular);
 
-            Description = string.Format("{0} of {1} font files loaded; text {2}, names {3}", loaded, Files.Length,
-                _text.Name, _mono.Name);
+            Description = string.Format("{0} of {1} font files loaded; text {2}, names {3}", loaded, Files.Length, text.Name, mono.Name);
             Log.Info("Fonts: " + Description + ".");
         }
 
@@ -118,7 +156,8 @@ namespace PrintVect.App.Theme
         {
             try
             {
-                using (var font = new Font(family, 10f, FontStyle.Regular, GraphicsUnit.Point))
+                FontStyle style = family.IsStyleAvailable(FontStyle.Regular) ? FontStyle.Regular : FontStyle.Bold;
+                using (var font = new Font(family, 10f, style, GraphicsUnit.Point))
                 {
                     return font.Height > 0;
                 }
@@ -142,14 +181,13 @@ namespace PrintVect.App.Theme
             }
         }
 
-        private static Font Make(FontFamily family, int px, FontStyle style)
+        private static Font Make(FontFamily family, float px, FontStyle style)
         {
-            FontFamily use = family ?? FontFamily.GenericSansSerif;
-            if (!use.IsStyleAvailable(style))
+            if (!family.IsStyleAvailable(style))
             {
-                style = FontStyle.Regular;
+                style = family.IsStyleAvailable(FontStyle.Regular) ? FontStyle.Regular : FontStyle.Bold;
             }
-            return new Font(use, px * 0.75f, style, GraphicsUnit.Point);
+            return new Font(family, px * 0.75f, style, GraphicsUnit.Point);
         }
     }
 }
