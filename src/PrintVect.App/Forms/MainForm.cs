@@ -8,158 +8,201 @@ using PrintVect.App.Theme;
 using PrintVect.App.Update;
 using PrintVect.Core;
 using PrintVect.Core.Config;
+using PrintVect.Core.Logging;
 using PrintVect.Core.Update;
 
 namespace PrintVect.App.Forms
 {
+    internal enum PageId
+    {
+        Office,
+        Share,
+        Jobs,
+        Settings
+    }
+
+    /// <summary>What a page may ask of the window around it: a short message, another page, the update.</summary>
+    internal interface IShell
+    {
+        void Say(string text);
+        void Go(PageId page);
+        void StartUpdate();
+    }
+
     /// <summary>
-    /// The single window (brief, section 7), in the owner's Graphite design since M6b (docs/design/design-spec.md):
-    /// a 56 px top bar with the tabs and the sharing pill, the yellow update strip when a newer PrintVect is ready,
-    /// the page, and a slim status bar. Built in code rather than with the designer so it stays readable in a diff.
+    /// The single window (brief, section 7) in the redesign of 0.5.0: a side menu with the logo, this PC's name and
+    /// sharing state, the four pages and the version; the yellow update strip when a newer PrintVect is ready; the page;
+    /// short messages at the bottom right. Built in code rather than with the designer so it stays readable in a diff.
+    /// When the colours change (Settings, or Windows in System default) everything inside is built again.
     /// </summary>
-    internal sealed class MainForm : Form
+    internal sealed class MainForm : Form, IShell
     {
         private const int MessageDisplaySeconds = 8;
+        private const int SidebarWidth = 232;
 
-        private readonly HostController _controller;
+        private readonly AppPaths _paths;
+        private readonly ConfigStore _store;
+        private readonly AppConfig _config;
+        private readonly HostController _host;
+        private readonly ClientController _client;
         private readonly UpdateController _updates;
-        private readonly List<NavTab> _tabs = new List<NavTab>();
+        private readonly List<NavItem> _nav = new List<NavItem>();
         private readonly List<Control> _pages = new List<Control>();
 
         private Panel _pageHost;
-        private Panel _tabStrip;
-        private SettingsTab _settingsTab;
+        private Panel _navPanel;
         private StatusPill _sharingPill;
+        private LinkLabel _version;
         private TableLayoutPanel _banner;
         private Label _bannerLabel;
         private ThemedButton _bannerUpdate;
         private Version _bannerDismissed;
-        private Label _messageLabel;
-        private Timer _messageTimer;
+        private Toast _toast;
+        private SettingsPage _settingsPage;
         private int _current = -1;
 
-        public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController controller, ClientController client,
+        public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController host, ClientController client,
             UpdateController updates)
         {
-            if (controller == null) throw new ArgumentNullException(nameof(controller));
+            if (host == null) throw new ArgumentNullException(nameof(host));
             if (client == null) throw new ArgumentNullException(nameof(client));
             if (updates == null) throw new ArgumentNullException(nameof(updates));
-            _controller = controller;
+            _paths = paths;
+            _store = store;
+            _config = config;
+            _host = host;
+            _client = client;
             _updates = updates;
-            BuildLayout(paths, store, config, client);
-            RefreshBanner();
-            UpdateSharingStatus(_controller.IsSharing);
-            _controller.SharingChanged += (s, e) => UpdateSharingStatus(_controller.IsSharing);
-            _updates.Changed += (s, e) => RefreshBanner();
-        }
 
-        public void UpdateSharingStatus(bool sharingOn)
-        {
-            _sharingPill.Text = sharingOn ? Strings.StatusSharingOn : Strings.StatusSharingOff;
-            _sharingPill.Kind = sharingOn ? PillKind.Connected : PillKind.Offline;
+            AutoScaleMode = AutoScaleMode.None;   // sizes come from Ui.S, fonts are in points
+            Text = Strings.AppName;
+            Icon = AppIcon.Window;
+            StartPosition = FormStartPosition.CenterScreen;
+            Font = ThemeFonts.Text;
+            KeyPreview = true;
+            Rectangle screen = Screen.PrimaryScreen.WorkingArea;
+            ClientSize = new Size(Math.Min(Ui.S(1220), screen.Width - Ui.S(40)), Math.Min(Ui.S(800), screen.Height - Ui.S(60)));
+            MinimumSize = new Size(Math.Min(Ui.S(920), screen.Width), Math.Min(Ui.S(600), screen.Height));
+
+            Build(PageId.Office);
+            _host.SharingChanged += OnSharingChanged;
+            _updates.Changed += OnUpdatesChanged;
+            ThemeManager.Changed += OnThemeChanged;
         }
 
         /// <summary>Opens the Settings page, where the Updates card lives (the update balloon leads here).</summary>
         public void ShowSettings()
         {
-            if (!IsDisposed)
-            {
-                Select(_pages.IndexOf(_settingsTab));
-            }
+            Go(PageId.Settings);
         }
 
-        private void BuildLayout(AppPaths paths, ConfigStore store, AppConfig config, ClientController client)
+        public void Say(string text)
+        {
+            if (_toast != null && !_toast.IsDisposed) _toast.Say(text);
+        }
+
+        public void Go(PageId page)
+        {
+            if (!IsDisposed) Select((int)page);
+        }
+
+        public void StartUpdate()
+        {
+            if (_settingsPage != null && !_settingsPage.IsDisposed) _settingsPage.StartUpdate();
+        }
+
+        private void Build(PageId page)
         {
             SuspendLayout();
-            AutoScaleMode = AutoScaleMode.None;   // sizes come from Ui.S, fonts are in points
-            Text = Strings.AppName;
-            Icon = AppIcon.Window;
-            StartPosition = FormStartPosition.CenterScreen;
             BackColor = Palette.Background;
             ForeColor = Palette.Text;
-            Font = ThemeFonts.Text;
-            ClientSize = new Size(Ui.S(1040), Ui.S(680));
-            MinimumSize = new Size(Ui.S(880), Ui.S(600));
-            KeyPreview = true;
+            _nav.Clear();
+            _pages.Clear();
+            _current = -1;
 
-            _pageHost = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background, Padding = Ui.Pad(24, 20, 24, 20) };
-            var share = new ShareTab(_controller) { Dock = DockStyle.Fill };
-            share.Message += (s, text) => ShowMessage(text);
-            var jobs = new JobsTab(_controller, client) { Dock = DockStyle.Fill };
-            jobs.Message += (s, text) => ShowMessage(text);
-            var use = new UseTab(client) { Dock = DockStyle.Fill };
-            _settingsTab = new SettingsTab(paths, store, config, _controller, client, _updates) { Dock = DockStyle.Fill };
-            _settingsTab.Message += (s, text) => ShowMessage(text);
+            var main = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background };
+            _pageHost = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background };
+            _toast = new Toast(MessageDisplaySeconds);
+            _pageHost.Controls.Add(_toast);
+            _pageHost.Resize += (s, e) => _toast.Place();
 
-            Panel topBar = CreateTopBar();
-            AddPage(Strings.TabShare, share);
-            AddPage(Strings.TabJobs, jobs);
-            AddPage(Strings.TabUse, use);
-            AddPage(Strings.TabSettings, _settingsTab);
+            var office = new OfficePrintersPage(_client, this);
+            var share = new SharePage(_paths, _store, _config, _host, _client, this);
+            var jobs = new JobsPage(_host, _client, _config, this);
+            _settingsPage = new SettingsPage(_paths, _store, _config, _host, _client, _updates, this);
 
-            _messageTimer = new Timer { Interval = MessageDisplaySeconds * 1000 };
-            _messageTimer.Tick += (s, e) =>
-            {
-                _messageTimer.Stop();
-                _messageLabel.Text = "";
-            };
+            Control sidebar = CreateSidebar();
+            AddPage(Strings.NavOffice, Glyph.Printer, office);
+            AddPage(Strings.TabShare, Glyph.Share, share);
+            AddPage(Strings.TabJobs, Glyph.Jobs, jobs);
+            AddPage(Strings.TabSettings, Glyph.Settings, _settingsPage);
 
-            Controls.Add(_pageHost);
-            Controls.Add(CreateBanner());
-            Controls.Add(topBar);
-            Controls.Add(CreateStatusBar());
+            main.Controls.Add(_pageHost);
+            main.Controls.Add(CreateBanner());
+            Controls.Add(main);
+            Controls.Add(sidebar);
             Ui.Solidify(this);
-            Select(0);
+            _toast.BringToFront();
+            UpdateSharingStatus();
+            RefreshUpdateState();
+            Select((int)page);
             ResumeLayout(true);
         }
 
-        private Panel CreateTopBar()
+        private Control CreateSidebar()
         {
-            var bar = new BorderedPanel(bottom: true) { Dock = DockStyle.Top, Height = Ui.S(56), BackColor = Palette.TopBar, Padding = Ui.Pad(20, 0, 20, 0) };
+            var bar = new SidePanel { Dock = DockStyle.Left, Width = Ui.S(SidebarWidth), BackColor = Palette.Sidebar, Padding = Ui.Pad(14, 20, 14, 18) };
 
-            var logo = new PictureBox
-            {
-                Image = new Icon(AppIcon.Window, Ui.S(24), Ui.S(24)).ToBitmap(),
-                SizeMode = PictureBoxSizeMode.CenterImage,
-                Dock = DockStyle.Left,
-                Width = Ui.S(32),
-                BackColor = Palette.TopBar
-            };
-            var name = new Label
-            {
-                Text = Strings.AppName,
-                Font = ThemeFonts.CardTitle,
-                ForeColor = Palette.Text,
-                BackColor = Palette.TopBar,
-                Dock = DockStyle.Left,
-                AutoSize = false,
-                Width = TextRenderer.MeasureText(Strings.AppName, ThemeFonts.CardTitle).Width + Ui.S(28),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = Ui.Pad(6, 0, 0, 0)
-            };
+            var brand = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1, Dock = DockStyle.Top, Margin = Ui.Pad(0), Padding = Ui.Pad(6, 0, 0, 0), BackColor = Palette.Sidebar };
+            brand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            brand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var logo = new IconTile(Glyph.Printer, 34, 20, Palette.Accent, Palette.OnAccent) { Margin = Ui.Pad(0, 0, 10, 0) };
+            Label name = Make.Label(Strings.AppName, ThemeFonts.Brand, Palette.Text, Ui.Pad(0));
+            name.Anchor = AnchorStyles.Left;
+            brand.Controls.Add(logo, 0, 0);
+            brand.Controls.Add(name, 1, 0);
 
-            _sharingPill = new StatusPill { Anchor = AnchorStyles.Right, Kind = PillKind.Offline };
-            var right = new TableLayoutPanel { Dock = DockStyle.Right, AutoSize = true, ColumnCount = 1, RowCount = 1, BackColor = Palette.TopBar };
-            right.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            right.Controls.Add(_sharingPill, 0, 0);
+            // This PC: its name and whether it shares its printers, on every page.
+            _sharingPill = new StatusPill(Strings.StatusSharingOff, PillKind.Neutral);
+            Label pcName = Make.Label(Environment.MachineName, ThemeFonts.MonoName, Palette.Text, Ui.Pad(0));
+            TableLayoutPanel thisPc = Make.Stack(6, Make.Caption(Strings.ShareThisPcCaption), pcName, _sharingPill);
+            Card pcCard = Make.Card(thisPc, 12, 12);
+            pcCard.Radius = 8;
+            pcCard.Dock = DockStyle.Top;
 
-            _tabStrip = new Panel { Dock = DockStyle.Fill, BackColor = Palette.TopBar };
-            bar.Controls.Add(_tabStrip);
-            bar.Controls.Add(right);
-            bar.Controls.Add(name);
-            bar.Controls.Add(logo);
+            var items = new Panel { Dock = DockStyle.Top, BackColor = Palette.Sidebar, Height = 4 * Ui.S(NavItem.HeightPx) };
+            _navPanel = items;
+
+            _version = Make.Link("", Palette.Faint, () => Go(PageId.Settings), ThemeFonts.Tiny);
+            _version.Dock = DockStyle.Fill;
+            _version.LinkBehavior = LinkBehavior.HoverUnderline;
+            var versionLine = new Panel { Dock = DockStyle.Bottom, Height = _version.PreferredHeight + Ui.S(2), Padding = Ui.Pad(8, 0, 0, 0), BackColor = Palette.Sidebar };
+            versionLine.Controls.Add(_version);
+
+            bar.Controls.Add(items);
+            bar.Controls.Add(Spacer(22));
+            bar.Controls.Add(pcCard);
+            bar.Controls.Add(Spacer(22));
+            bar.Controls.Add(brand);
+            bar.Controls.Add(versionLine);
             return bar;
         }
 
-        private void AddPage(string title, Control page)
+        private static Control Spacer(int heightPx)
+        {
+            return new Panel { Dock = DockStyle.Top, Height = Ui.S(heightPx), BackColor = Palette.Sidebar };
+        }
+
+        private void AddPage(string title, Glyph glyph, Control page)
         {
             int index = _pages.Count;
-            var tab = new NavTab(title);
-            tab.Click += (s, e) => Select(index);
-            _tabs.Add(tab);
-            _tabStrip.Controls.Add(tab);
-            tab.BringToFront();   // docked left: the last one added sits rightmost
+            var item = new NavItem(title, glyph);
+            item.Click += (s, e) => Select(index);
+            _nav.Add(item);
+            _navPanel.Controls.Add(item);
+            item.BringToFront();   // docked top: the last one added sits lowest
             _pages.Add(page);
+            page.Dock = DockStyle.Fill;
             page.Visible = false;
             _pageHost.Controls.Add(page);
         }
@@ -172,7 +215,7 @@ namespace PrintVect.App.Forms
             }
             for (int i = 0; i < _pages.Count; i++)
             {
-                _tabs[i].Active = i == index;
+                _nav[i].Active = i == index;
             }
             // Show the new page before hiding the old one so the window never flashes empty.
             _pages[index].Visible = true;
@@ -181,18 +224,19 @@ namespace PrintVect.App.Forms
                 _pages[_current].Visible = false;
             }
             _current = index;
+            _toast.BringToFront();
         }
 
         /// <summary>Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+PageDown / PageUp move between pages, like the old tabs.</summary>
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             int count = _pages.Count;
-            if (keyData == (Keys.Control | Keys.Tab) || keyData == (Keys.Control | Keys.PageDown))
+            if (count > 0 && (keyData == (Keys.Control | Keys.Tab) || keyData == (Keys.Control | Keys.PageDown)))
             {
                 Select((_current + 1) % count);
                 return true;
             }
-            if (keyData == (Keys.Control | Keys.Shift | Keys.Tab) || keyData == (Keys.Control | Keys.PageUp))
+            if (count > 0 && (keyData == (Keys.Control | Keys.Shift | Keys.Tab) || keyData == (Keys.Control | Keys.PageUp)))
             {
                 Select((_current + count - 1) % count);
                 return true;
@@ -208,65 +252,61 @@ namespace PrintVect.App.Forms
                 Dock = DockStyle.Top,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                ColumnCount = 3,
+                ColumnCount = 4,
                 RowCount = 1,
-                BackColor = Palette.Warning,
-                Padding = Ui.Pad(24, 8, 24, 8),
+                BackColor = Palette.WarningBg,
+                Padding = Ui.Pad(36, 10, 36, 10),
                 Visible = false
             };
+            _banner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             _banner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             _banner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             _banner.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             _banner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            _bannerLabel = Make.Label("", ThemeFonts.TextSemi, Palette.OnWarning, Ui.Pad(0, 0, 8, 0));
-            _bannerLabel.TextAlign = ContentAlignment.MiddleLeft;
-            _bannerUpdate = new ThemedButton(Strings.SettingsUpdateNow, ButtonKind.OnWarning) { Anchor = AnchorStyles.None };
-            _bannerUpdate.Click += (s, e) => _settingsTab.StartUpdate();
-            var later = new ThemedButton(Strings.UpdateBannerLater, ButtonKind.OnWarning) { Anchor = AnchorStyles.None, Margin = Ui.Pad(0) };
+            var icon = new GlyphBox(Glyph.Info, 18, Palette.WarningText) { Anchor = AnchorStyles.Left, Margin = Ui.Pad(0, 0, 10, 0) };
+            _bannerLabel = Make.Label("", ThemeFonts.TextSemi, Palette.WarningText, Ui.Pad(0, 0, 8, 0));
+            _bannerLabel.Anchor = AnchorStyles.Left;
+            _bannerUpdate = new ThemedButton(Strings.SettingsUpdateNow, ButtonKind.Primary) { Anchor = AnchorStyles.None };
+            _bannerUpdate.Click += (s, e) => StartUpdate();
+            var later = new ThemedButton(Strings.UpdateBannerLater, ButtonKind.Secondary) { Anchor = AnchorStyles.None, Margin = Ui.Pad(0) };
             later.Click += (s, e) => DismissBanner();
 
-            _banner.Controls.Add(_bannerLabel, 0, 0);
-            _banner.Controls.Add(_bannerUpdate, 1, 0);
-            _banner.Controls.Add(later, 2, 0);
+            _banner.Controls.Add(icon, 0, 0);
+            _banner.Controls.Add(_bannerLabel, 1, 0);
+            _banner.Controls.Add(_bannerUpdate, 2, 0);
+            _banner.Controls.Add(later, 3, 0);
             return _banner;
         }
 
-        private Panel CreateStatusBar()
+        private void OnSharingChanged(object sender, EventArgs e)
         {
-            var bar = new BorderedPanel(bottom: false) { Dock = DockStyle.Bottom, Height = Ui.S(30), BackColor = Palette.TopBar, Padding = Ui.Pad(24, 0, 24, 0) };
-            _messageLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Font = ThemeFonts.Secondary,
-                ForeColor = Palette.Text,
-                BackColor = Palette.TopBar,
-                TextAlign = ContentAlignment.MiddleLeft,
-                AutoEllipsis = true,
-                UseMnemonic = false
-            };
-            var version = new Label
-            {
-                Text = string.Format(Strings.StatusVersion, AppInfo.Version),
-                Dock = DockStyle.Right,
-                AutoSize = true,
-                Font = ThemeFonts.Secondary,
-                ForeColor = Palette.Muted,
-                BackColor = Palette.TopBar,
-                Padding = Ui.Pad(0, 7, 0, 0)
-            };
-            bar.Controls.Add(_messageLabel);
-            bar.Controls.Add(version);
-            return bar;
+            if (!IsDisposed) UpdateSharingStatus();
         }
 
-        private void RefreshBanner()
+        private void UpdateSharingStatus()
         {
-            if (IsDisposed || _banner == null)
-            {
-                return;
-            }
+            bool on = _host.IsSharing;
+            _sharingPill.Set(on ? Strings.StatusSharingOn : Strings.StatusSharingOff, on ? PillKind.Success : PillKind.Neutral);
+        }
+
+        private void OnUpdatesChanged(object sender, EventArgs e)
+        {
+            if (!IsDisposed) RefreshUpdateState();
+        }
+
+        /// <summary>The version line under the menu and the update strip above the page.</summary>
+        private void RefreshUpdateState()
+        {
+            if (_banner == null) return;
             ReleaseInfo available = _updates.Available;
+            UpdateCheckResult last = _updates.LastResult;
+            string state = available != null ? Strings.NavVersionUpdate
+                : last != null && last.Outcome == UpdateCheckOutcome.UpToDate ? Strings.NavVersionLatest : null;
+            _version.Text = string.Format(state == null ? Strings.StatusVersion : Strings.NavVersionLine, AppInfo.Version, state);
+            _version.LinkColor = available != null ? Palette.AccentText : Palette.Faint;
+            _version.ActiveLinkColor = _version.LinkColor;
+
             bool showBanner = available != null && (_bannerDismissed == null || _bannerDismissed != available.Version);
             if (showBanner)
             {
@@ -280,40 +320,59 @@ namespace PrintVect.App.Forms
         {
             ReleaseInfo available = _updates.Available;
             _bannerDismissed = available == null ? null : available.Version;
-            RefreshBanner();
+            RefreshUpdateState();
         }
 
-        private void ShowMessage(string text)
+        /// <summary>New colours: build the whole window again on the same page (after the click that chose them).</summary>
+        private void OnThemeChanged(object sender, EventArgs e)
         {
-            _messageLabel.Text = text;
-            _messageTimer.Stop();
-            _messageTimer.Start();
+            if (IsDisposed) return;
+            if (!IsHandleCreated)
+            {
+                Rebuild();
+                return;
+            }
+            BeginInvoke((Action)Rebuild);
+        }
+
+        private void Rebuild()
+        {
+            if (IsDisposed) return;
+            PageId page = _current < 0 ? PageId.Office : (PageId)_current;
+            Log.Info("Colours changed: building the window again (page " + page + ").");
+            SuspendLayout();
+            var old = new List<Control>();
+            foreach (Control c in Controls) old.Add(c);
+            Controls.Clear();
+            foreach (Control c in old) c.Dispose();
+            Build(page);
+            ResumeLayout(true);
+            NativeTheme.ApplyTitleBar(this, true);
+            Invalidate(true);
         }
 
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            NativeTheme.UseDarkTitleBar(this);
+            NativeTheme.ApplyTitleBar(this);
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && _messageTimer != null)
+            if (disposing)
             {
-                _messageTimer.Dispose();
-                _messageTimer = null;
+                ThemeManager.Changed -= OnThemeChanged;
+                _host.SharingChanged -= OnSharingChanged;
+                _updates.Changed -= OnUpdatesChanged;
             }
             base.Dispose(disposing);
         }
 
-        /// <summary>A panel with a 1 px border line along its bottom (top bar) or top (status bar).</summary>
-        private sealed class BorderedPanel : Panel
+        /// <summary>The side menu: its colour with a 1 px line along its right edge.</summary>
+        private sealed class SidePanel : Panel
         {
-            private readonly bool _bottom;
-
-            public BorderedPanel(bool bottom)
+            public SidePanel()
             {
-                _bottom = bottom;
                 SetStyle(ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer, true);
             }
 
@@ -322,8 +381,7 @@ namespace PrintVect.App.Forms
                 base.OnPaint(e);
                 using (var pen = new Pen(Palette.Border))
                 {
-                    int y = _bottom ? Height - 1 : 0;
-                    e.Graphics.DrawLine(pen, 0, y, Width, y);
+                    e.Graphics.DrawLine(pen, Width - 1, 0, Width - 1, Height);
                 }
             }
         }

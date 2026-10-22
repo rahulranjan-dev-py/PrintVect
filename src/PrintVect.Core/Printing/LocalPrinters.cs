@@ -14,6 +14,12 @@ namespace PrintVect.Core.Printing
     {
         public IList<LocalPrinterInfo> GetPrinters()
         {
+            return GetPrinters(false);
+        }
+
+        /// <param name="withPorts">Also reads each printer's port and driver (the Share page; not every discovery answer).</param>
+        public IList<LocalPrinterInfo> GetPrinters(bool withPorts)
+        {
             var result = new List<LocalPrinterInfo>();
             string defaultName = DefaultPrinterName();
 
@@ -35,6 +41,18 @@ namespace PrintVect.Core.Printing
                             Log.Warn("Printer \"" + info.Name + "\" did not report its status: " + ex.Message);
                         }
                         info.IsDefault = string.Equals(info.Name, defaultName, StringComparison.OrdinalIgnoreCase);
+                        if (withPorts)
+                        {
+                            try
+                            {
+                                info.PortName = queue.QueuePort == null ? null : queue.QueuePort.Name;
+                                info.DriverName = queue.QueueDriver == null ? null : queue.QueueDriver.Name;
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Warn("Printer \"" + info.Name + "\" did not report its port or driver: " + ex.Message);
+                            }
+                        }
                         result.Add(info);
                     }
                 }

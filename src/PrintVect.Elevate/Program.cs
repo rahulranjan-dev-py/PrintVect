@@ -19,6 +19,7 @@ namespace PrintVect.Elevate
     ///   remove-printer /name "&lt;printer&gt;" [/port "&lt;port file&gt;"] [/folder "&lt;spool folder&gt;"]
     ///   remove-all
     ///   autostart /on yes|no
+    ///   network-private /networks &lt;network id&gt;[,&lt;network id&gt;...]
     /// Exit codes: 0 ok, 1 failed, 2 usage error, 3 not running as administrator.
     /// The outcome is also written as JSON to the result file (default: spool\elevate-result.json).
     /// </summary>
@@ -92,6 +93,8 @@ namespace PrintVect.Elevate
                         return RemoveAll(result);
                     case ElevateCommands.Autostart:
                         return SetAutostart(result, arguments);
+                    case ElevateCommands.NetworkPrivate:
+                        return MakeNetworksPrivate(result, arguments);
                     default:
                         return Usage(result, "Unknown command \"" + command + "\".");
                 }
@@ -346,6 +349,52 @@ namespace PrintVect.Elevate
                                  : "PrintVect no longer starts with Windows on this PC. Start it from the Start menu when needed.");
         }
 
+        /// <summary>
+        /// The hotspot fix (0.5.0): Windows treats a phone hotspot as a Public network, where the firewall rules of the
+        /// installer do not let other PCs in. Making the network Private opens it to them, as on the office LAN.
+        /// </summary>
+        private static ElevateResult MakeNetworksPrivate(ElevateResult result, ElevateArguments arguments)
+        {
+            var ids = new List<Guid>();
+            foreach (string part in (arguments.Get(ElevateCommands.OptionNetworks) ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                Guid id;
+                if (!Guid.TryParse(part.Trim(), out id))
+                {
+                    return Usage(result, "\"" + part.Trim() + "\" is not a network id.");
+                }
+                ids.Add(id);
+            }
+            if (ids.Count == 0)
+            {
+                return Usage(result, "network-private needs /networks with one or more network ids.");
+            }
+
+            var done = new List<string>();
+            var problems = new List<string>();
+            foreach (Guid id in ids)
+            {
+                try
+                {
+                    done.Add("\u201c" + NetworkProfiles.SetPrivate(id) + "\u201d");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Network " + id + " could not be made Private.", ex);
+                    problems.Add(ex.Message);
+                }
+            }
+            if (problems.Count > 0)
+            {
+                result.ExitCode = ElevateExitCodes.Failed;
+                result.Message = "Windows did not change the network: " + string.Join(" ", problems)
+                                 + " Ask whoever looks after this PC to set it to Private in Windows Settings, Network.";
+                return result;
+            }
+            return Ok(result, string.Join(" and ", done) + (done.Count == 1 ? " is" : " are")
+                              + " now a private network. Other PCs on it can reach this PC's printers.");
+        }
+
         private static ElevateResult Ok(ElevateResult result, string message)
         {
             result.Ok = true;
@@ -357,7 +406,7 @@ namespace PrintVect.Elevate
         private static ElevateResult Usage(ElevateResult result, string problem)
         {
             result.ExitCode = ElevateExitCodes.UsageError;
-            result.Message = problem + " Usage: PrintVect.Elevate.exe <ping|version|add-printer|remove-printer|remove-all> [/option value]... [/result <file>]";
+            result.Message = problem + " Usage: PrintVect.Elevate.exe <ping|version|add-printer|remove-printer|remove-all|autostart|network-private> [/option value]... [/result <file>]";
             return result;
         }
 

@@ -50,14 +50,15 @@ namespace PrintVect.App.Forms
             outer.Controls.Add(card);
 
             TableLayoutPanel column = Make.Column(0, 0, 0, 100, 0, 0);
-            column.Controls.Add(Make.Title(string.Format(Strings.CopiesDocument, job.Doc)), 0, 0);
+            column.Controls.Add(Make.Label(string.Format(Strings.CopiesDocument, job.Doc), ThemeFonts.Heading, Palette.Text, Ui.Pad(0, 0, 0, 4)), 0, 0);
             Label where = Make.Muted(string.Format(Strings.CopiesWhere, job.PrinterFriendly, job.HostName));
+            where.Margin = Ui.Pad(0, 0, 0, 12);
             column.Controls.Add(where, 0, 1);
             column.Controls.Add(Make.Caption(Strings.CopiesLabel), 0, 2);
 
-            var minus = new ThemedButton("−", ButtonKind.Secondary) { Margin = Ui.Pad(0) };
+            var minus = new ThemedButton(Strings.CopiesFewer, ButtonKind.Secondary, Glyph.Minus) { Margin = Ui.Pad(0), IconOnly = true };
             minus.Click += (s, e) => Change(-1);
-            var plus = new ThemedButton("+", ButtonKind.Secondary) { Margin = Ui.Pad(0) };
+            var plus = new ThemedButton(Strings.CopiesMore, ButtonKind.Secondary, Glyph.Plus) { Margin = Ui.Pad(0), IconOnly = true };
             plus.Click += (s, e) => Change(+1);
             _number = new Label
             {
@@ -75,14 +76,14 @@ namespace PrintVect.App.Forms
             {
                 Font = ThemeFonts.Secondary,
                 ForeColor = Palette.Muted,
-                WrapWidth = 300,
+                WrapWidth = 320,
                 Margin = Ui.Pad(0, 0, 0, 10)
             };
             column.Controls.Add(_dontAsk, 0, 4);
 
             _print = new ThemedButton("", ButtonKind.Primary);
             _print.Click += (s, e) => Answer(_copies);
-            var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary);
+            var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary) { Margin = Ui.Pad(0) };
             cancel.Click += (s, e) => Answer(null);
             column.Controls.Add(Make.Row(_print, cancel), 0, 5);
             card.Controls.Add(column);
@@ -120,7 +121,7 @@ namespace PrintVect.App.Forms
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            NativeTheme.UseDarkTitleBar(this);
+            NativeTheme.ApplyTitleBar(this);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

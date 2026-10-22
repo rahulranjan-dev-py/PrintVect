@@ -1,12 +1,13 @@
+using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace PrintVect.App.Theme
 {
     /// <summary>
-    /// Lists in the dark look. A DataGridView can be coloured completely (a ListView keeps a light header), so every
-    /// list of printers and jobs is one of these, read-only unless a column says otherwise.
+    /// Lists in the look of the theme. A DataGridView can be coloured completely (a ListView keeps a system header), so
+    /// the job lists are these: a header row in the header colour, a thin line between rows, a status column drawn as
+    /// pills and a document column with the job's message in small grey text under the name.
     /// </summary>
     internal static class Grids
     {
@@ -19,6 +20,7 @@ namespace PrintVect.App.Theme
                 AllowUserToDeleteRows = false,
                 AllowUserToResizeRows = false,
                 AllowUserToOrderColumns = false,
+                AllowUserToResizeColumns = false,
                 RowHeadersVisible = false,
                 MultiSelect = false,
                 ReadOnly = true,
@@ -29,21 +31,28 @@ namespace PrintVect.App.Theme
                 Margin = Ui.Pad(0)
             };
             Style(grid);
+            grid.CellPainting += PaintCell;
+            // A list that appears shows no row as picked until someone clicks one (the grid picks the first by itself).
+            grid.VisibleChanged += (s, e) =>
+            {
+                if (grid.Visible && grid.IsHandleCreated && !grid.Focused) grid.BeginInvoke((Action)grid.ClearSelection);
+            };
             return grid;
         }
 
-        public static void Style(DataGridView grid)
+        private static void Style(DataGridView grid)
         {
             grid.BackgroundColor = Palette.Card;
             grid.BorderStyle = BorderStyle.None;
-            grid.GridColor = Palette.Border;
+            grid.GridColor = Palette.RowDivider;
             grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
             grid.EnableHeadersVisualStyles = false;
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            grid.ColumnHeadersHeight = Ui.S(34);
-            grid.RowTemplate.Height = Ui.S(36);
+            grid.ColumnHeadersHeight = Ui.S(42);
+            grid.RowTemplate.Height = Ui.S(56);
 
+            // The header row in the card's colour: a tinted strip would cover the card's round top corners.
             grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
             {
                 BackColor = Palette.Card,
@@ -51,7 +60,7 @@ namespace PrintVect.App.Theme
                 SelectionBackColor = Palette.Card,
                 SelectionForeColor = Palette.Muted,
                 Font = ThemeFonts.Small,
-                Padding = new Padding(Ui.S(6), 0, Ui.S(6), 0),
+                Padding = new Padding(Ui.S(7), 0, Ui.S(7), 0),
                 WrapMode = DataGridViewTriState.False
             };
             grid.DefaultCellStyle = new DataGridViewCellStyle
@@ -61,19 +70,21 @@ namespace PrintVect.App.Theme
                 SelectionBackColor = Palette.Selection,
                 SelectionForeColor = Palette.Text,
                 Font = ThemeFonts.Text,
-                Padding = new Padding(Ui.S(6), 0, Ui.S(6), 0),
+                Padding = new Padding(Ui.S(7), 0, Ui.S(7), 0),
+                Alignment = DataGridViewContentAlignment.MiddleLeft,
                 WrapMode = DataGridViewTriState.False
             };
-            NativeTheme.UseDarkScrollBars(grid);
+            NativeTheme.UseThemedScrollBars(grid);
         }
 
-        /// <summary>A text column; <paramref name="weight"/> shares out the width like the old list columns did.</summary>
-        public static DataGridViewTextBoxColumn Text(string header, float weight, bool mono = false)
+        /// <summary>A text column; <paramref name="weight"/> shares out the width.</summary>
+        public static DataGridViewTextBoxColumn Text(string header, float weight, bool mono = false, int minWidthPx = 60)
         {
             var column = new DataGridViewTextBoxColumn
             {
                 HeaderText = header,
                 FillWeight = weight,
+                MinimumWidth = Ui.S(minWidthPx),
                 SortMode = DataGridViewColumnSortMode.NotSortable,
                 ReadOnly = true
             };
@@ -84,81 +95,98 @@ namespace PrintVect.App.Theme
             return column;
         }
 
-        /// <summary>
-        /// A tick column with the design's own box: 20 px, empty with a grey outline when off, green with a dark tick
-        /// when on. The grid's own flat box is tiny, looks the same either way and only reacts to a click right on it,
-        /// so the column is read-only for the grid: a click anywhere in the cell, or Space, flips the value here, which
-        /// raises CellValueChanged as before.
-        /// </summary>
-        public static DataGridViewCheckBoxColumn Tick(DataGridView grid, string header, float weight)
+        /// <summary>A column whose cells are drawn as status pills: the cell's value is the text, its Tag the PillKind.</summary>
+        public static DataGridViewTextBoxColumn Pills(string header, float weight, int minWidthPx = 110)
         {
-            var column = new DataGridViewCheckBoxColumn
-            {
-                HeaderText = header,
-                FillWeight = weight,
-                SortMode = DataGridViewColumnSortMode.NotSortable,
-                ReadOnly = true,
-                MinimumWidth = Ui.S(56),
-                DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter }
-            };
-            grid.CellPainting += (s, e) =>
-            {
-                if (e.RowIndex < 0 || e.ColumnIndex != column.Index) return;
-                e.PaintBackground(e.CellBounds, (e.State & DataGridViewElementStates.Selected) != 0);
-                PaintTick(e.Graphics, e.CellBounds, e.Value is bool && (bool)e.Value);
-                e.Handled = true;
-            };
-            grid.CellMouseClick += (s, e) =>
-            {
-                if (e.Button == MouseButtons.Left && e.RowIndex >= 0 && e.ColumnIndex == column.Index)
-                {
-                    Flip(grid.Rows[e.RowIndex].Cells[column.Index]);
-                }
-            };
-            grid.KeyDown += (s, e) =>
-            {
-                if (e.KeyCode == Keys.Space && grid.CurrentCell != null && grid.CurrentCell.ColumnIndex == column.Index)
-                {
-                    e.Handled = true;
-                    Flip(grid.CurrentCell);
-                }
-            };
+            DataGridViewTextBoxColumn column = Text(header, weight, false, minWidthPx);
+            column.Tag = ColumnLook.Pill;
             return column;
         }
 
-        private static void Flip(DataGridViewCell cell)
+        /// <summary>A column with a second, grey line: the cell's value is the first line, its Tag the second.</summary>
+        public static DataGridViewTextBoxColumn TwoLines(string header, float weight, int minWidthPx = 160)
         {
-            cell.Value = !(cell.Value is bool && (bool)cell.Value);
+            DataGridViewTextBoxColumn column = Text(header, weight, false, minWidthPx);
+            column.Tag = ColumnLook.TwoLines;
+            return column;
         }
 
-        private static void PaintTick(Graphics g, Rectangle cell, bool on)
+        /// <summary>Gives the first and last columns the card's 20 px inner edge.</summary>
+        public static void Edges(DataGridView grid)
         {
-            int size = Ui.S(20);
-            var box = new RectangleF(cell.X + (cell.Width - size) / 2f, cell.Y + (cell.Height - size) / 2f, size, size);
-            SmoothingMode before = g.SmoothingMode;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            using (GraphicsPath path = Ui.RoundRect(box, Ui.S(5)))
+            if (grid.Columns.Count == 0) return;
+            foreach (DataGridViewColumn column in new[] { grid.Columns[0], grid.Columns[grid.Columns.Count - 1] })
             {
-                if (on)
+                DataGridViewCellStyle style = column.DefaultCellStyle ?? new DataGridViewCellStyle();
+                bool first = column.Index == 0;
+                style.Padding = new Padding(first ? Ui.S(20) : Ui.S(7), 0, first ? Ui.S(7) : Ui.S(20), 0);
+                column.DefaultCellStyle = style;
+                column.HeaderCell.Style.Padding = style.Padding;
+            }
+        }
+
+        private enum ColumnLook
+        {
+            Pill,
+            TwoLines
+        }
+
+        private static void PaintCell(object sender, DataGridViewCellPaintingEventArgs e)
+        {
+            var grid = (DataGridView)sender;
+            if (e.ColumnIndex < 0) return;
+            if (e.RowIndex < 0)
+            {
+                // The header: its text at the column's own inner edge, with a line under it.
+                e.PaintBackground(e.CellBounds, false);
+                DataGridViewCellStyle own = grid.Columns[e.ColumnIndex].DefaultCellStyle;
+                Padding edge = own != null && own.Padding != Padding.Empty ? own.Padding : e.CellStyle.Padding;
+                var headerText = new Rectangle(e.CellBounds.X + edge.Left, e.CellBounds.Y, Math.Max(1, e.CellBounds.Width - edge.Horizontal), e.CellBounds.Height);
+                TextRenderer.DrawText(e.Graphics, Convert.ToString(e.Value), ThemeFonts.Small, headerText, Palette.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+                using (var pen = new Pen(Palette.Divider))
                 {
-                    using (var fill = new SolidBrush(Palette.Accent)) g.FillPath(fill, path);
-                    using (var pen = new Pen(Palette.OnAccent, Ui.S(2)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-                    {
-                        g.DrawLines(pen, new[]
-                        {
-                            new PointF(box.X + box.Width * 0.26f, box.Y + box.Height * 0.52f),
-                            new PointF(box.X + box.Width * 0.43f, box.Y + box.Height * 0.70f),
-                            new PointF(box.X + box.Width * 0.75f, box.Y + box.Height * 0.32f)
-                        });
-                    }
+                    e.Graphics.DrawLine(pen, e.CellBounds.Left, e.CellBounds.Bottom - 1, e.CellBounds.Right, e.CellBounds.Bottom - 1);
+                }
+                e.Handled = true;
+                return;
+            }
+            object look = grid.Columns[e.ColumnIndex].Tag;
+            if (!(look is ColumnLook)) return;
+            e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.SelectionBackground | DataGridViewPaintParts.Border);
+            DataGridViewCell cell = grid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+            Padding pad = e.CellStyle.Padding;
+            string text = Convert.ToString(e.Value);
+            if ((ColumnLook)look == ColumnLook.Pill)
+            {
+                if (text.Length > 0)
+                {
+                    PillKind kind = cell.Tag is PillKind ? (PillKind)cell.Tag : PillKind.Neutral;
+                    Size size = StatusPill.Measure(text, kind);
+                    int width = Math.Min(size.Width, e.CellBounds.Width - pad.Horizontal);
+                    var pill = new Rectangle(e.CellBounds.X + pad.Left, e.CellBounds.Y + (e.CellBounds.Height - size.Height) / 2, width, size.Height);
+                    StatusPill.Draw(e.Graphics, pill, text, kind);
+                }
+            }
+            else
+            {
+                string second = cell.Tag as string;
+                var area = new Rectangle(e.CellBounds.X + pad.Left, e.CellBounds.Y, Math.Max(1, e.CellBounds.Width - pad.Horizontal), e.CellBounds.Height);
+                TextFormatFlags flags = TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
+                if (string.IsNullOrEmpty(second))
+                {
+                    TextRenderer.DrawText(e.Graphics, text, e.CellStyle.Font, area, e.CellStyle.ForeColor, flags | TextFormatFlags.VerticalCenter);
                 }
                 else
                 {
-                    using (var fill = new SolidBrush(Palette.Background)) g.FillPath(fill, path);
-                    using (var pen = new Pen(Palette.Muted, Ui.S(1) * 1.5f)) g.DrawPath(pen, path);
+                    int line1 = TextRenderer.MeasureText("Ag", e.CellStyle.Font).Height;
+                    int line2 = TextRenderer.MeasureText("Ag", ThemeFonts.Secondary).Height;
+                    int top = area.Y + (area.Height - line1 - line2) / 2;
+                    TextRenderer.DrawText(e.Graphics, text, e.CellStyle.Font, new Rectangle(area.X, top, area.Width, line1), e.CellStyle.ForeColor, flags);
+                    TextRenderer.DrawText(e.Graphics, second, ThemeFonts.Secondary, new Rectangle(area.X, top + line1, area.Width, line2), Palette.Muted, flags);
                 }
             }
-            g.SmoothingMode = before;
+            e.Handled = true;
         }
 
         /// <summary>
@@ -178,15 +206,6 @@ namespace PrintVect.App.Theme
             }
             grid.CurrentCell = row.Cells[0];
             row.Selected = true;
-        }
-
-        /// <summary>The colour of a job state: green printed, yellow waiting, red failed, white in progress.</summary>
-        public static Color StateColour(string state, string printed, string waiting, string error)
-        {
-            if (state == printed) return Palette.ConnectedText;
-            if (state == error) return Palette.Error;
-            if (waiting != null && state == waiting) return Palette.Warning;
-            return Palette.Text;
         }
     }
 }

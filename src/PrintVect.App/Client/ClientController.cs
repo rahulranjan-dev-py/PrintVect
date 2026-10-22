@@ -17,14 +17,17 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Client
 {
     /// <summary>
-    /// Glue between the Use tab and the Core client service: finds hosts (UDP discovery while the
-    /// Use tab is open, or a typed name), adds and removes virtual printers through
-    /// PrintVect.Elevate.exe, keeps config.json and the job history in step, follows a host that
-    /// changed its address, and re-raises events on the UI thread.
+    /// Glue between the Office printers page and the Core client service: finds hosts (UDP discovery while the
+    /// page is open, or a typed name), adds and removes virtual printers through PrintVect.Elevate.exe, keeps
+    /// config.json and the job history in step, follows a host that changed its address (also by searching for it
+    /// when a job cannot reach it, 0.5.0), and re-raises events on the UI thread.
     /// </summary>
     internal sealed class ClientController : IDisposable
     {
         public const string TestPageFileName = "PrintVect-test-page.xps";
+
+        /// <summary>How long a job that cannot reach its host listens for it on the network before trying again.</summary>
+        public static readonly TimeSpan FindHostListen = TimeSpan.FromSeconds(3);
 
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
@@ -58,6 +61,7 @@ namespace PrintVect.App.Client
                 KeepSentFilesHours = config.KeepSentFilesHours,
                 AskCopies = config.AskCopies ? (Func<ClientJobRecord, Task<int?>>)AskCopiesAsync : null
             };
+            _service.FindHost = FindHostAgainAsync;
             _service.Jobs.Changed += (s, record) => Post(() => Raise(JobChanged, record));
             _service.Jobs.Removed += (s, jobId) =>
             {
@@ -153,11 +157,57 @@ namespace PrintVect.App.Client
             get { return _discovery.IsRunning; }
         }
 
-        /// <summary>The Use tab calls this when it is shown or hidden: discovery only runs while it is visible.</summary>
+        /// <summary>When the office was last asked which PCs share printers (null: not yet in this run).</summary>
+        public DateTime? LastSearchAt
+        {
+            get { return _discovery.LastRoundAt; }
+        }
+
+        /// <summary>The Office printers page calls this when it is shown or hidden: discovery only runs while it is visible.</summary>
         public void SetDiscoveryActive(bool active)
         {
             if (active) _discovery.Start();
             else _discovery.Stop();
+        }
+
+        /// <summary>Search again: asks the office right now instead of at the next 10-second round.</summary>
+        public void SearchNow()
+        {
+            if (_discovery.IsRunning) Task.Run(() => _discovery.Cycle());
+        }
+
+        /// <summary>
+        /// A job could not reach its host (0.5.0): ask the office once and listen for a few seconds. When the host answers
+        /// from another address (a phone hotspot hands out a new one each time), the printer takes it at once and
+        /// config.json is saved on the UI thread. Runs on the sending thread.
+        /// </summary>
+        private async Task<bool> FindHostAgainAsync(RemotePrinter printer, CancellationToken ct)
+        {
+            string before = printer.HostIp;
+            int portBefore = printer.Port;
+            Log.Info("Looking for " + printer.HostName + " on the network (it did not answer at " + before + ").");
+            await _discovery.SearchAsync(FindHostListen, ct).ConfigureAwait(false);
+            DiscoveredHost host = _discovery.Hosts.FirstOrDefault(h => !string.IsNullOrEmpty(h.Ip)
+                && (h.Printers.Any(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(h.Host, printer.HostName, StringComparison.OrdinalIgnoreCase)));
+            if (host == null)
+            {
+                return false;
+            }
+            bool moved = !string.Equals(host.Ip, before, StringComparison.OrdinalIgnoreCase) || (host.Port > 0 && host.Port != portBefore);
+            if (!moved)
+            {
+                Log.Info(printer.HostName + " answers the search at the same address " + before + ".");
+                return false;
+            }
+            printer.HostIp = host.Ip;
+            if (host.Port > 0) printer.Port = host.Port;
+            Post(() =>
+            {
+                TrySave();
+                Raise(PrintersChanged);
+            });
+            return true;
         }
 
         /// <summary>Whether a job printed on this PC first asks how many copies (Settings, and "Don't ask again").</summary>
@@ -190,6 +240,7 @@ namespace PrintVect.App.Client
         public void ApplyKeepSentFilesHours(int hours)
         {
             _service.KeepSentFilesHours = hours;
+            Raise(SettingsChanged);   // the Jobs page says how long sent documents are kept
         }
 
         /// <summary>Raised on the UI thread when a client setting changed (the Settings page shows it).</summary>
@@ -438,7 +489,7 @@ namespace PrintVect.App.Client
         {
             var lines = new List<string>();
             lines.Add("Elevate helper: " + (File.Exists(ElevateLauncher.DefaultExePath()) ? "present" : "MISSING") + " (" + ElevateLauncher.DefaultExePath() + ")");
-            lines.Add("Discovery: " + (_discovery.IsRunning ? "looking every " + _discovery.Interval.TotalSeconds + " s on UDP port " + _config.DiscoveryPort : "idle (runs while the Use tab is open)"));
+            lines.Add("Discovery: " + (_discovery.IsRunning ? "looking every " + _discovery.Interval.TotalSeconds + " s on UDP port " + _config.DiscoveryPort : "idle (runs while the Office printers page is open)"));
             IList<DiscoveredHost> found = _discovery.Hosts;
             lines.Add("Hosts found: " + (found.Count == 0 ? "(none)" : string.Join("; ", found.Select(h => h.Host + " at " + h.Ip + ":" + h.Port
                 + " with " + h.Printers.Count + " printer(s)" + (h.Manual ? ", typed" : ", seen " + h.LastSeen.ToString("HH:mm:ss", CultureInfo.InvariantCulture))))));

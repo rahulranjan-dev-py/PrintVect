@@ -26,17 +26,17 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
 ## Architecture
 - src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, Protocol/, Host/, Printing/,
                          Client/ (spool watcher, sender), Elevation/, Discovery/, Update/. No UI references.
-- src/PrintVect.App      WinForms tray exe in the dark design (Theme/: Palette, ThemeFonts, painted Card/ThemedButton/ToggleSwitch,
-                         DataGridView lists via Grids; never a light system control on a page). Pages: Share my printers, Jobs,
-                         Use shared printers, Settings (Updates + Diagnostics cards). Closing the window minimises to tray; Exit is
-                         in the tray menu; `/tray` starts hidden. Update/UpdateController drives the daily check and Update now.
+- src/PrintVect.App      WinForms tray exe in the owner's 0.5.0 redesign (docs/design/design-spec.md): side menu with Office printers,
+                         Share my printers, Jobs, Settings (Updates + Diagnostics). Theme/: painted controls, Palette (a Light and a
+                         Dark set), ThemeManager (Settings, Colours: Light / Dark / System default; a change rebuilds the window).
+                         Closing the window hides it to the tray; Exit is in the tray menu; `/tray` starts hidden.
 - src/PrintVect.Send     pvct-send.exe, the M1 command-line test sender (list / send / status). docs/samples/
                          PrintVect-test-page.xps is a ready-made one-page test file (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer, remove-all
                          (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter, DeletePrinter, Users:Modify ACL
                          on spool\<id>; when no XPS writer driver is installed it installs Windows' own from the driver store
                          (InstallPrinterDriverFromPackage) or turns on the feature with DISM Printing-XPSServices-Features);
-                         autostart /on yes|no (HKLM Run, M6b-2). Results: exit code + JSON file (ElevateLauncher, "runas").
+                         autostart /on yes|no (HKLM Run); network-private /networks <ids> (0.5.0). Result: exit code + JSON.
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability, updates (loopback HTTP).
 - installer/PrintVect.iss Inno Setup 6, compiled by CI (ISCC, /DAppVersion from Directory.Build.props, /DSourceDir =
                          collected program files): Program Files, Users:Modify on ProgramData, netsh firewall rules, HKLM Run
@@ -44,23 +44,23 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
                          the app's child during an update); "Start PrintVect now" also runs after a silent update,
                          runasoriginaluser. .github/workflows/release.yml (tag v<Version> or Run workflow) publishes
                          PrintVect-Setup-<v>.exe + .sha256 as a GitHub Release. docs/design/: icon SVG (tools/make_icon.py)
-                         and visual spec; src/PrintVect.App/Fonts: OFL fonts (static Manrope from tools/make_fonts.py).
+                         and visual spec; src/PrintVect.App/Fonts: OFL fonts (static Noto Sans from tools/make_fonts.py).
 
 Client: virtual printer "PrintVect - <friendly> @<host>" (XPS Document Writer driver, the v3 one when installed
 because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> SpoolWatcher (FileSystemWatcher + 2 s
 polling; file taken when exclusively openable and size stable 1 s) -> rename to job-<guid>.xps/.oxps
 (XpsFormatSniffer looks inside: namespace openxps.org = oxps; it also reads the docProps title; the v4 writer stores
 none, so the document name comes from EnumJobs on the virtual printer while the port writes) -> ClientService sends
-(3 tries, each IP then PC name, about a minute; then pending\ and the Retry button resends under the same job id;
-sent\ kept 1 h, failed\ last 20) and polls status while the host prints.
+(3 tries, each IP then PC name; after the first failure one 3 s discovery search follows a host that moved (0.5.0);
+then pending\ and Retry resends under the same job id; sent\ kept 1 h, failed\ last 20) and polls status.
 Host: receive into spool\incoming\ -> verify size, sniff the real format -> HostPrintEngine -> reply JSON -> watch the
 job (up to 60 s before replying). One job at a time per printer, arrival order, on that printer's worker thread (never
 the UI thread). Printer statuses and printing sit behind IPrinterStatusSource / IPrintEngine so HostService is
 unit-tested with fakes over loopback TCP (tests never load System.Printing, which Mono lacks).
 
 ## Protocol v1 (docs/protocol.md has the JSON)
-- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the Use tab is open;
-  hosts reply by UDP unicast with a JSON printer list.
+- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the Office printers page is
+  open, and once when a job cannot reach its host; hosts reply by UDP unicast with a JSON printer list.
 - Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header + file bytes. Host
   answers one JSON line ({ok, jobId, state, message}) and closes. Status: header {"type":"status","jobId"}, no body.
 - List: header {"type":"list"}, reply = discovery JSON + ok. Hello (M6b-2): {"type":"hello",client,os,appVersion,
@@ -72,23 +72,24 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 ## Workflow
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
-  the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6 is
-  split: M6a in-app updates (owner's request), M6b-1 the new look (docs/design), M6b-2 hardening.
+  the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu) and 0.5.0 (redesign, colours, hotspot fix).
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml
   (windows-latest) builds, tests, makes the setup program; release.yml publishes a release (Run workflow on main).
-- Claude Code cannot see a printer or run Windows print APIs. Design every feature so the
-  owner can verify it from a log file or the Diagnostics tab, and log every job step with
-  its jobId on both sides.
+- Claude Code cannot see a printer or run Windows print APIs: design every feature so the owner can verify it from a
+  log file or Diagnostics, and log every job step with its jobId on both sides.
 - Commit after each milestone: `M2: client virtual printer and spool watcher`.
 - Files under %ProgramData% belong to the user who created them: the installer grants Users modify rights on
   %ProgramData%\PrintVect, and the logger still falls back to PrintVect-<user>-<date>.log if a file is not writable.
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (172.16.x and
   192.168.10.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
   broadcast and 255.255.255.255; DiscoveryResponder binds 0.0.0.0:9150 and answers from the address
-  on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs only while the Use tab
+  on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs while the Office printers page
   is visible; a typed name goes through the TCP list request and joins the same found list.
+- Firewall rules allow private and domain networks only (brief 10); a phone hotspot comes up Public, so Share my printers
+  warns (Core NetworkProfiles: Network List Manager COM) and Make it private runs Elevate network-private (0.5.0).
 - Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) worked for Microsoft Print to PDF
   (returning only after the Save dialog, job already gone from the queue) but hung forever for the USB
   "HP Laser 103 107 108" without ever creating a spooler job. The XPS Print API (XpsPrintEngine) then failed
@@ -108,8 +109,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   per session); "Ethernet" 192.168.10.x is the office LAN; the HP Laser is on USB001.
 - Ask before: new dependency, framework change, port change, data-folder change, anything needing admin
   outside the Elevate helper, any internet use beyond the update check, a Windows Service.
-- When the owner pastes an error or log: restate what happened in one sentence, then propose
-  the smallest fix.
+- When the owner pastes an error or log: restate what happened in one sentence, then propose the smallest fix.
 
 ## Style
 - Small classes, one responsibility each. Async/await for network and file I/O; never block the
