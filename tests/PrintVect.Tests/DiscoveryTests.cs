@@ -66,6 +66,8 @@ namespace PrintVect.Tests
                 Assert.AreEqual(0, connected.Count);
                 return;
             }
+            // The build machine is online: an empty list here would mean the calls into Windows went wrong.
+            Assert.IsTrue(connected.Count > 0, "Windows reported no connected network with an IPv4 address");
             foreach (NetworkConnection connection in connected)
             {
                 Assert.IsFalse(string.IsNullOrEmpty(connection.Adapter));

@@ -62,6 +62,12 @@ Name: "{commonappdata}\{#AppName}\updates"; Permissions: users-modify
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[InstallDelete]
+; Fonts of earlier versions that 0.5.0 no longer uses (Manrope; JetBrains Mono Medium and Bold).
+Type: filesandordirs; Name: "{app}\Fonts\Manrope"
+Type: files; Name: "{app}\Fonts\JetBrainsMono\JetBrainsMono-Medium.ttf"
+Type: files; Name: "{app}\Fonts\JetBrainsMono\JetBrainsMono-Bold.ttf"
+
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"
 Name: "{group}\{#AppName} read me"; Filename: "{app}\README.md"
