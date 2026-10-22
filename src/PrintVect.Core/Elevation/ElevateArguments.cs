@@ -17,6 +17,8 @@ namespace PrintVect.Core.Elevation
         public const string RemoveAll = "remove-all";
         /// <summary>Turns "Start with Windows" on or off (/on yes|no): the HKLM Run entry of the installer (M6b-2).</summary>
         public const string Autostart = "autostart";
+        /// <summary>Makes Windows treat the given networks as Private (/networks guid,guid): the hotspot fix of 0.5.0.</summary>
+        public const string NetworkPrivate = "network-private";
 
         public const string OptionResult = "result";
         public const string OptionName = "name";
@@ -25,6 +27,7 @@ namespace PrintVect.Core.Elevation
         public const string OptionDriver = "driver";
         public const string OptionId = "id";
         public const string OptionOn = "on";
+        public const string OptionNetworks = "networks";
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ using PrintVect.App.Theme;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// The PIN screen (M6b-2): sets, changes or removes the office PIN. Every PC in the office must use the same PIN;
+    /// The PIN screen (M6b-2; in the colours of the theme since 0.5.0): sets, changes or removes the office PIN. Every PC in the office must use the same PIN;
     /// a host with a PIN refuses jobs that come with a different one, and those jobs wait for Retry on the sender.
     /// </summary>
     internal sealed class PinDialog : Form
@@ -38,21 +38,25 @@ namespace PrintVect.App.Forms
             outer.Controls.Add(card);
 
             TableLayoutPanel column = Make.Column(0, 0, 0, 0, 0, 0, 100, 0);
-            column.Controls.Add(Make.Title(hasPin ? Strings.PinChangeTitle : Strings.PinSetTitle), 0, 0);
-            column.Controls.Add(Make.Muted(Strings.PinExplain), 0, 1);
+            column.Controls.Add(Make.Label(hasPin ? Strings.PinChangeTitle : Strings.PinSetTitle, ThemeFonts.Heading, Palette.Text, Ui.Pad(0, 0, 0, 8)), 0, 0);
+            Label explain = Make.Muted(Strings.PinExplain);
+            explain.Margin = Ui.Pad(0, 0, 0, 14);
+            column.Controls.Add(explain, 0, 1);
             column.Controls.Add(Make.Caption(Strings.PinNew), 0, 2);
             _pin = PasswordBox();
             column.Controls.Add(_pin, 0, 3);
             column.Controls.Add(Make.Caption(Strings.PinAgain), 0, 4);
             _again = PasswordBox();
             column.Controls.Add(_again, 0, 5);
-            _problem = Make.Wrap("", ThemeFonts.Secondary, Palette.Warning, Ui.Pad(0, 8, 0, 0));
+            _problem = Make.Wrap("", ThemeFonts.SecondarySemi, Palette.DangerText, Ui.Pad(0, 8, 0, 0));
             column.Controls.Add(_problem, 0, 6);
 
             var save = new ThemedButton(Strings.PinSave, ButtonKind.Primary);
             save.Click += (s, e) => TrySave();
-            var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary) { DialogResult = DialogResult.Cancel };
-            column.Controls.Add(Make.Row(save, cancel), 0, 7);
+            var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary) { DialogResult = DialogResult.Cancel, Margin = Ui.Pad(0) };
+            FlowLayoutPanel buttons = Make.Row(save, cancel);
+            buttons.Margin = Ui.Pad(0, 12, 0, 0);
+            column.Controls.Add(buttons, 0, 7);
             card.Controls.Add(column);
             Controls.Add(outer);
 
@@ -66,7 +70,7 @@ namespace PrintVect.App.Forms
 
         private static InputBox PasswordBox()
         {
-            var box = new InputBox(220) { Margin = Ui.Pad(0, 0, 0, 12) };
+            var box = new InputBox(240, 40) { Margin = Ui.Pad(0, 6, 0, 12) };
             box.Box.UseSystemPasswordChar = true;
             box.Box.MaxLength = MaxLength;
             return box;
@@ -81,7 +85,7 @@ namespace PrintVect.App.Forms
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            NativeTheme.UseDarkTitleBar(this);
+            NativeTheme.ApplyTitleBar(this);
         }
 
         private void TrySave()

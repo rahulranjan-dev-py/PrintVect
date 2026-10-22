@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using PrintVect.Core.Client;
 using PrintVect.Core.Config;
 using PrintVect.Core.Discovery;
 using PrintVect.Core.Host;
@@ -44,6 +45,7 @@ namespace PrintVect.App.Host
             _service.Jobs.Changed += (s, record) => _history.QueueSave();
             _discovery = new DiscoveryResponder(address => _service.BuildListReplyFor(address));
             _service.Pin = config.Pin;
+            DropPrintVectPrinters();
             _service.UpdateSharedPrinters(config.SharedPrinters);
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
@@ -212,9 +214,27 @@ namespace PrintVect.App.Host
             }
         }
 
+        /// <summary>
+        /// The printers this PC can share: every installed printer except PrintVect's own ("PrintVect - ... @PC"). Those
+        /// print on another PC already; sharing one again would send jobs round in a loop (0.5.0).
+        /// </summary>
         public Task<IList<LocalPrinterInfo>> ListPrintersAsync()
         {
-            return Task.Run(() => new LocalPrinters().GetPrinters());
+            return Task.Run(() => (IList<LocalPrinterInfo>)new LocalPrinters().GetPrinters(true)
+                .Where(p => !ClientPrinterNames.IsPrintVectPrinter(p.Name)).ToList());
+        }
+
+        /// <summary>An earlier version let a PrintVect printer be shared; such an entry is dropped at start-up.</summary>
+        private void DropPrintVectPrinters()
+        {
+            List<SharedPrinter> loops = _config.SharedPrinters.Where(p => ClientPrinterNames.IsPrintVectPrinter(p.LocalName)).ToList();
+            if (loops.Count == 0) return;
+            foreach (SharedPrinter printer in loops)
+            {
+                Log.Warn("\"" + printer.LocalName + "\" was shared, but it is a PrintVect printer of another PC; it is no longer shared.");
+                _config.SharedPrinters.Remove(printer);
+            }
+            TrySave();
         }
 
         public SharedPrinter FindShared(string localName)
@@ -226,6 +246,11 @@ namespace PrintVect.App.Host
         public bool SetShared(string localName, bool shared, string friendlyName)
         {
             SharedPrinter existing = FindShared(localName);
+            if (shared && ClientPrinterNames.IsPrintVectPrinter(localName))
+            {
+                Log.Warn("\"" + localName + "\" is a PrintVect printer of another PC; it cannot be shared again.");
+                return true;
+            }
             if (shared)
             {
                 if (existing == null)

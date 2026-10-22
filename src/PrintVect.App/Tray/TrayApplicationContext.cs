@@ -55,6 +55,7 @@ namespace PrintVect.App.Tray
                 SynchronizationContext.SetSynchronizationContext(current);
             }
             _ui = current;
+            ThemeManager.Initialize(config.Theme);   // before any window: everything is built in these colours
 
             _host = new HostController(paths, store, config, _ui);
             _host.JobReceived += OnJobReceived;
@@ -75,7 +76,7 @@ namespace PrintVect.App.Tray
             _form = new MainForm(paths, store, config, _host, _client, _updates);
             _form.FormClosing += OnFormClosing;
 
-            var menu = new ContextMenuStrip { Renderer = new DarkMenuRenderer(), Font = ThemeFonts.Text, ShowImageMargin = false };
+            ContextMenuStrip menu = MenuRenderer.Create();
             var open = new ToolStripMenuItem(Strings.TrayOpen, null, (s, e) => ShowWindow());
             open.Font = new Font(menu.Font, FontStyle.Bold);
             menu.Items.Add(open);
@@ -284,6 +285,7 @@ namespace PrintVect.App.Tray
             if (disposing)
             {
                 SystemEvents.SessionEnding -= OnSessionEnding;
+                ThemeManager.Shutdown();
                 if (_showWait != null)
                 {
                     _showWait.Unregister(null);

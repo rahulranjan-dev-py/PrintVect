@@ -1,5 +1,5 @@
 ; PrintVect installer (Inno Setup 6, milestone M5; silent in-app updates since M6a).
-; CI builds it with:  ISCC.exe /DAppVersion=0.4.1 /DSourceDir=<folder with the built program files> installer\PrintVect.iss
+; CI builds it with:  ISCC.exe /DAppVersion=0.5.0 /DSourceDir=<folder with the built program files> installer\PrintVect.iss
 ; The source folder is what the build workflow collects: PrintVect.App.exe, PrintVect.Core.dll,
 ; Newtonsoft.Json.dll, PrintVect.Elevate.exe, pvct-send.exe, Fonts\, the sample .xps files, README.md, LICENSE.
 ; An update from inside PrintVect runs this same program as  PrintVect-Setup-<version>.exe /SILENT /NORESTART /LOG=...
@@ -7,7 +7,7 @@
 ; PrintVect (PrepareToInstall below), installs over the old files and starts PrintVect again as the signed-in user.
 
 #ifndef AppVersion
-  #define AppVersion "0.4.1"
+  #define AppVersion "0.5.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\artifacts\PrintVect"
@@ -61,6 +61,12 @@ Name: "{commonappdata}\{#AppName}\updates"; Permissions: users-modify
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[InstallDelete]
+; Fonts of earlier versions that 0.5.0 no longer uses (Manrope; JetBrains Mono Medium and Bold).
+Type: filesandordirs; Name: "{app}\Fonts\Manrope"
+Type: files; Name: "{app}\Fonts\JetBrainsMono\JetBrainsMono-Medium.ttf"
+Type: files; Name: "{app}\Fonts\JetBrainsMono\JetBrainsMono-Bold.ttf"
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"

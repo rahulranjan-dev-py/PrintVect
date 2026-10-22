@@ -3,18 +3,30 @@ using System.Windows.Forms;
 
 namespace PrintVect.App.Theme
 {
-    /// <summary>The tray icon's right-click menu in the dark colours.</summary>
-    internal sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
+    /// <summary>The right-click menus (tray icon, job lists) in the colours of the theme in use.</summary>
+    internal sealed class MenuRenderer : ToolStripProfessionalRenderer
     {
-        public DarkMenuRenderer() : base(new Colours())
+        public MenuRenderer() : base(new Colours())
         {
             RoundedEdges = false;
         }
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = e.Item.Enabled ? Palette.Text : Palette.Muted;
+            e.TextColor = e.Item.Enabled ? Palette.Text : Palette.Disabled;
             base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+        {
+            e.ArrowColor = Palette.Text;
+            base.OnRenderArrow(e);
+        }
+
+        /// <summary>A menu built with the colours of the theme in use.</summary>
+        public static ContextMenuStrip Create()
+        {
+            return new ContextMenuStrip { Renderer = new MenuRenderer(), Font = ThemeFonts.Text, ShowImageMargin = false, BackColor = Palette.Card };
         }
 
         private sealed class Colours : ProfessionalColorTable

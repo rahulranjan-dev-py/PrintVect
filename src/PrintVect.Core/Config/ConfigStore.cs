@@ -162,6 +162,15 @@ namespace PrintVect.Core.Config
                 config.LastRunVersion = "";
             }
 
+            string theme = (config.Theme ?? "").Trim().ToLowerInvariant();
+            if (theme != AppConfig.ThemeSystem && theme != AppConfig.ThemeLight && theme != AppConfig.ThemeDark)
+            {
+                warnings.Add(string.Format(CultureInfo.InvariantCulture,
+                    "colours \"{0}\" are not one of system, light or dark; using system.", config.Theme));
+                theme = AppConfig.ThemeSystem;
+            }
+            config.Theme = theme;
+
             if (config.SharedPrinters == null)
             {
                 config.SharedPrinters = new List<SharedPrinter>();

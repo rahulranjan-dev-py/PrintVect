@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrintVect.Core.Diagnostics;
 using PrintVect.Core.Discovery;
 using PrintVect.Core.Printing;
 using PrintVect.Core.Protocol;
@@ -49,6 +51,33 @@ namespace PrintVect.Tests
                 Assert.IsNotNull(network.Broadcast);
                 Assert.IsTrue(network.Contains(network.Address));
             }
+        }
+
+        /// <summary>
+        /// On Windows this calls the Network List Manager through the interface layouts in NetworkProfiles: a wrong method
+        /// order there would fail here (a crash or a nonsense category), not on the office PCs. Elsewhere the list is empty.
+        /// </summary>
+        [TestMethod]
+        public void ListingTheNetworkCategoriesDoesNotThrow()
+        {
+            IList<NetworkConnection> connected = NetworkProfiles.Connected();
+            if (!WindowsInfo.IsWindows)
+            {
+                Assert.AreEqual(0, connected.Count);
+                return;
+            }
+            // The build machine is online: an empty list here would mean the calls into Windows went wrong.
+            Assert.IsTrue(connected.Count > 0, "Windows reported no connected network with an IPv4 address");
+            foreach (NetworkConnection connection in connected)
+            {
+                Assert.IsFalse(string.IsNullOrEmpty(connection.Adapter));
+                Assert.IsFalse(string.IsNullOrEmpty(connection.Network), connection.Adapter);
+                Assert.AreNotEqual(Guid.Empty, connection.NetworkId, connection.Adapter);
+                Assert.IsTrue(connection.Category == NetworkCategory.Public || connection.Category == NetworkCategory.Private
+                              || connection.Category == NetworkCategory.Domain, connection.Adapter + ": " + connection.Category);
+                Assert.IsTrue(connection.Addresses.Count > 0, connection.Adapter);
+            }
+            Assert.IsTrue(NetworkProfiles.Describe(connected).Any());
         }
     }
 
@@ -130,6 +159,24 @@ namespace PrintVect.Tests
                 Assert.IsFalse(responder.IsListening);
                 ListReply none = await client.ProbeAsync(new IPEndPoint(IPAddress.Loopback, responder.Port), TimeSpan.FromMilliseconds(300));
                 Assert.IsNull(none, "a stopped responder gives no answer");
+            }
+        }
+
+        [TestMethod]
+        public async Task ASearchRunsWhileThePageIsClosedAndStopsAfterwards()
+        {
+            using (var client = new DiscoveryClient(0))
+            {
+                Assert.IsFalse(client.IsRunning);
+                await client.SearchAsync(TimeSpan.FromMilliseconds(300), CancellationToken.None);
+                Assert.IsFalse(client.IsRunning, "nobody wants discovery after the search: it stops");
+                Assert.IsNotNull(client.LastRoundAt, "the search asked at least once");
+
+                client.Start();   // the Office printers page opens
+                await client.SearchAsync(TimeSpan.FromMilliseconds(100), CancellationToken.None);
+                Assert.IsTrue(client.IsRunning, "a search does not stop the page's discovery");
+                client.Stop();
+                Assert.IsFalse(client.IsRunning);
             }
         }
 

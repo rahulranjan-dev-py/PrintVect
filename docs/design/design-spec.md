@@ -56,3 +56,26 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
   and a Connected (green) or "Last seen HH:MM" (grey) pill. With no PC yet, the same card shows how to connect one.
 - "Pause queue" = **Pause printer / Resume printer** above the printer list; a paused printer's status is yellow.
 - PIN screen and the copies question are small dark windows in the same cards, buttons and fonts; Windows draws their frame.
+
+## Redesign of 0.5.0 (owner's canvas "PrintVect Redesign", 2026-10-22)
+Five screens from the owner (light, a menu on the left): Office printers, Share my printers, Turn on sharing (window),
+Jobs, Settings. Built as drawn, with a Dark set of the same layout and a switch: Settings, General, **Colours**:
+Light / Dark / System default (Windows' app mode, `AppsUseLightTheme`, followed while running). Default: System default.
+
+- Fonts: Noto Sans (Regular, Medium, SemiBold, Bold; static, cut to Latin) and JetBrains Mono (Regular, SemiBold).
+  Page title 26 px, section title 16 px, card title 15 to 17 px, text 14 px, secondary 13 px, pills 12.5 px.
+- Light (the canvas): page `#F3F5F4`, menu `#E9EEEC`, cards `#FFFFFF` with border `#DAE2DE`, text `#17211E`, muted
+  `#4F5B57` / `#5A6661`, accent `#0B7A5B` (link and success text `#0B6B4F`), warning `#FDF1DC` / `#6B4100`, info
+  `#E9F1FB` / `#1B4F8C`, danger `#A3261C`.
+- Dark: the Graphite colours above (page `#111418`, menu `#151920`, cards `#181C22`, accent `#3FCF8E`), with pills,
+  notes and borders matched to the light roles. Every text colour meets 4.5:1 on its background in both sets.
+- Shape: cards 10 px corners, buttons 6 px corners and 44 px tall (36 px in a list row: the agreed minimum stays),
+  pills 24 px, tick boxes 20 px, switches 44 x 24, content at most 1000 px wide, 36 px from the menu.
+- Line icons from the canvas's SVG paths (Theme/Icons.cs draws them; 1.8 stroke on a 24 grid).
+- Changes to the canvas, agreed in the analysis: the PIN keeps today's rule (4 to 12 characters, the same in every
+  PC's Settings; the canvas said 4 to 8 digits typed when adding a printer); Pause / Resume, PCs that print here
+  (with Connected / Last seen pills), Update now and Change / Remove PIN are kept; addresses show only under "Other
+  PCs find this PC as" and in Diagnostics; short messages ("Copied: COUNTER1") appear bottom right for 8 s instead
+  of a status bar.
+- Added for the hotspot fix: a yellow note on Share my printers when sharing is on and Windows treats a network as
+  public, with **Make it private**; the Diagnostics checklist names such a network.
