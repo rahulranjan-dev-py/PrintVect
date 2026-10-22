@@ -41,10 +41,11 @@ namespace PrintVect.Core.Discovery
     }
 
     /// <summary>
-    /// Client side of discovery (brief, section 6): every 10 seconds while the Use tab is open, send
-    /// "PVECT-DISCOVER 1" out of every network card (to that card's broadcast address and to
+    /// Client side of discovery (brief, section 6): every 10 seconds while the Office printers page is open,
+    /// send "PVECT-DISCOVER 1" out of every network card (to that card's broadcast address and to
     /// 255.255.255.255), collect the unicast answers, and forget a host that has not answered for
-    /// 30 seconds. Hosts typed by hand are kept alongside.
+    /// 30 seconds. Hosts typed by hand are kept alongside. A job that cannot reach its host runs one short
+    /// search (SearchAsync) even while the page is closed (0.5.0).
     /// </summary>
     public sealed class DiscoveryClient : IDisposable
     {
@@ -57,6 +58,8 @@ namespace PrintVect.Core.Discovery
         private readonly Dictionary<string, Listener> _listeners = new Dictionary<string, Listener>();
         private Timer _timer;
         private bool _running;
+        private bool _pageWants;
+        private int _searches;
         private bool _disposed;
 
         public DiscoveryClient(int port)
@@ -72,6 +75,9 @@ namespace PrintVect.Core.Discovery
             get { lock (_gate) { return _running; } }
         }
 
+        /// <summary>When the last round of questions went out (null: none yet).</summary>
+        public DateTime? LastRoundAt { get; private set; }
+
         /// <summary>Raised on a thread-pool thread when a host appears, changes or disappears.</summary>
         public event EventHandler HostsChanged;
 
@@ -81,7 +87,56 @@ namespace PrintVect.Core.Discovery
             get { lock (_gate) { return _hosts.Values.OrderBy(h => h.Host, StringComparer.OrdinalIgnoreCase).Select(h => h.Clone()).ToList(); } }
         }
 
+        /// <summary>Starts asking every Interval (the Office printers page is open).</summary>
         public void Start()
+        {
+            lock (_gate) { _pageWants = true; }
+            Run();
+        }
+
+        /// <summary>Stops asking, unless a search for a host that moved is still listening.</summary>
+        public void Stop()
+        {
+            lock (_gate)
+            {
+                _pageWants = false;
+                if (_searches > 0) return;
+            }
+            Halt();
+        }
+
+        /// <summary>
+        /// Asks once now and listens for <paramref name="listen"/>, even while the Office printers page is closed (0.5.0):
+        /// a host on a phone hotspot gets a new address each time, and a job that cannot reach it looks for it again.
+        /// </summary>
+        public async Task SearchAsync(TimeSpan listen, CancellationToken ct)
+        {
+            bool wasRunning;
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _searches++;
+                wasRunning = _running;
+            }
+            try
+            {
+                if (wasRunning) Cycle();
+                else Run();   // the timer's first round goes out at once
+                await Task.Delay(listen, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                bool stop;
+                lock (_gate)
+                {
+                    _searches--;
+                    stop = _searches == 0 && !_pageWants;
+                }
+                if (stop) Halt();
+            }
+        }
+
+        private void Run()
         {
             lock (_gate)
             {
@@ -92,7 +147,7 @@ namespace PrintVect.Core.Discovery
             Log.Info("Discovery: looking for host PCs every " + Interval.TotalSeconds + " s on UDP port " + _port + ".");
         }
 
-        public void Stop()
+        private void Halt()
         {
             List<Listener> listeners;
             lock (_gate)
@@ -119,6 +174,7 @@ namespace PrintVect.Core.Discovery
                 {
                     listener.SendRequest(_port);
                 }
+                LastRoundAt = DateTime.Now;
                 ExpireOldHosts();
             }
             catch (Exception ex)
@@ -338,7 +394,7 @@ namespace PrintVect.Core.Discovery
                 if (_disposed) return;
                 _disposed = true;
             }
-            Stop();
+            Halt();
         }
 
         /// <summary>One UDP socket bound to one of this PC's addresses: sends the broadcasts and hears the answers.</summary>

@@ -66,7 +66,7 @@ namespace PrintVect.App.Theme
             g.SmoothingMode = SmoothingMode.AntiAlias;
             float r = Height / 2f;
             using (GraphicsPath track = Ui.RoundRect(new RectangleF(0, 0, Width - 1, Height - 1), r))
-            using (var brush = new SolidBrush(Palette.Border))
+            using (var brush = new SolidBrush(Palette.Divider))
             {
                 g.FillPath(brush, track);
             }

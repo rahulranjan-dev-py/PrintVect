@@ -123,6 +123,25 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void Normalize_Colours_AreSystemLightOrDark()
+        {
+            var config = new AppConfig();
+            Assert.AreEqual(AppConfig.ThemeSystem, config.Theme, "System default for a new or older file");
+
+            config.Theme = " Dark ";
+            Assert.AreEqual(0, ConfigStore.Normalize(config).Count);
+            Assert.AreEqual(AppConfig.ThemeDark, config.Theme);
+
+            foreach (string bad in new[] { "purple", "", null })
+            {
+                config.Theme = bad;
+                IList<string> warnings = ConfigStore.Normalize(config);
+                Assert.AreEqual(AppConfig.ThemeSystem, config.Theme, "colours \"" + bad + "\"");
+                Assert.AreEqual(1, warnings.Count);
+            }
+        }
+
+        [TestMethod]
         public void Normalize_ReservedOrInvalidPorts_FallBackToDefaults()
         {
             foreach (int bad in new[] { PortRules.RawRelayPort, PortRules.IppPort, 0, 80, -5, 70000 })

@@ -84,9 +84,6 @@
   <data name="DiagCopied" xml:space="preserve">
     <value>Copied. You can now paste it into an email or chat.</value>
   </data>
-  <data name="DiagCopy" xml:space="preserve">
-    <value>Copy to clipboard</value>
-  </data>
   <data name="DiagCopyFailed" xml:space="preserve">
     <value>Could not copy to the clipboard. Select the text with the mouse and press Ctrl+C instead.</value>
   </data>
@@ -100,7 +97,7 @@
     <value>Printer sharing (host role)</value>
   </data>
   <data name="DiagIntro" xml:space="preserve">
-    <value>If printing does not work, press "Copy to clipboard" and paste the text into an email or chat to the person who supports PrintVect. Nothing is sent anywhere automatically.</value>
+    <value>If printing doesn't work, copy this report and send it to whoever supports PrintVect. Nothing is sent automatically.</value>
   </data>
   <data name="DiagNoPrinters" xml:space="preserve">
     <value>No printers are installed on this PC.</value>
@@ -123,17 +120,11 @@
   <data name="JobColDocument" xml:space="preserve">
     <value>Document</value>
   </data>
-  <data name="JobColFrom" xml:space="preserve">
-    <value>From</value>
-  </data>
   <data name="JobColMessage" xml:space="preserve">
     <value>Message</value>
   </data>
   <data name="JobColPrinter" xml:space="preserve">
     <value>Printer</value>
-  </data>
-  <data name="JobColState" xml:space="preserve">
-    <value>State</value>
   </data>
   <data name="JobColTime" xml:space="preserve">
     <value>Time</value>
@@ -171,14 +162,8 @@
   <data name="PrinterStatus_unknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
-  <data name="SettingsConfigFile" xml:space="preserve">
-    <value>Settings file: {0}</value>
-  </data>
   <data name="SettingsIntro" xml:space="preserve">
-    <value>Changes are saved straight away and apply to this PC.</value>
-  </data>
-  <data name="ShareColFriendly" xml:space="preserve">
-    <value>Name for the office</value>
+    <value>Changes save straight away and apply to this PC only.</value>
   </data>
   <data name="ShareColPrinter" xml:space="preserve">
     <value>Printer</value>
@@ -190,10 +175,7 @@
     <value>Status</value>
   </data>
   <data name="ShareIntro" xml:space="preserve">
-    <value>Tick each printer you want other PCs to use. The name for the office is what people on the other PCs see, so use something like "Counter 1 Laser" (double-click it to change it). Pause printer keeps jobs waiting (out of paper, a jam) until Resume.</value>
-  </data>
-  <data name="ShareJobsToday" xml:space="preserve">
-    <value>Jobs printed today: {0}</value>
+    <value>Let other PCs in the office print on the printers connected to this PC.</value>
   </data>
   <data name="ShareLoading" xml:space="preserve">
     <value>Reading the printer list...</value>
@@ -209,15 +191,6 @@
   </data>
   <data name="ShareRefresh" xml:space="preserve">
     <value>Refresh</value>
-  </data>
-  <data name="ShareStatusOff" xml:space="preserve">
-    <value>Sharing is OFF. Other PCs cannot print here.</value>
-  </data>
-  <data name="ShareStatusOn" xml:space="preserve">
-    <value>Sharing is ON. Other PCs can send print jobs to this PC on port {0}.</value>
-  </data>
-  <data name="ShareToggle" xml:space="preserve">
-    <value>Share the ticked printers with the office</value>
   </data>
   <data name="SharingPortError" xml:space="preserve">
     <value>PrintVect could not open port {0} for incoming print jobs. Another program (or a second copy of PrintVect) is using it. Close that program, or change the job port in {1} and start PrintVect again.</value>
@@ -237,10 +210,10 @@
 Ask the person who installed PrintVect to check that this folder can be written to, then start PrintVect again.</value>
   </data>
   <data name="StatusSharingOff" xml:space="preserve">
-    <value>Sharing OFF</value>
+    <value>Sharing off</value>
   </data>
   <data name="StatusSharingOn" xml:space="preserve">
-    <value>Sharing ON</value>
+    <value>Sharing on</value>
   </data>
   <data name="StatusVersion" xml:space="preserve">
     <value>Version {0}</value>
@@ -253,9 +226,6 @@ Ask the person who installed PrintVect to check that this folder can be written 
   </data>
   <data name="TabShare" xml:space="preserve">
     <value>Share my printers</value>
-  </data>
-  <data name="TabUse" xml:space="preserve">
-    <value>Use shared printers</value>
   </data>
   <data name="TrayExit" xml:space="preserve">
     <value>Exit</value>
@@ -270,15 +240,9 @@ Ask the person who installed PrintVect to check that this folder can be written 
     <value>PrintVect is still running</value>
   </data>
   <data name="UnexpectedError" xml:space="preserve">
-    <value>Something went wrong inside PrintVect. The details have been written to the log file. If it happens again, open Diagnostics, press "Copy to clipboard" and send the text to the person who supports PrintVect.
+    <value>Something went wrong inside PrintVect. The details have been written to the log file. If it happens again, open Settings, press "Copy report" under Diagnostics and send the text to the person who supports PrintVect.
 
 Details: {0}</value>
-  </data>
-  <data name="UseIntro" xml:space="preserve">
-    <value>Printers that other PCs in the office share appear here by themselves. Choose one and press Add to this PC; Windows asks once for permission. The printer then appears in every program's print window.</value>
-  </data>
-  <data name="UseHostLabel" xml:space="preserve">
-    <value>Not listed? PC name or IP address:</value>
   </data>
   <data name="UseLookup" xml:space="preserve">
     <value>Look up</value>
@@ -286,20 +250,11 @@ Details: {0}</value>
   <data name="UseLookingUp" xml:space="preserve">
     <value>Asking {0}...</value>
   </data>
-  <data name="UseFoundPrinters" xml:space="preserve">
-    <value>{0} shares {1} printer(s):</value>
-  </data>
   <data name="UseNoPrintersShared" xml:space="preserve">
-    <value>{0} shares no printers. On that PC, open PrintVect, tick a printer and turn sharing ON.</value>
+    <value>{0} shares no printers. On that PC, open PrintVect, go to Share my printers and turn on sharing.</value>
   </data>
   <data name="UseLookupFailed" xml:space="preserve">
     <value>{0}</value>
-  </data>
-  <data name="UseColPrinter" xml:space="preserve">
-    <value>Printer</value>
-  </data>
-  <data name="UseColStatus" xml:space="preserve">
-    <value>Status</value>
   </data>
   <data name="UseAdd" xml:space="preserve">
     <value>Add to this PC</value>
@@ -316,27 +271,6 @@ Details: {0}</value>
   <data name="UseAlreadyAdded" xml:space="preserve">
     <value>"{0}" is already on this PC.</value>
   </data>
-  <data name="UseSelectFound" xml:space="preserve">
-    <value>Choose a printer in the list first.</value>
-  </data>
-  <data name="UseMyPrinters" xml:space="preserve">
-    <value>Printers from other PCs on this PC</value>
-  </data>
-  <data name="UseNoRemotePrinters" xml:space="preserve">
-    <value>No printer from another PC has been added yet.</value>
-  </data>
-  <data name="UseColLocalPrinter" xml:space="preserve">
-    <value>Printer on this PC</value>
-  </data>
-  <data name="UseColHost" xml:space="preserve">
-    <value>Host PC</value>
-  </data>
-  <data name="UseColAddress" xml:space="preserve">
-    <value>Address</value>
-  </data>
-  <data name="UseColWaiting" xml:space="preserve">
-    <value>Waiting jobs</value>
-  </data>
   <data name="UseRemove" xml:space="preserve">
     <value>Remove</value>
   </data>
@@ -349,20 +283,11 @@ Details: {0}</value>
   <data name="UseRemoveFailed" xml:space="preserve">
     <value>The printer could not be removed. {0}</value>
   </data>
-  <data name="UseSelectMine" xml:space="preserve">
-    <value>Choose one of your printers first.</value>
-  </data>
-  <data name="UseTestPage" xml:space="preserve">
-    <value>Send test page</value>
-  </data>
   <data name="UseTestPageSent" xml:space="preserve">
     <value>The test page was handed to "{0}"; the Jobs page shows how it goes.</value>
   </data>
   <data name="UseTestPageMissing" xml:space="preserve">
     <value>The test page {0} is missing. Copy the whole PrintVect folder again.</value>
-  </data>
-  <data name="UseRetry" xml:space="preserve">
-    <value>Retry waiting jobs</value>
   </data>
   <data name="UseRetried" xml:space="preserve">
     <value>{0} waiting job(s) are being sent again.</value>
@@ -373,14 +298,8 @@ Details: {0}</value>
   <data name="UseRecentJobs" xml:space="preserve">
     <value>Sent from this PC</value>
   </data>
-  <data name="UseJobsToday" xml:space="preserve">
-    <value>Printed today: {0}</value>
-  </data>
   <data name="UseWatcherError" xml:space="preserve">
     <value>"{0}" cannot be watched for jobs: {1}</value>
-  </data>
-  <data name="JobColHost" xml:space="preserve">
-    <value>Host PC</value>
   </data>
   <data name="JobState_sending" xml:space="preserve">
     <value>Sending</value>
@@ -403,26 +322,11 @@ Details: {0}</value>
   <data name="DiagClientSection" xml:space="preserve">
     <value>Printers from other PCs (client role)</value>
   </data>
-  <data name="UseFoundLabel" xml:space="preserve">
-    <value>Printers in the office</value>
-  </data>
-  <data name="UseFoundNone" xml:space="preserve">
-    <value>No PC is sharing a printer right now. PrintVect keeps looking every 10 seconds. If a PC should be listed, check that PrintVect is running there with sharing ON (and that its firewall allows UDP port 9150).</value>
-  </data>
-  <data name="UseFoundCount" xml:space="preserve">
-    <value>{0} printer(s) on {1} PC(s).</value>
-  </data>
-  <data name="UseOnThisPc" xml:space="preserve">
-    <value>on this PC</value>
-  </data>
   <data name="DiscoveryStartError" xml:space="preserve">
     <value>Other PCs cannot find this one by themselves: UDP port {0} could not be opened ({1}). They can still type this PC's name.</value>
   </data>
   <data name="SettingsUpdatesGroup" xml:space="preserve">
     <value>Updates</value>
-  </data>
-  <data name="SettingsCheckForUpdates" xml:space="preserve">
-    <value>Look for a newer PrintVect once a day (needs the internet; printing itself never uses it)</value>
   </data>
   <data name="SettingsCheckNow" xml:space="preserve">
     <value>Check now</value>
@@ -438,9 +342,6 @@ Details: {0}</value>
   </data>
   <data name="UpdateStatusChecking" xml:space="preserve">
     <value>Asking github.com for the latest version...</value>
-  </data>
-  <data name="UpdateStatusUpToDate" xml:space="preserve">
-    <value>PrintVect {0} is the latest version (checked {1}).</value>
   </data>
   <data name="UpdateStatusAvailable" xml:space="preserve">
     <value>PrintVect {0} is ready to install; this PC has {1}. Press Update now: it takes about a minute, and PrintVect opens again by itself.</value>
@@ -493,48 +394,14 @@ Details: {0}</value>
   <data name="ShareThisPcCaption" xml:space="preserve">
     <value>This PC</value>
   </data>
-  <data name="ShareSharingCaption" xml:space="preserve">
-    <value>Sharing with the office</value>
-  </data>
-  <data name="ShareCopyAddress" xml:space="preserve">
-    <value>Copy</value>
-  </data>
-  <data name="ShareAddressLine" xml:space="preserve">
-    <value>Other PCs find this PC as {0} ({1}).</value>
-  </data>
-  <data name="ShareAddressNone" xml:space="preserve">
-    <value>Other PCs find this PC as {0}. It has no network address right now: check the network cable.</value>
-  </data>
   <data name="ShareAddressCopied" xml:space="preserve">
     <value>Copied: {0}</value>
-  </data>
-  <data name="SharePrintersTitle" xml:space="preserve">
-    <value>Printers on this PC</value>
-  </data>
-  <data name="SharePrintedTodayCaption" xml:space="preserve">
-    <value>Printed today</value>
   </data>
   <data name="SharePrintedTodayNote" xml:space="preserve">
     <value>jobs from other PCs</value>
   </data>
-  <data name="ShareHowSteps" xml:space="preserve">
-    <value>1. On the other PC, start PrintVect and open Use shared printers.
-2. This PC's shared printers appear there by themselves.
-3. Choose one and press Add to this PC.
-
-Not listed? Type {0} in the box there and press Look up.</value>
-  </data>
-  <data name="SharePause" xml:space="preserve">
-    <value>Pause printer</value>
-  </data>
-  <data name="ShareResume" xml:space="preserve">
-    <value>Resume printer</value>
-  </data>
   <data name="SharePcsTitle" xml:space="preserve">
-    <value>PCs that use this PC</value>
-  </data>
-  <data name="SharePcsNone" xml:space="preserve">
-    <value>None yet. To connect a PC:</value>
+    <value>PCs that print here</value>
   </data>
   <data name="SharePcOnline" xml:space="preserve">
     <value>Connected</value>
@@ -576,7 +443,7 @@ Not listed? Type {0} in the box there and press Look up.</value>
     <value>Set. Other PCs need the same PIN to print here, and this PC sends it with every job.</value>
   </data>
   <data name="SettingsPinOff" xml:space="preserve">
-    <value>Not set: any PC in the office can print to this PC's shared printers.</value>
+    <value>Without a PIN, any PC on the office network can print to this PC's shared printers.</value>
   </data>
   <data name="SettingsPinSet" xml:space="preserve">
     <value>Set PIN…</value>
@@ -598,20 +465,11 @@ Any PC in the office can then print here, and PCs that still ask for a PIN will 
   <data name="SettingsPinRemoved" xml:space="preserve">
     <value>Office PIN removed on this PC.</value>
   </data>
-  <data name="SettingsAutostart" xml:space="preserve">
-    <value>Start PrintVect with Windows (hidden in the tray, for every user of this PC)</value>
-  </data>
-  <data name="SettingsAskCopies" xml:space="preserve">
-    <value>Ask how many copies before a document goes to another PC's printer</value>
-  </data>
-  <data name="SettingsKeepCaption" xml:space="preserve">
-    <value>Keep sent files for</value>
-  </data>
   <data name="SettingsKeepHours" xml:space="preserve">
     <value>{0} hour(s)</value>
   </data>
   <data name="SettingsPortsNote" xml:space="preserve">
-    <value>Ports: UDP {0} finds printers, TCP {1} carries the jobs. Every PC must use the same ports, so they are changed only in the settings file, together with the person who supports PrintVect.</value>
+    <value>Every PC must use the same ports. They can only be changed in the settings file.</value>
   </data>
   <data name="PinTitle" xml:space="preserve">
     <value>Office PIN</value>
@@ -642,9 +500,6 @@ Any PC in the office can then print here, and PCs that still ask for a PIN will 
   </data>
   <data name="PinMismatch" xml:space="preserve">
     <value>The two entries are different. Type the same PIN twice.</value>
-  </data>
-  <data name="SharePcsAnother" xml:space="preserve">
-    <value>Another PC? On it, open Use shared printers and add one of this PC's printers ({0}).</value>
   </data>
   <data name="JobsCancelAllWaiting" xml:space="preserve">
     <value>Cancel all waiting</value>
@@ -694,5 +549,488 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
   </data>
   <data name="JobsHostCancelled" xml:space="preserve">
     <value>Cancelled "{0}" from {1}; it will not be printed, and {1} shows it as cancelled.</value>
+  </data>
+  <data name="CategoryDomain" xml:space="preserve">
+    <value>domain network</value>
+  </data>
+  <data name="CategoryPrivate" xml:space="preserve">
+    <value>private network</value>
+  </data>
+  <data name="CategoryPublic" xml:space="preserve">
+    <value>public network</value>
+  </data>
+  <data name="CategoryUnknown" xml:space="preserve">
+    <value>network type unknown</value>
+  </data>
+  <data name="CheckProgram" xml:space="preserve">
+    <value>{0} · running since {1}</value>
+  </data>
+  <data name="CheckFirewall" xml:space="preserve">
+    <value>Firewall</value>
+  </data>
+  <data name="CheckFirewallOk" xml:space="preserve">
+    <value>Rules for TCP {0} and UDP {1} are in place</value>
+  </data>
+  <data name="CheckFirewallMissing" xml:space="preserve">
+    <value>Firewall rule missing</value>
+  </data>
+  <data name="CheckFirewallMissingText" xml:space="preserve">
+    <value>The rule for {0} is missing, so other PCs cannot reach this PC. Run the PrintVect setup again.</value>
+  </data>
+  <data name="CheckFirewallUnknown" xml:space="preserve">
+    <value>Firewall not checked</value>
+  </data>
+  <data name="CheckFolders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="CheckFoldersOk" xml:space="preserve">
+    <value>Data, spool and log folders can be written to</value>
+  </data>
+  <data name="CheckFoldersProblem" xml:space="preserve">
+    <value>A folder cannot be written to</value>
+  </data>
+  <data name="CheckNoNetwork" xml:space="preserve">
+    <value>No network</value>
+  </data>
+  <data name="CheckNoNetworkText" xml:space="preserve">
+    <value>This PC has no network address. Check the cable or the Wi-Fi.</value>
+  </data>
+  <data name="CheckPublic" xml:space="preserve">
+    <value>Network “{0}” is public</value>
+  </data>
+  <data name="CheckPublicSharing" xml:space="preserve">
+    <value>Other PCs cannot reach this PC's printers over it. On Share my printers, press Make it private.</value>
+  </data>
+  <data name="CheckPublicNotSharing" xml:space="preserve">
+    <value>Printing to other PCs works. To share this PC's printers over it, it must be private (Share my printers).</value>
+  </data>
+  <data name="CheckNetworks" xml:space="preserve">
+    <value>Network: {0} connections</value>
+  </data>
+  <data name="CheckNetworksText" xml:space="preserve">
+    <value>{0}. PCs on another network may need Look up.</value>
+  </data>
+  <data name="CheckNetwork" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="CheckPinOff" xml:space="preserve">
+    <value>Office PIN not set</value>
+  </data>
+  <data name="CheckPinOffSharing" xml:space="preserve">
+    <value>Any PC on the office network can print here.</value>
+  </data>
+  <data name="CheckPinOffText" xml:space="preserve">
+    <value>Open to the office network once sharing is on.</value>
+  </data>
+  <data name="CheckPinOn" xml:space="preserve">
+    <value>Office PIN set</value>
+  </data>
+  <data name="CheckPinOnText" xml:space="preserve">
+    <value>Jobs from PCs without the same PIN are refused.</value>
+  </data>
+  <data name="CheckSharingOn" xml:space="preserve">
+    <value>Sharing on</value>
+  </data>
+  <data name="CheckSharingOnText" xml:space="preserve">
+    <value>{0} printer(s) shared · {1} added from other PCs</value>
+  </data>
+  <data name="CheckSharingOff" xml:space="preserve">
+    <value>Sharing off</value>
+  </data>
+  <data name="CheckSharingOffText" xml:space="preserve">
+    <value>No printers shared · {0} printer(s) added from other PCs</value>
+  </data>
+  <data name="CopiesFewer" xml:space="preserve">
+    <value>One copy less</value>
+  </data>
+  <data name="CopiesMore" xml:space="preserve">
+    <value>One copy more</value>
+  </data>
+  <data name="DiagCopyReport" xml:space="preserve">
+    <value>Copy report</value>
+  </data>
+  <data name="DiagHideReport" xml:space="preserve">
+    <value>Hide full report</value>
+  </data>
+  <data name="DiagShowReport" xml:space="preserve">
+    <value>Show full report</value>
+  </data>
+  <data name="JobColCopies" xml:space="preserve">
+    <value>Copies</value>
+  </data>
+  <data name="JobColFromPc" xml:space="preserve">
+    <value>From PC</value>
+  </data>
+  <data name="JobColSentTo" xml:space="preserve">
+    <value>Sent to</value>
+  </data>
+  <data name="JobsChangeInSettings" xml:space="preserve">
+    <value>Change in Settings</value>
+  </data>
+  <data name="JobsCounts" xml:space="preserve">
+    <value>Printed today: {0} · Waiting: {1}</value>
+  </data>
+  <data name="JobsGoShare" xml:space="preserve">
+    <value>Go to Share my printers</value>
+  </data>
+  <data name="JobsIntro" xml:space="preserve">
+    <value>Documents this PC sent to other PCs' printers, and documents other PCs sent here.</value>
+  </data>
+  <data name="JobsKeepNote" xml:space="preserve">
+    <value>Copies of sent documents are kept for {0}, then deleted.</value>
+  </data>
+  <data name="JobsReceivedEmpty" xml:space="preserve">
+    <value>No jobs received</value>
+  </data>
+  <data name="JobsReceivedEmptyOff" xml:space="preserve">
+    <value>Sharing is off, so other PCs can't send jobs to this PC.</value>
+  </data>
+  <data name="JobsReceivedEmptyOn" xml:space="preserve">
+    <value>When another PC prints to this PC's printers, the job shows here.</value>
+  </data>
+  <data name="JobsSeeOffice" xml:space="preserve">
+    <value>See office printers</value>
+  </data>
+  <data name="JobsSentEmpty" xml:space="preserve">
+    <value>Nothing sent from this PC yet</value>
+  </data>
+  <data name="JobsSentEmptyNoPrinter" xml:space="preserve">
+    <value>Add a printer of another PC on Office printers, then print to it from any program. Each job shows here.</value>
+  </data>
+  <data name="JobsSentEmptyText" xml:space="preserve">
+    <value>Print from any program to {0}. Each job shows here and moves from Waiting to Printed.</value>
+  </data>
+  <data name="KindDefault" xml:space="preserve">
+    <value>default printer of this PC</value>
+  </data>
+  <data name="KindFax" xml:space="preserve">
+    <value>Fax</value>
+  </data>
+  <data name="KindFile" xml:space="preserve">
+    <value>Software printer · saves a file</value>
+  </data>
+  <data name="KindNetwork" xml:space="preserve">
+    <value>Network printer</value>
+  </data>
+  <data name="KindOneNote" xml:space="preserve">
+    <value>Software printer · sends to OneNote</value>
+  </data>
+  <data name="KindPdf" xml:space="preserve">
+    <value>Software printer · saves a PDF file</value>
+  </data>
+  <data name="KindPort" xml:space="preserve">
+    <value>Printer on {0}</value>
+  </data>
+  <data name="KindShare" xml:space="preserve">
+    <value>Shared by {0} in Windows</value>
+  </data>
+  <data name="KindUsb" xml:space="preserve">
+    <value>USB printer</value>
+  </data>
+  <data name="KindXps" xml:space="preserve">
+    <value>Software printer · saves an XPS file</value>
+  </data>
+  <data name="NavOffice" xml:space="preserve">
+    <value>Office printers</value>
+  </data>
+  <data name="NavVersionLatest" xml:space="preserve">
+    <value>up to date</value>
+  </data>
+  <data name="NavVersionLine" xml:space="preserve">
+    <value>Version {0} · {1}</value>
+  </data>
+  <data name="NavVersionUpdate" xml:space="preserve">
+    <value>update ready</value>
+  </data>
+  <data name="OfficeAdded" xml:space="preserve">
+    <value>Added to this PC</value>
+  </data>
+  <data name="OfficeAddedButton" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="OfficeAlready" xml:space="preserve">
+    <value>Already on this PC</value>
+  </data>
+  <data name="OfficeChecking" xml:space="preserve">
+    <value>Looking…</value>
+  </data>
+  <data name="OfficeFind" xml:space="preserve">
+    <value>Find a PC by name</value>
+  </data>
+  <data name="OfficeFindLabel" xml:space="preserve">
+    <value>PC name or IP address</value>
+  </data>
+  <data name="OfficeFound" xml:space="preserve">
+    <value>Found in the office, not added yet</value>
+  </data>
+  <data name="OfficeInPrintWindows" xml:space="preserve">
+    <value>In Print windows:</value>
+  </data>
+  <data name="OfficeIntro" xml:space="preserve">
+    <value>Printers that other PCs share. Once a printer is added, it shows in the Print window of every program on this PC.</value>
+  </data>
+  <data name="OfficeLastChecked" xml:space="preserve">
+    <value>Last checked {0}</value>
+  </data>
+  <data name="OfficeNoneAdded" xml:space="preserve">
+    <value>No printer of another PC is on this PC yet. Printers that other PCs share appear below: press Add to this PC.</value>
+  </data>
+  <data name="OfficeNoneFound" xml:space="preserve">
+    <value>No PC is sharing a printer right now</value>
+  </data>
+  <data name="OfficeNoneFoundText" xml:space="preserve">
+    <value>PrintVect keeps looking every 10 seconds. If a PC should be listed, check that PrintVect is running there with sharing on, or type its name below.</value>
+  </data>
+  <data name="OfficeNotAnswering" xml:space="preserve">
+    <value>Not answering</value>
+  </data>
+  <data name="OfficeNothingNew" xml:space="preserve">
+    <value>Nothing new to add</value>
+  </data>
+  <data name="OfficeNothingNewText" xml:space="preserve">
+    <value>PrintVect found {0} printer(s) on {1} PC(s), and all of them are already on this PC. New ones appear here by themselves.</value>
+  </data>
+  <data name="OfficeRemoveAccessible" xml:space="preserve">
+    <value>Remove {0} from this PC</value>
+  </data>
+  <data name="OfficeRetry" xml:space="preserve">
+    <value>Retry waiting</value>
+  </data>
+  <data name="OfficeSearchAgain" xml:space="preserve">
+    <value>Search again</value>
+  </data>
+  <data name="OfficeSharedBy" xml:space="preserve">
+    <value>Shared by</value>
+  </data>
+  <data name="OfficeShares" xml:space="preserve">
+    <value>shares {0} printer(s)</value>
+  </data>
+  <data name="OfficeTestPage" xml:space="preserve">
+    <value>Test page</value>
+  </data>
+  <data name="OfficeTwoNetworks" xml:space="preserve">
+    <value>This PC is on {0} networks ({1}). A PC on another network may not appear above by itself: type its name here and press Look up.</value>
+  </data>
+  <data name="OfficeWaiting" xml:space="preserve">
+    <value>{0} waiting</value>
+  </data>
+  <data name="SettingsAskCopiesNote" xml:space="preserve">
+    <value>Before a document goes to another PC's printer</value>
+  </data>
+  <data name="SettingsAskCopiesTitle" xml:space="preserve">
+    <value>Ask how many copies</value>
+  </data>
+  <data name="SettingsAutostartNote" xml:space="preserve">
+    <value>Runs hidden in the tray, for every user of this PC</value>
+  </data>
+  <data name="SettingsAutostartTitle" xml:space="preserve">
+    <value>Start PrintVect with Windows</value>
+  </data>
+  <data name="SettingsCarriesJobs" xml:space="preserve">
+    <value>Carries jobs</value>
+  </data>
+  <data name="SettingsCheckDaily" xml:space="preserve">
+    <value>Check for a new version once a day</value>
+  </data>
+  <data name="SettingsCheckDailyNote" xml:space="preserve">
+    <value>Needs the internet. Printing never does.</value>
+  </data>
+  <data name="SettingsColours" xml:space="preserve">
+    <value>Colours</value>
+  </data>
+  <data name="SettingsColoursDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="SettingsColoursLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="SettingsColoursNote" xml:space="preserve">
+    <value>System default follows the light or dark mode of Windows</value>
+  </data>
+  <data name="SettingsColoursSystem" xml:space="preserve">
+    <value>System default</value>
+  </data>
+  <data name="SettingsFewerHours" xml:space="preserve">
+    <value>Fewer hours</value>
+  </data>
+  <data name="SettingsMoreHours" xml:space="preserve">
+    <value>More hours</value>
+  </data>
+  <data name="SettingsFindsPrinters" xml:space="preserve">
+    <value>Finds printers</value>
+  </data>
+  <data name="SettingsGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="SettingsKeepNote" xml:space="preserve">
+    <value>So a failed job can be sent again</value>
+  </data>
+  <data name="SettingsKeepTitle" xml:space="preserve">
+    <value>Keep copies of sent documents for</value>
+  </data>
+  <data name="SettingsNetworkTitle" xml:space="preserve">
+    <value>Network (for whoever supports PrintVect)</value>
+  </data>
+  <data name="SettingsOpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="SettingsPinNotSetPill" xml:space="preserve">
+    <value>Not set</value>
+  </data>
+  <data name="SettingsPinSetPill" xml:space="preserve">
+    <value>Set</value>
+  </data>
+  <data name="SettingsSecurity" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="ShareColName" xml:space="preserve">
+    <value>Name other PCs see</value>
+  </data>
+  <data name="ShareCopyName" xml:space="preserve">
+    <value>Copy PC name</value>
+  </data>
+  <data name="ShareFindAs" xml:space="preserve">
+    <value>Other PCs find this PC as</value>
+  </data>
+  <data name="ShareHow1" xml:space="preserve">
+    <value>On that PC, open PrintVect and go to Office printers.</value>
+  </data>
+  <data name="ShareHow2" xml:space="preserve">
+    <value>This PC's shared printers appear there by themselves. Press Add to this PC.</value>
+  </data>
+  <data name="ShareHow3" xml:space="preserve">
+    <value>Not there? Type {0} and press Look up.</value>
+  </data>
+  <data name="ShareHowTitle" xml:space="preserve">
+    <value>How another PC connects</value>
+  </data>
+  <data name="ShareMakePrivate" xml:space="preserve">
+    <value>Make it private</value>
+  </data>
+  <data name="ShareMakingPrivate" xml:space="preserve">
+    <value>Windows asks for permission to change the network. Choose Yes.</value>
+  </data>
+  <data name="ShareNameAccessible" xml:space="preserve">
+    <value>Name other PCs see for {0}</value>
+  </data>
+  <data name="ShareNameHint" xml:space="preserve">
+    <value>Use a short, clear name for the office, like “Counter 1 Laser”.</value>
+  </data>
+  <data name="ShareNoAddress" xml:space="preserve">
+    <value>No network address right now: check the network cable or the Wi-Fi.</value>
+  </data>
+  <data name="ShareNotListedMany" xml:space="preserve">
+    <value>{0} are not listed: they belong to other PCs, so they can't be shared again from here.</value>
+  </data>
+  <data name="ShareNotListedOne" xml:space="preserve">
+    <value>{0} is not listed: it belongs to another PC, so it can't be shared again from here.</value>
+  </data>
+  <data name="ShareOffPill" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ShareOffText" xml:space="preserve">
+    <value>Other PCs can't print here.</value>
+  </data>
+  <data name="ShareOnPill" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="ShareOnText" xml:space="preserve">
+    <value>Other PCs can print to the printers ticked below.</value>
+  </data>
+  <data name="SharePauseAccessible" xml:space="preserve">
+    <value>Pause {0}</value>
+  </data>
+  <data name="SharePauseShort" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="SharePcsNoneYet" xml:space="preserve">
+    <value>None yet</value>
+  </data>
+  <data name="SharePinLink" xml:space="preserve">
+    <value>Set a PIN</value>
+  </data>
+  <data name="SharePinNoticeOff" xml:space="preserve">
+    <value>No office PIN. Once sharing is on, any PC on the office network can print here.</value>
+  </data>
+  <data name="SharePinNoticeOn" xml:space="preserve">
+    <value>No office PIN: any PC on the office network can print here.</value>
+  </data>
+  <data name="SharePrintedHere" xml:space="preserve">
+    <value>Printed here today</value>
+  </data>
+  <data name="SharePrintersLocal" xml:space="preserve">
+    <value>Printers connected to this PC</value>
+  </data>
+  <data name="SharePrivateFailed" xml:space="preserve">
+    <value>The network was not changed. {0}</value>
+  </data>
+  <data name="SharePublicMany" xml:space="preserve">
+    <value>Windows treats the networks {0} as public, so other PCs can't reach this PC's printers over them. A phone hotspot usually is public.</value>
+  </data>
+  <data name="SharePublicOne" xml:space="preserve">
+    <value>Windows treats the network {0} as public, so other PCs can't reach this PC's printers over it. A phone hotspot usually is public.</value>
+  </data>
+  <data name="ShareRefreshList" xml:space="preserve">
+    <value>Read the printer list again</value>
+  </data>
+  <data name="ShareResumeAccessible" xml:space="preserve">
+    <value>Resume {0}</value>
+  </data>
+  <data name="ShareResumeShort" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="ShareTickAccessible" xml:space="preserve">
+    <value>Share {0}</value>
+  </data>
+  <data name="ShareTickHint" xml:space="preserve">
+    <value>Tick the ones other PCs may use</value>
+  </data>
+  <data name="ShareTurnOff" xml:space="preserve">
+    <value>Turn off sharing</value>
+  </data>
+  <data name="ShareTurnOn" xml:space="preserve">
+    <value>Turn on sharing</value>
+  </data>
+  <data name="ShareWithOffice" xml:space="preserve">
+    <value>Share with the office</value>
+  </data>
+  <data name="SharingDialogHeading" xml:space="preserve">
+    <value>Share printers with the office?</value>
+  </data>
+  <data name="SharingDialogNoPrinter" xml:space="preserve">
+    <value>Tick at least one printer.</value>
+  </data>
+  <data name="SharingDialogPin" xml:space="preserve">
+    <value>Office PIN</value>
+  </data>
+  <data name="SharingDialogPinAgain" xml:space="preserve">
+    <value>Type the PIN again</value>
+  </data>
+  <data name="SharingDialogPinHelp" xml:space="preserve">
+    <value>Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters. Leave it blank to share without a PIN.</value>
+  </data>
+  <data name="SharingDialogPinSet" xml:space="preserve">
+    <value>This PC already has an office PIN. Other PCs need the same PIN in their Settings to print here.</value>
+  </data>
+  <data name="SharingDialogPrinters" xml:space="preserve">
+    <value>Printers to share</value>
+  </data>
+  <data name="SharingDialogRecommended" xml:space="preserve">
+    <value>(recommended)</value>
+  </data>
+  <data name="SharingDialogText" xml:space="preserve">
+    <value>Other PCs on the office network will be able to print to the printers you choose here.</value>
+  </data>
+  <data name="SharingDialogTitle" xml:space="preserve">
+    <value>Turn on sharing</value>
+  </data>
+  <data name="UpdateStatusLatest" xml:space="preserve">
+    <value>{0} is the latest version · checked {1}</value>
+  </data>
+  <data name="WordAnd" xml:space="preserve">
+    <value>and</value>
+  </data>
+  <data name="WordOr" xml:space="preserve">
+    <value>or</value>
   </data>
 </root>

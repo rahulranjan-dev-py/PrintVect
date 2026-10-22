@@ -7,46 +7,83 @@ namespace PrintVect.App.Theme
 {
     internal enum ButtonKind
     {
-        /// <summary>Accent green with dark text: the one main action of a card.</summary>
+        /// <summary>Green with white (light) or dark (dark) text: the one main action of a card.</summary>
         Primary,
-        /// <summary>Outlined (#3A4350) on the card: every other action.</summary>
+        /// <summary>Outlined: every other action.</summary>
         Secondary,
-        /// <summary>Dark on the yellow update strip.</summary>
-        OnWarning
+        /// <summary>No outline until the mouse is on it: small actions beside a heading.</summary>
+        Ghost,
+        /// <summary>Red text, no outline: Remove.</summary>
+        Danger
     }
 
     /// <summary>
-    /// A button of the design (8 px corners, at least 44 px tall). Still a real Button underneath, so the keyboard,
-    /// Enter / Space, the focus order and screen readers work as before.
+    /// A button of the design (6 px corners, 44 px tall, 36 px when compact), with an optional line icon before the
+    /// text. Still a real Button underneath, so the keyboard, Enter / Space, the focus order and screen readers work.
     /// </summary>
     internal sealed class ThemedButton : Button
     {
         private bool _hover;
         private bool _pressed;
+        private Glyph _glyph;
 
-        public ThemedButton(string text, ButtonKind kind)
+        public ThemedButton(string text, ButtonKind kind, Glyph glyph = Glyph.None)
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw
                      | ControlStyles.UserPaint | ControlStyles.SupportsTransparentBackColor, true);
             Kind = kind;
+            _glyph = glyph;
             Text = text;
-            Font = ThemeFonts.TextSemi;
+            Font = kind == ButtonKind.Primary ? ThemeFonts.TextSemi : ThemeFonts.TextMedium;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
             Margin = Ui.Pad(0, 0, 8, 0);
             Cursor = Cursors.Hand;
-            MinimumHeight = kind == ButtonKind.OnWarning ? 36 : 44;
+            MinimumHeight = 44;
         }
 
         public ButtonKind Kind { get; set; }
 
+        public Glyph Glyph
+        {
+            get { return _glyph; }
+            set
+            {
+                _glyph = value;
+                Invalidate();
+            }
+        }
+
         /// <summary>Design pixels at 100 %.</summary>
         public int MinimumHeight { get; set; }
 
+        /// <summary>36 px tall, for buttons inside a list row.</summary>
+        public bool Compact
+        {
+            get { return MinimumHeight < 40; }
+            set { MinimumHeight = value ? 36 : 44; }
+        }
+
+        /// <summary>Only the icon is shown (the text stays the accessible name and the tooltip).</summary>
+        public bool IconOnly { get; set; }
+
         public override Size GetPreferredSize(Size proposedSize)
         {
-            Size text = TextRenderer.MeasureText(Text ?? "", Font);
-            return new Size(text.Width + Ui.S(32), Math.Max(Ui.S(MinimumHeight), text.Height + Ui.S(16)));
+            int height = Ui.S(MinimumHeight);
+            if (IconOnly)
+            {
+                return new Size(height, height);
+            }
+            Size text = TextRenderer.MeasureText(Text ?? "", Font, Size.Empty, TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+            int icon = _glyph == Glyph.None ? 0 : Ui.S(18 + 8);
+            int pad = Ui.S(Kind == ButtonKind.Primary ? 16 : 14);
+            return new Size(text.Width + icon + 2 * pad, Math.Max(height, text.Height + Ui.S(12)));
+        }
+
+        protected override void OnTextChanged(EventArgs e)
+        {
+            base.OnTextChanged(e);
+            if (AutoSize && Parent != null) Parent.PerformLayout(this, "Text");
         }
 
         protected override void OnMouseEnter(EventArgs e)
@@ -100,67 +137,80 @@ namespace PrintVect.App.Theme
             Colours(out fill, out text, out border);
 
             var bounds = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
-            using (GraphicsPath path = Ui.RoundRect(bounds, Ui.S(8)))
+            using (GraphicsPath path = Ui.RoundRect(bounds, Ui.S(6)))
             {
-                if (fill != Color.Transparent)
+                if (fill.A > 0)
                 {
                     using (var brush = new SolidBrush(fill)) g.FillPath(brush, path);
                 }
-                if (border != Color.Transparent)
+                if (border.A > 0)
                 {
                     using (var pen = new Pen(border, 1f)) g.DrawPath(pen, path);
                 }
             }
             if (Focused && ShowFocusCues)
             {
-                var ring = new RectangleF(2f, 2f, Width - 5f, Height - 5f);
-                using (GraphicsPath path = Ui.RoundRect(ring, Ui.S(6)))
-                using (var pen = new Pen(Kind == ButtonKind.Primary ? Palette.OnAccent : Palette.Accent, 1.5f) { DashStyle = DashStyle.Dot })
+                var ring = new RectangleF(1.5f, 1.5f, Width - 3.5f, Height - 3.5f);
+                using (GraphicsPath path = Ui.RoundRect(ring, Ui.S(5)))
+                using (var pen = new Pen(Kind == ButtonKind.Primary && Enabled ? Palette.OnAccent : Palette.Accent, Ui.S(2)))
                 {
                     g.DrawPath(pen, path);
                 }
             }
-            TextRenderer.DrawText(g, Text, Font, ClientRectangle, text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine
-                | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+
+            int iconSize = Ui.S(18);
+            if (IconOnly)
+            {
+                Icons.Draw(g, _glyph, new RectangleF((Width - iconSize) / 2f, (Height - iconSize) / 2f, iconSize, iconSize), text);
+                return;
+            }
+            Size measured = TextRenderer.MeasureText(Text ?? "", Font, Size.Empty, TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+            int content = measured.Width + (_glyph == Glyph.None ? 0 : iconSize + Ui.S(8));
+            int x = Math.Max(Ui.S(8), (Width - content) / 2);
+            if (_glyph != Glyph.None)
+            {
+                Icons.Draw(g, _glyph, new RectangleF(x, (Height - iconSize) / 2f, iconSize, iconSize), text);
+                x += iconSize + Ui.S(8);
+            }
+            var textRect = new Rectangle(x, 0, Math.Max(1, Width - x - Ui.S(6)), Height);
+            TextRenderer.DrawText(g, Text, Font, textRect, text,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis
+                | TextFormatFlags.NoPrefix);
         }
 
         private void Colours(out Color fill, out Color text, out Color border)
         {
+            if (!Enabled)
+            {
+                bool flat = Kind == ButtonKind.Ghost || Kind == ButtonKind.Danger;
+                fill = flat ? Color.Transparent : Palette.DisabledBg;
+                border = flat ? Color.Transparent : Palette.DisabledBorder;
+                text = Palette.Disabled;
+                return;
+            }
             switch (Kind)
             {
                 case ButtonKind.Primary:
                     border = Color.Transparent;
-                    if (!Enabled)
-                    {
-                        fill = Palette.Border;
-                        text = Palette.Muted;
-                    }
-                    else
-                    {
-                        fill = _pressed ? Shade(Palette.Accent, -0.15f) : _hover ? Shade(Palette.Accent, 0.12f) : Palette.Accent;
-                        text = Palette.OnAccent;
-                    }
+                    fill = _pressed ? Palette.AccentPressed : _hover ? Palette.AccentHover : Palette.Accent;
+                    text = Palette.OnAccent;
                     return;
-                case ButtonKind.OnWarning:
+                case ButtonKind.Ghost:
                     border = Color.Transparent;
-                    fill = !Enabled ? Shade(Palette.Warning, -0.2f)
-                        : _pressed ? Shade(Palette.OnWarning, 0.25f) : _hover ? Shade(Palette.OnWarning, 0.15f) : Palette.OnWarning;
-                    text = Enabled ? Palette.Warning : Palette.OnWarning;
+                    fill = _pressed ? Palette.Pressed : _hover ? Palette.Hover : Color.Transparent;
+                    text = Palette.Text;
+                    return;
+                case ButtonKind.Danger:
+                    border = Color.Transparent;
+                    fill = _pressed || _hover ? Palette.DangerBg : Color.Transparent;
+                    text = Palette.DangerText;
                     return;
                 default:
-                    fill = _pressed ? Palette.Selection : _hover ? Palette.Hover : Color.Transparent;
-                    border = Enabled ? Palette.Outline : Palette.Border;
-                    text = Enabled ? Palette.Text : Palette.Muted;
+                    fill = _pressed ? Palette.Pressed : _hover ? Palette.Hover : Palette.Card;
+                    border = Palette.ButtonBorder;
+                    text = Palette.Text;
                     return;
             }
-        }
-
-        /// <summary>Lighter (amount &gt; 0, towards white) or darker (amount &lt; 0, towards black).</summary>
-        internal static Color Shade(Color c, float amount)
-        {
-            Func<int, int> f = v => amount >= 0 ? (int)(v + (255 - v) * amount) : (int)(v * (1 + amount));
-            return Color.FromArgb(c.A, f(c.R), f(c.G), f(c.B));
         }
     }
 }

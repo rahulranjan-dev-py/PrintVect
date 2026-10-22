@@ -443,7 +443,7 @@ namespace PrintVect.Tests
 
                     Assert.AreEqual(ClientJobStates.Pending, record.State);
                     StringAssert.Contains(record.Message, "COUNTER1 stopped answering");
-                    StringAssert.Contains(record.Message, "Retry waiting jobs");
+                    StringAssert.Contains(record.Message, "Retry waiting");
                     Assert.AreEqual(1, service.PendingCount(printer.PrinterId), "the file went from sent\\ back to pending\\");
 
                     // The host is back: Retry sends the same job again and it prints.
@@ -729,6 +729,69 @@ namespace PrintVect.Tests
                     Assert.AreEqual(ClientJobStates.Printed, finished.State);
                     Assert.IsTrue(File.Exists(sample), "the original stays where it was");
                     Assert.ThrowsException<InvalidOperationException>(() => service.SendFile("nope", sample));
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AHostThatMovedIsFoundAgainAndTheJobPrintsThereAtOnce()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender();
+                RemotePrinter printer = Printer();
+                printer.HostIp = "10.0.0.1";
+                // Only the new address answers, as after a phone hotspot handed the host another one.
+                sender.OnSend = h => printer.HostIp == "10.0.0.2"
+                    ? new JobReply { Ok = true, JobId = h.JobId, State = JobStates.Printed, Message = "Printed on COUNTER1" }
+                    : null;
+                int searches = 0;
+                using (ClientService service = Service(temp, sender, 0, 5000, 5000))
+                {
+                    service.FindHost = (p, ct) =>
+                    {
+                        Interlocked.Increment(ref searches);
+                        p.HostIp = "10.0.0.2";
+                        return Task.FromResult(true);
+                    };
+                    var paths = new AppPaths(temp.Path);
+                    service.StartWatching(printer);
+                    DateTime start = DateTime.UtcNow;
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, true, "Moved host");
+
+                    Assert.AreEqual(ClientJobStates.Printed, record.State, record.Message);
+                    Assert.AreEqual(1, searches);
+                    Assert.AreEqual(2, sender.Sent.Count, "one try at the old address, one at the new");
+                    Assert.IsTrue(DateTime.UtcNow - start < TimeSpan.FromSeconds(4), "the found host is tried at once, not after the 5 s wait");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AHostThatIsNotFoundIsSearchedForOnceAndTheJobWaits()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender { OnSend = h => null };
+                int searches = 0;
+                using (ClientService service = Service(temp, sender, 0, 10, 10))
+                {
+                    service.FindHost = (p, ct) =>
+                    {
+                        Interlocked.Increment(ref searches);
+                        return Task.FromResult(false);
+                    };
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, true, "Nobody home");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State);
+                    Assert.AreEqual(1, searches);
+                    Assert.AreEqual(3, sender.Sent.Count);
+                    Assert.AreEqual("127.0.0.1", printer.HostIp, "the address stays when the host was not found elsewhere");
                 }
             }
         }

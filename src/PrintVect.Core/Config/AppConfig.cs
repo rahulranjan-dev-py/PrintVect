@@ -14,6 +14,9 @@ namespace PrintVect.Core.Config
         public const int DefaultKeepSentFilesHours = 1;
         public const int MaxKeepSentFilesHours = 168;
         public const string DefaultLanguage = "en";
+        public const string ThemeSystem = "system";
+        public const string ThemeLight = "light";
+        public const string ThemeDark = "dark";
 
         /// <summary>Schema version of this file.</summary>
         public int Version { get; set; } = CurrentVersion;
@@ -41,6 +44,9 @@ namespace PrintVect.Core.Config
         /// loses the copies chosen in a program's print window (brief 11.6), so this is on by default.
         /// </summary>
         public bool AskCopies { get; set; } = true;
+
+        /// <summary>Colours of the window (0.5.0): "system" follows Windows' light or dark app mode, or "light", "dark".</summary>
+        public string Theme { get; set; } = ThemeSystem;
 
         /// <summary>UI language. "en" now, "hi" in Phase 2.</summary>
         public string Language { get; set; } = DefaultLanguage;
