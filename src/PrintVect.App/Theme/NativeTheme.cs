@@ -7,8 +7,9 @@ namespace PrintVect.App.Theme
 {
     /// <summary>
     /// The few Windows calls the two looks need: Windows' own title bar in light or dark (Windows 10 1809 and later,
-    /// Windows 11 also takes the side menu's colour), matching scroll bars, and fonts registered for this process
-    /// only. Each one is optional: on an older Windows the window simply keeps the standard frame or scroll bars.
+    /// Windows 11 also takes the side menu's colour), matching scroll bars, fonts registered for this process
+    /// only, and drawing paused while a page is put together. Each one is optional: on an older Windows the window
+    /// simply keeps the standard frame or scroll bars.
     /// </summary>
     internal static class NativeTheme
     {
@@ -20,8 +21,55 @@ namespace PrintVect.App.Theme
         private const uint FrPrivate = 0x10;
         private const uint SwpFrameChanged = 0x0020, SwpNoMove = 0x0002, SwpNoSize = 0x0001, SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
 
+        private const int WmSetRedraw = 0x000B;
+        private const uint RdwInvalidate = 0x0001, RdwErase = 0x0004, RdwAllChildren = 0x0080, RdwUpdateNow = 0x0100, RdwFrame = 0x0400;
+
         private static bool _dwmMissing;
         private static bool _uxThemeMissing;
+        private static bool _user32Missing;
+
+        /// <summary>
+        /// Stops Windows drawing a control and everything in it until the result is disposed, then draws it once,
+        /// finished. Opening a page shows it, sizes it and lays out its rows; without this every step reaches the
+        /// screen and the page visibly jumps (owner, 0.5.0). Elsewhere (the Mono preview) it does nothing.
+        /// </summary>
+        public static IDisposable FreezeDrawing(Control control)
+        {
+            if (_user32Missing || Environment.OSVersion.Platform != PlatformID.Win32NT || !control.IsHandleCreated)
+            {
+                return new Frozen(null);
+            }
+            try
+            {
+                SendMessage(control.Handle, WmSetRedraw, IntPtr.Zero, IntPtr.Zero);
+                return new Frozen(control);
+            }
+            catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            {
+                _user32Missing = true;
+                Log.Warn("Drawing cannot be paused on this Windows: " + ex.Message);
+                return new Frozen(null);
+            }
+        }
+
+        private sealed class Frozen : IDisposable
+        {
+            private Control _control;
+
+            public Frozen(Control control)
+            {
+                _control = control;
+            }
+
+            public void Dispose()
+            {
+                Control control = _control;
+                _control = null;
+                if (control == null || control.IsDisposed || !control.IsHandleCreated) return;
+                SendMessage(control.Handle, WmSetRedraw, new IntPtr(1), IntPtr.Zero);
+                RedrawWindow(control.Handle, IntPtr.Zero, IntPtr.Zero, RdwErase | RdwFrame | RdwInvalidate | RdwAllChildren | RdwUpdateNow);
+            }
+        }
 
         /// <summary>Asks Windows for the title bar of the theme in use; on Windows 11 also paints it in the side menu's colour.</summary>
         public static void ApplyTitleBar(Form form, bool redraw = false)
@@ -126,6 +174,12 @@ namespace PrintVect.App.Theme
 
         [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
         private static extern int AddFontResourceEx(string fileName, uint flags, IntPtr reserved);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool RedrawWindow(IntPtr hwnd, IntPtr updateRect, IntPtr updateRegion, uint flags);
 
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr hwnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);

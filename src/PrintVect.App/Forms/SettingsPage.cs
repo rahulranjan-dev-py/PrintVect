@@ -118,7 +118,7 @@ namespace PrintVect.App.Forms
             // Updates
             _autoCheck = new ToggleSwitch { Checked = _updates.AutoCheck, AccessibleName = Strings.SettingsCheckDaily };
             _autoCheck.CheckedChanged += (s, e) => _updates.SetAutoCheck(_autoCheck.Checked);
-            _updateIcon = new GlyphBox(Glyph.Check, 16, Palette.AccentText, 2.2f) { Anchor = AnchorStyles.Left | AnchorStyles.Top, Margin = Ui.Pad(0, 2, 8, 0) };
+            _updateIcon = new GlyphBox(Glyph.Check, 16, Palette.AccentText, 2.2f) { Margin = Ui.Pad(0, 0, 8, 0) };
             _updateStatus = Make.Wrap("", ThemeFonts.SecondarySemi, Palette.AccentText, Ui.Pad(0));
             _updateProgress = new ThinProgress { Visible = false, Margin = Ui.Pad(0) };
             _updateNow = new ThemedButton(Strings.SettingsUpdateNow, ButtonKind.Primary) { Visible = false, Margin = Ui.Pad(0, 0, 8, 0) };
@@ -127,7 +127,7 @@ namespace PrintVect.App.Forms
             _checkNow.Click += (s, e) => CheckForUpdatesNow();
             FlowLayoutPanel updateButtons = Make.Row(_updateNow, _checkNow);
             updateButtons.WrapContents = false;
-            var status = new SplitRow(_updateIcon, _updateStatus, updateButtons, 180, 0);
+            var status = new SplitRow(Make.Row(_updateIcon), _updateStatus, updateButtons, 180, 0);   // the tick hides inside its row
             Card updatesCard = Make.Card(Make.Stack(10, Make.CardTitle(Strings.SettingsUpdatesGroup),
                 SettingRow(Strings.SettingsCheckDaily, Strings.SettingsCheckDailyNote, _autoCheck, false), status, _updateProgress), 20, 18);
 
@@ -210,10 +210,16 @@ namespace PrintVect.App.Forms
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
-            if (Visible && !IsDisposed && !_loaded)
-            {
-                RefreshDiagnostics();   // collected the first time this page is shown, not at start-up
-            }
+            if (Visible) LoadDiagnostics();
+        }
+
+        /// <summary>
+        /// Collects the Diagnostics checklist once, not at start-up: when the window opens (so it is ready, and its card
+        /// does not grow under the eyes, when Settings is opened) or when this page is.
+        /// </summary>
+        public void LoadDiagnostics()
+        {
+            if (!IsDisposed && !_loaded) RefreshDiagnostics();
         }
 
         // ---- Security and General ----

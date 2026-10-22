@@ -38,7 +38,8 @@ was the working name before PrintVect was chosen).
 | M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, reported OK by the owner** |
 | M6b-2 | Hardening: editable settings and office PIN, copies question, PCs that use a host, Pause / Resume, jobs kept for Retry when a host is lost, plain-language errors | **released in 0.4.0 (2026-10-17), not tested** |
 | 0.4.1 | Jobs page: right-click Retry / Cancel job / Remove from list / Copy details, Cancel all waiting, Clear list; bigger green tick boxes on Share my printers | **done, awaiting test** |
-| 0.5.0 | The owner's redesign: side menu, Light / Dark / System default colours, Office printers page, Turn on sharing window, PrintVect's own printers can no longer be shared again; the phone hotspot fix (Make it private, a job finds a host's new address by itself) | **done, awaiting test** |
+| 0.5.0 | The owner's redesign: side menu, Light / Dark / System default colours, Office printers page, Turn on sharing window, PrintVect's own printers can no longer be shared again; the phone hotspot fix (Make it private, a job finds a host's new address by itself) | **released 2026-10-22, awaiting test** |
+| 0.5.1 | Pages open in one go: no more jumping or flicker when moving between Office printers, Share my printers, Jobs and Settings | **done, awaiting test** |
 
 ## Requirements
 
