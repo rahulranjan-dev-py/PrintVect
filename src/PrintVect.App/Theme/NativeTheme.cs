@@ -8,8 +8,8 @@ namespace PrintVect.App.Theme
     /// <summary>
     /// The few Windows calls the two looks need: Windows' own title bar in light or dark (Windows 10 1809 and later,
     /// Windows 11 also takes the side menu's colour), matching scroll bars, fonts registered for this process
-    /// only, and drawing paused while a page is put together. Each one is optional: on an older Windows the window
-    /// simply keeps the standard frame or scroll bars.
+    /// only, drawing paused while a page is put together, and the window kept off the screen until it is drawn. Each
+    /// one is optional: on an older Windows the window simply keeps the standard frame or scroll bars.
     /// </summary>
     internal static class NativeTheme
     {
@@ -18,6 +18,7 @@ namespace PrintVect.App.Theme
         private const int DwmaBorderColor = 34;                    // Windows 11
         private const int DwmaCaptionColor = 35;                   // Windows 11
         private const int DwmaTextColor = 36;                      // Windows 11
+        private const int DwmaCloak = 13;                          // Windows 8 and later
         private const uint FrPrivate = 0x10;
         private const uint SwpFrameChanged = 0x0020, SwpNoMove = 0x0002, SwpNoSize = 0x0001, SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
 
@@ -101,6 +102,48 @@ namespace PrintVect.App.Theme
             {
                 _dwmMissing = true;
                 Log.Warn("Themed title bar not available on this Windows: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Hides a window from the screen while it keeps working and drawing (DWM cloak, Windows 8 and later), or shows it
+        /// again. Returns false when Windows cannot: the window is then simply shown as before.
+        /// </summary>
+        public static bool Cloak(Form form, bool cloak)
+        {
+            OperatingSystem os = Environment.OSVersion;
+            if (_dwmMissing || os.Platform != PlatformID.Win32NT || os.Version < new Version(6, 2))
+            {
+                return false;
+            }
+            try
+            {
+                int value = cloak ? 1 : 0;
+                return DwmSetWindowAttribute(form.Handle, DwmaCloak, ref value, sizeof(int)) == 0;
+            }
+            catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            {
+                _dwmMissing = true;
+                Log.Warn("Windows cannot hide the window while it is drawn: " + ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>Draws a window and everything in it right now, instead of whenever Windows gets round to it.</summary>
+        public static void DrawNow(Control control)
+        {
+            if (_user32Missing || Environment.OSVersion.Platform != PlatformID.Win32NT || !control.IsHandleCreated)
+            {
+                return;
+            }
+            try
+            {
+                RedrawWindow(control.Handle, IntPtr.Zero, IntPtr.Zero, RdwErase | RdwFrame | RdwInvalidate | RdwAllChildren | RdwUpdateNow);
+            }
+            catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            {
+                _user32Missing = true;
+                Log.Warn("Drawing cannot be forced on this Windows: " + ex.Message);
             }
         }
 

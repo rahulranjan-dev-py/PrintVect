@@ -27,7 +27,7 @@ namespace PrintVect.App.Forms
     /// facts for whoever supports PrintVect. Right: Diagnostics, a checklist of what PrintVect checked on this PC with
     /// the full report to copy underneath. Every change is saved at once and applies to this PC only.
     /// </summary>
-    internal sealed class SettingsPage : PageScroller
+    internal sealed class SettingsPage : PageScroller, IPage
     {
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
@@ -207,10 +207,9 @@ namespace PrintVect.App.Forms
             return chip;
         }
 
-        protected override void OnVisibleChanged(EventArgs e)
+        public void SetOpen(bool open)
         {
-            base.OnVisibleChanged(e);
-            if (Visible) LoadDiagnostics();
+            if (open) LoadDiagnostics();
         }
 
         /// <summary>
