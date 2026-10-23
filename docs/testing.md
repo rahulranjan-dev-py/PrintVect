@@ -487,6 +487,28 @@ devices on them apart ("client isolation"); then PCs on it cannot reach each oth
 use the office network or another hotspot. The copies window and the PIN window take the colours in use when they
 open.
 
+## 0.5.1: pages open without jumping
+
+Reported by the owner on 2026-10-22: moving between Office printers, Share my printers, Jobs and Settings showed
+jitters and glitches. The cause: a page that is not open keeps the size it had when last seen, and opening it laid
+out every row again (dozens of passes) while Windows was already drawing it, so the half-finished steps reached the
+screen; the Diagnostics checklist was also only collected when Settings opened, so its card grew a moment later.
+Now drawing is paused while a page is sized and laid out and the finished page is drawn once; Diagnostics is
+collected when the window opens.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.1. On each PC: Settings, Check now, Update now. | "Version 0.5.1 · up to date" under the menu. |
+| 1 | Click Office printers, Share my printers, Jobs, Settings, then back, several times, quickly and slowly. | Each page appears complete in one go: no rows sliding into place, no flashing of the old page, no buttons jumping. |
+| 2 | Exit PrintVect (tray, Exit), start it again, open the window and go straight to **Settings**. | The Diagnostics checklist is already filled in (or fills in within a second if you are very quick); the card does not jump. |
+| 3 | Make the window bigger (maximise), go to another page, then make it smaller again and go back. | The page appears at the new size at once, without rearranging itself on screen. |
+| 4 | Press Ctrl+Tab a few times while the cursor is in the "PC name or IP address" box on Office printers. | The pages change in turn; Settings opens at its top (it does not scroll down by itself). |
+| 5 | Settings, Updates: wait for "PrintVect is up to date" (or press Check now). | The green tick sits just left of the text, with a small gap; with any other message there is no tick and no empty space. |
+| 6 | Repeat step 1 in Dark colours (Settings, Colours, Dark). | The same. |
+
+If a page still flickers, say which page and whether it is the first time it is opened after a start or every
+time; a short phone video helps.
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

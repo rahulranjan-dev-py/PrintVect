@@ -217,14 +217,24 @@ namespace PrintVect.App.Forms
             {
                 _nav[i].Active = i == index;
             }
-            // Show the new page before hiding the old one so the window never flashes empty.
-            _pages[index].Visible = true;
-            if (_current >= 0)
+            Control page = _pages[index];
+            if (_current >= 0 && _pages[_current].ContainsFocus)
             {
-                _pages[_current].Visible = false;
+                _nav[index].Focus();   // else Windows hands the focus to a box on the new page and scrolls it there
             }
-            _current = index;
-            _toast.BringToFront();
+            // Drawing waits until the page is finished: a hidden page kept the size it had when last seen, so showing
+            // it lays out every row again, and each step would otherwise reach the screen as a jump.
+            using (NativeTheme.FreezeDrawing(_pageHost))
+            {
+                page.Bounds = _pageHost.DisplayRectangle;   // sized before it shows, so it is laid out once
+                page.Visible = true;
+                if (_current >= 0)
+                {
+                    _pages[_current].Visible = false;
+                }
+                _current = index;
+                _toast.BringToFront();
+            }
         }
 
         /// <summary>Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+PageDown / PageUp move between pages, like the old tabs.</summary>
@@ -349,6 +359,18 @@ namespace PrintVect.App.Forms
             ResumeLayout(true);
             NativeTheme.ApplyTitleBar(this, true);
             Invalidate(true);
+            if (Visible) LoadDiagnostics();
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (Visible) LoadDiagnostics();
+        }
+
+        private void LoadDiagnostics()
+        {
+            if (_settingsPage != null && !_settingsPage.IsDisposed) _settingsPage.LoadDiagnostics();
         }
 
         protected override void OnHandleCreated(EventArgs e)

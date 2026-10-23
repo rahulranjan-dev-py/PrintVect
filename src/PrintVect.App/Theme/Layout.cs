@@ -148,6 +148,8 @@ namespace PrintVect.App.Theme
     /// <summary>
     /// A list row: something fixed on the left (an icon), the text in the middle taking the rest, and buttons or a pill
     /// on the right, all centred on one line. When the window is too narrow for the text, the right part moves under it.
+    /// A part is never hidden itself (hide what is inside it): the row then measures the same whether its page is
+    /// open or not, and opening the page does not lay it out again.
     /// </summary>
     internal sealed class SplitRow : Panel
     {
@@ -179,18 +181,6 @@ namespace PrintVect.App.Theme
         /// <summary>Lines up the left and right parts with the top of the text instead of its middle (rows with long text).</summary>
         public bool AlignTop { get; set; }
 
-        /// <summary>A part that was hidden takes no room (while the page itself is hidden, every part counts).</summary>
-        private bool Shown(Control part)
-        {
-            return part != null && (!Visible || part.Visible);
-        }
-
-        protected override void OnVisibleChanged(EventArgs e)
-        {
-            base.OnVisibleChanged(e);
-            if (Visible) PerformLayout();
-        }
-
         public override Size GetPreferredSize(Size proposedSize)
         {
             int width = proposedSize.Width > 0 && proposedSize.Width < 100000 ? proposedSize.Width : Math.Max(Width, 1);
@@ -200,7 +190,7 @@ namespace PrintVect.App.Theme
 
         private int Arrange(int width, out Rectangle lead, out Rectangle main, out Rectangle side)
         {
-            bool hasLead = Shown(_lead), hasSide = Shown(_side);
+            bool hasLead = _lead != null, hasSide = _side != null;
             Size leadSize = hasLead ? _lead.GetPreferredSize(Size.Empty) : Size.Empty;
             Size sideSize = hasSide ? _side.GetPreferredSize(Size.Empty) : Size.Empty;
             int leadWidth = hasLead ? leadSize.Width + _gap : 0;
