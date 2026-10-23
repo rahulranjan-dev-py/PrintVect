@@ -90,6 +90,38 @@ namespace PrintVect.App.Forms
             ThemeManager.Changed += OnThemeChanged;
         }
 
+        /// <summary>
+        /// Brings the window up (from the tray, at start, from a second copy of PrintVect). Windows puts a window on the
+        /// screen before it has drawn what is inside it, so opening it showed a moment of empty white boxes (owner's
+        /// photo, 0.5.1). The window is now kept off the screen (cloaked) until everything in it is drawn.
+        /// </summary>
+        public void Reveal()
+        {
+            bool appearing = !Visible || WindowState == FormWindowState.Minimized;
+            bool cloaked = appearing && NativeTheme.Cloak(this, true);
+            try
+            {
+                if (!Visible)
+                {
+                    Show();
+                }
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    WindowState = FormWindowState.Normal;
+                }
+                if (cloaked)
+                {
+                    NativeTheme.DrawNow(this);
+                }
+            }
+            finally
+            {
+                if (cloaked) NativeTheme.Cloak(this, false);
+            }
+            Activate();
+            BringToFront();
+        }
+
         /// <summary>Opens the Settings page, where the Updates card lives (the update balloon leads here).</summary>
         public void ShowSettings()
         {

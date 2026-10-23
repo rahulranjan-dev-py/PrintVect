@@ -509,6 +509,21 @@ collected when the window opens.
 If a page still flickers, say which page and whether it is the first time it is opened after a start or every
 time; a short phone video helps.
 
+## 0.5.2: the owner's look-and-feel list
+
+Reported by the owner on 2026-10-23, one issue at a time.
+
+1. Opening PrintVect from the tray showed a grey window full of empty white boxes for a moment (photo). Windows puts a
+   window on the screen before the program has drawn what is inside it, and on the first opening PrintVect still has
+   to create and draw about 150 parts of the window. Now the window is kept off the screen (cloaked) until everything
+   in it is drawn, then appears in one go (Windows 8 and later).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.2. On each PC: Settings, Check now, Update now. | "Version 0.5.2 · up to date" under the menu. |
+| 1 | Exit PrintVect (tray, Exit), start it from the Start menu, close the window (it goes to the tray), then double-click the tray icon. Repeat a few times, also with Light and Dark colours. | The window appears complete at once: no grey window with white boxes. The first time after a start it may take a moment longer to appear. |
+| 2 | Minimise the window (the _ button), then open it from the tray icon. | It comes back complete at once. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
