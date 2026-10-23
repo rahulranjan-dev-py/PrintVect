@@ -172,16 +172,7 @@ namespace PrintVect.App.Tray
             {
                 return;
             }
-            if (!_form.Visible)
-            {
-                _form.Show();
-            }
-            if (_form.WindowState == FormWindowState.Minimized)
-            {
-                _form.WindowState = FormWindowState.Normal;
-            }
-            _form.Activate();
-            _form.BringToFront();
+            _form.Reveal();
         }
 
         public void ExitApplication()
