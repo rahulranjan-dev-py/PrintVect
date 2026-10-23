@@ -22,7 +22,7 @@ namespace PrintVect.App.Forms
     /// PC, one card row each with its status, waiting jobs and Test page / Retry waiting / Remove; the printers found in
     /// the office that are not added yet (UDP discovery runs while this page is visible); and Find a PC by name.
     /// </summary>
-    internal sealed class OfficePrintersPage : PageScroller
+    internal sealed class OfficePrintersPage : PageScroller, IPage
     {
         private readonly ClientController _controller;
         private readonly IShell _shell;
@@ -136,10 +136,9 @@ namespace PrintVect.App.Forms
         }
 
         /// <summary>Discovery only runs while this page can be seen (brief, section 6).</summary>
-        protected override void OnVisibleChanged(EventArgs e)
+        public void SetOpen(bool open)
         {
-            base.OnVisibleChanged(e);
-            bool visible = Visible && !IsDisposed;
+            bool visible = open && !IsDisposed;
             try
             {
                 _controller.SetDiscoveryActive(visible);
