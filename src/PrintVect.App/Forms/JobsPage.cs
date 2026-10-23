@@ -22,7 +22,7 @@ namespace PrintVect.App.Forms
     /// document. Right-click a job (or press Delete) to retry, cancel or remove it; Cancel all waiting and Clear list
     /// act on the list shown (0.4.1). An empty list says what to do next. The list fills the window and scrolls itself.
     /// </summary>
-    internal sealed class JobsPage : Panel
+    internal sealed class JobsPage : Panel, IPage
     {
         private const int MaxJobRows = 50;
         private const int SentTab = 0, ReceivedTab = 1;
@@ -528,6 +528,11 @@ namespace PrintVect.App.Forms
                 grid.Rows.RemoveAt(grid.Rows.Count - 1);
             }
             return row;
+        }
+
+        /// <summary>The lists follow their events whether the page is open or not: nothing to start or stop.</summary>
+        public void SetOpen(bool open)
+        {
         }
 
         protected override void Dispose(bool disposing)

@@ -21,6 +21,16 @@ namespace PrintVect.App.Forms
         Settings
     }
 
+    /// <summary>
+    /// A page of the window. A page stays shown and laid out behind the open one once it has been opened (0.5.2): opening
+    /// it again only brings it to the front. This tells it when it is the one on screen.
+    /// </summary>
+    internal interface IPage
+    {
+        /// <summary>True: the page is now on screen. False: another page was opened or the window went to the tray.</summary>
+        void SetOpen(bool open);
+    }
+
     /// <summary>What a page may ask of the window around it: a short message, another page, the update.</summary>
     internal interface IShell
     {
@@ -60,6 +70,7 @@ namespace PrintVect.App.Forms
         private Toast _toast;
         private SettingsPage _settingsPage;
         private int _current = -1;
+        private readonly Timer _prepare = new Timer { Interval = 150 };
 
         public MainForm(AppPaths paths, ConfigStore store, AppConfig config, HostController host, ClientController client,
             UpdateController updates)
@@ -85,6 +96,7 @@ namespace PrintVect.App.Forms
             MinimumSize = new Size(Math.Min(Ui.S(920), screen.Width), Math.Min(Ui.S(600), screen.Height));
 
             Build(PageId.Office);
+            _prepare.Tick += (s, e) => PrepareNextPage();
             _host.SharingChanged += OnSharingChanged;
             _updates.Changed += OnUpdatesChanged;
             ThemeManager.Changed += OnThemeChanged;
@@ -156,7 +168,16 @@ namespace PrintVect.App.Forms
             _pageHost = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Background };
             _toast = new Toast(MessageDisplaySeconds);
             _pageHost.Controls.Add(_toast);
-            _pageHost.Resize += (s, e) => _toast.Place();
+            _pageHost.Resize += (s, e) =>
+            {
+                if (_current >= 0) _pages[_current].Bounds = _pageHost.DisplayRectangle;   // only the open page follows the window
+                _toast.Place();
+                if (Visible)
+                {
+                    _prepare.Stop();   // the others catch up once the resizing has stopped
+                    _prepare.Start();
+                }
+            };
 
             var office = new OfficePrintersPage(_client, this);
             var share = new SharePage(_paths, _store, _config, _host, _client, this);
@@ -234,8 +255,7 @@ namespace PrintVect.App.Forms
             _navPanel.Controls.Add(item);
             item.BringToFront();   // docked top: the last one added sits lowest
             _pages.Add(page);
-            page.Dock = DockStyle.Fill;
-            page.Visible = false;
+            page.Visible = false;   // until it is first opened
             _pageHost.Controls.Add(page);
         }
 
@@ -249,24 +269,59 @@ namespace PrintVect.App.Forms
             {
                 _nav[i].Active = i == index;
             }
+            NativeTheme.DrawNow(_navPanel);   // the click shows at once, before the page is ready
             Control page = _pages[index];
-            if (_current >= 0 && _pages[_current].ContainsFocus)
+            Control old = _current >= 0 ? _pages[_current] : null;
+            if (old != null && old.ContainsFocus)
             {
                 _nav[index].Focus();   // else Windows hands the focus to a box on the new page and scrolls it there
             }
-            // Drawing waits until the page is finished: a hidden page kept the size it had when last seen, so showing
-            // it lays out every row again, and each step would otherwise reach the screen as a jump.
+            // A page that was hidden lays out every row again when it is shown, which took long enough to notice after
+            // each click (owner, 0.5.1). So a page opened once stays shown behind the open one, switched off (no Tab,
+            // no keys), and opening it again only brings it to the front. Drawing waits until the page is finished, so
+            // a page opened for the first time or at a new window size does not jump while it is laid out.
             using (NativeTheme.FreezeDrawing(_pageHost))
             {
-                page.Bounds = _pageHost.DisplayRectangle;   // sized before it shows, so it is laid out once
+                if (page.Bounds != _pageHost.DisplayRectangle) page.Bounds = _pageHost.DisplayRectangle;
+                page.Enabled = true;
                 page.Visible = true;
-                if (_current >= 0)
-                {
-                    _pages[_current].Visible = false;
-                }
-                _current = index;
+                page.BringToFront();
                 _toast.BringToFront();
+                _current = index;
+                if (old != null)
+                {
+                    old.Enabled = false;
+                    ((IPage)old).SetOpen(false);
+                }
+                ((IPage)page).SetOpen(Visible);
             }
+        }
+
+        /// <summary>
+        /// Lays out one page that is not ready yet (never shown, or sized for an earlier window size) behind the open one,
+        /// switched off and out of sight, so that the first click on it is as quick as the next ones. A timer runs this
+        /// only when the window has nothing else to do (Windows handles clicks, keys and drawing before timers), one page
+        /// per tick, after the window opens and after it is resized.
+        /// </summary>
+        private void PrepareNextPage()
+        {
+            if (IsDisposed || !Visible || _current < 0)
+            {
+                _prepare.Stop();
+                return;
+            }
+            for (int i = 0; i < _pages.Count; i++)
+            {
+                Control page = _pages[i];
+                if (i == _current || (page.Visible && page.Bounds == _pageHost.DisplayRectangle)) continue;
+                page.Enabled = false;
+                page.Bounds = _pageHost.DisplayRectangle;
+                page.Visible = true;
+                _pages[_current].BringToFront();
+                _toast.BringToFront();
+                return;
+            }
+            _prepare.Stop();
         }
 
         /// <summary>Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+PageDown / PageUp move between pages, like the old tabs.</summary>
@@ -382,6 +437,7 @@ namespace PrintVect.App.Forms
             if (IsDisposed) return;
             PageId page = _current < 0 ? PageId.Office : (PageId)_current;
             Log.Info("Colours changed: building the window again (page " + page + ").");
+            if (_current >= 0) ((IPage)_pages[_current]).SetOpen(false);
             SuspendLayout();
             var old = new List<Control>();
             foreach (Control c in Controls) old.Add(c);
@@ -391,13 +447,35 @@ namespace PrintVect.App.Forms
             ResumeLayout(true);
             NativeTheme.ApplyTitleBar(this, true);
             Invalidate(true);
-            if (Visible) LoadDiagnostics();
+            if (Visible)
+            {
+                LoadDiagnostics();
+                _prepare.Start();
+            }
         }
 
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
-            if (Visible) LoadDiagnostics();
+            if (!Visible)
+            {
+                // The pages behind the open one are hidden with the window, so showing it again lays out the open page
+                // only; the others are laid out again behind it afterwards (PrepareNextPage).
+                for (int i = 0; i < _pages.Count; i++)
+                {
+                    if (i != _current) _pages[i].Visible = false;
+                }
+            }
+            if (_current >= 0) ((IPage)_pages[_current]).SetOpen(Visible);
+            if (Visible)
+            {
+                LoadDiagnostics();
+                _prepare.Start();
+            }
+            else
+            {
+                _prepare.Stop();
+            }
         }
 
         private void LoadDiagnostics()
@@ -415,6 +493,7 @@ namespace PrintVect.App.Forms
         {
             if (disposing)
             {
+                _prepare.Dispose();
                 ThemeManager.Changed -= OnThemeChanged;
                 _host.SharingChanged -= OnSharingChanged;
                 _updates.Changed -= OnUpdatesChanged;

@@ -28,8 +28,8 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
                          Client/ (spool watcher, sender), Elevation/, Discovery/, Update/. No UI references.
 - src/PrintVect.App      WinForms tray exe in the owner's 0.5.0 redesign (docs/design/design-spec.md): side menu with Office printers,
                          Share my printers, Jobs, Settings. Theme/: painted controls, Palette (Light + Dark), ThemeManager (Light /
-                         Dark / System default; a change rebuilds the window). Pages open with drawing paused until laid out
-                         (FreezeDrawing, 0.5.1); Reveal keeps the window cloaked until drawn (0.5.2). Close = tray; `/tray` = hidden.
+                         Dark / System default; a change rebuilds the window). An opened page stays laid out behind the open one
+                         (brought to front, IPage.SetOpen; 0.5.2); Reveal keeps the window cloaked until drawn. Close = tray.
 - src/PrintVect.Send     pvct-send.exe, the M1 command-line test sender (list / send / status). docs/samples/
                          PrintVect-test-page.xps is a ready-made one-page test file (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer, remove-all

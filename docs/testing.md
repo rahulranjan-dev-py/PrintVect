@@ -517,12 +517,22 @@ Reported by the owner on 2026-10-23, one issue at a time.
    window on the screen before the program has drawn what is inside it, and on the first opening PrintVect still has
    to create and draw about 150 parts of the window. Now the window is kept off the screen (cloaked) until everything
    in it is drawn, then appears in one go (Windows 8 and later).
+2. Clicking a menu item took a moment before the page changed (photo of the menu). Each page was hidden when another
+   one opened, and showing it again made every panel in it lay itself out again although nothing had changed (65 to
+   390 passes in the preview), while the menu kept its old highlight until the page was ready. Now a page stays laid
+   out behind the open one (switched off, so Tab and keys cannot reach it) and opening it only brings it to the front;
+   the pages not opened yet are laid out behind the open one just after the window opens or is resized; the highlight
+   moves the moment you click; Share my printers lists the network cards in the background.
 
 | # | Do this | Expect this |
 |---|---------|-------------|
 | 0 | Tell me to publish v0.5.2. On each PC: Settings, Check now, Update now. | "Version 0.5.2 · up to date" under the menu. |
 | 1 | Exit PrintVect (tray, Exit), start it from the Start menu, close the window (it goes to the tray), then double-click the tray icon. Repeat a few times, also with Light and Dark colours. | The window appears complete at once: no grey window with white boxes. The first time after a start it may take a moment longer to appear. |
 | 2 | Minimise the window (the _ button), then open it from the tray icon. | It comes back complete at once. |
+| 3 | Open the window, wait two seconds, then click Office printers, Share my printers, Jobs and Settings in turn, several rounds, quickly. | The green highlight moves the moment you click and the page changes at once, the first time as well as the next ones. |
+| 4 | Maximise the window, wait a second, and click through the pages again; then restore it (double-click the title bar) and do the same. | Each page appears at the new size at once. |
+| 5 | On Office printers click in the "PC name or IP address" box, then press Tab repeatedly. | The focus moves through Office printers and the menu only; it never disappears into a page you cannot see. |
+| 6 | Share my printers: look at "Other PCs find this PC as". | The PC name with its network cards and addresses, as before (they may appear a moment after the page). |
 
 ## Later
 

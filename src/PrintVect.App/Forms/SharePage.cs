@@ -27,7 +27,7 @@ namespace PrintVect.App.Forms
     /// the status and Pause / Resume, and on the right the jobs printed today, the PCs that print here and how they connect.
     /// PrintVect's own printers (printers of other PCs) are not listed: sharing one again would send jobs round in a loop.
     /// </summary>
-    internal sealed class SharePage : PageScroller
+    internal sealed class SharePage : PageScroller, IPage
     {
         private static readonly TimeSpan NetworkCheckInterval = TimeSpan.FromSeconds(30);
 
@@ -169,10 +169,9 @@ namespace PrintVect.App.Forms
             return new SplitRow(n, Make.Wrap(text, ThemeFonts.Text, Palette.TextSecondary, Ui.Pad(0)), null, 120, 8) { AlignTop = true };
         }
 
-        protected override void OnVisibleChanged(EventArgs e)
+        public void SetOpen(bool open)
         {
-            base.OnVisibleChanged(e);
-            if (Visible && !IsDisposed)
+            if (open && !IsDisposed)
             {
                 ShowAddresses();   // a cable plugged in or a new address since the page was last seen
                 CheckNetworks();
@@ -251,10 +250,21 @@ namespace PrintVect.App.Forms
             if (!IsDisposed) SyncSharing();
         }
 
+        /// <summary>Windows can take a while to list the network cards (several cards, a phone on USB): not on the UI thread.</summary>
         private void ShowAddresses()
         {
-            List<string> parts = NetworkCards().Select(c => c.Key + " " + string.Join(", ", c.Value)).ToList();
-            _addresses.Text = parts.Count == 0 ? Strings.ShareNoAddress : string.Join(" · ", parts);
+            Task.Run(() => NetworkCards()).ContinueWith(task =>
+            {
+                if (IsDisposed) return;
+                if (task.IsFaulted)
+                {
+                    Log.Warn("Share page: the network cards could not be listed: " + (task.Exception == null ? "?" : task.Exception.GetBaseException().Message));
+                    return;
+                }
+                List<string> parts = task.Result.Select(c => c.Key + " " + string.Join(", ", c.Value)).ToList();
+                string text = parts.Count == 0 ? Strings.ShareNoAddress : string.Join(" · ", parts);
+                if (_addresses.Text != text) _addresses.Text = text;
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         /// <summary>Each network card that is up with its IPv4 addresses ("Ethernet" 10.128.40.175).</summary>
