@@ -5,12 +5,16 @@ using System.Windows.Forms;
 namespace PrintVect.App.Theme
 {
     /// <summary>
-    /// A page: scrolls when it is taller than the window, its column is never wider than 1000 px (the canvas's
-    /// max-width) and sits 36 px from the left, 28 px from the top.
+    /// A page: scrolls when it is taller than the window, its column keeps 36 px from both edges and 28 px from the top,
+    /// is never wider than 1400 px and is centred when the window is wider still.
     /// </summary>
     internal class PageScroller : Panel
     {
-        public const int MaxContentWidth = 1000;
+        /// <summary>
+        /// 0.5.0 had the canvas's 1000 px, kept on the left: a maximised window on an office monitor then showed an
+        /// empty band a third of its width on the right (owner's photos, 0.5.2).
+        /// </summary>
+        public const int MaxContentWidth = 1400;
         private readonly TableLayoutPanel _column;
         private int _rows;
 
@@ -55,10 +59,18 @@ namespace PrintVect.App.Theme
 
         private void ApplyPadding()
         {
-            int side = Ui.S(36);
-            int right = Math.Max(side, ClientSize.Width - side - Ui.S(MaxContentWidth));
-            var padding = new Padding(side, Ui.S(28), right, 0);
+            Padding padding = SidePadding(ClientSize.Width, Ui.S(28), 0);
             if (Padding != padding) Padding = padding;
+        }
+
+        /// <summary>The edges of a page of this width: 36 px at least, the column at most MaxContentWidth and centred.</summary>
+        public static Padding SidePadding(int width, int top, int bottom)
+        {
+            int side = Ui.S(36);
+            int column = Math.Max(0, Math.Min(width - 2 * side, Ui.S(MaxContentWidth)));
+            int left = Math.Max(side, (width - column) / 2);
+            int right = Math.Max(side, width - left - column);
+            return new Padding(left, top, right, bottom);
         }
     }
 

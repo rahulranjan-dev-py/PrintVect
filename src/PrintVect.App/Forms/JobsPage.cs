@@ -167,12 +167,10 @@ namespace PrintVect.App.Forms
             base.OnResize(eventargs);
         }
 
-        /// <summary>The same edges as the other pages: 36 px left, at most 1000 px wide.</summary>
+        /// <summary>The same edges as the other pages (PageScroller.SidePadding).</summary>
         private void ApplyPadding()
         {
-            int side = Ui.S(36);
-            int right = Math.Max(side, ClientSize.Width - side - Ui.S(PageScroller.MaxContentWidth));
-            var padding = new Padding(side, Ui.S(28), right, Ui.S(28));
+            Padding padding = PageScroller.SidePadding(ClientSize.Width, Ui.S(28), Ui.S(28));
             if (Padding != padding) Padding = padding;
         }
 
