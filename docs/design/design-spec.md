@@ -17,7 +17,7 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
 - Accent green `#3FCF8E` with text `#06150E` on it.
 - Warning yellow `#F0B03F` with text `#1A1204` on it.
 - Connected pill: background `#17352A`, text `#6FE0AE`. Offline pill: background `#232931`, text `#AEB8C4`.
-- Switch knob `#FFFFFF`.
+- Switch knob `#FFFFFF`; on the green track of a switched-on switch `#06150E` since 0.5.3 (white was barely visible on it).
 
 ## Shape
 - Cards: 12 px corners, 1 px border. Buttons: 8 px corners, at least 44 px tall.
@@ -70,7 +70,7 @@ Light / Dark / System default (Windows' app mode, `AppsUseLightTheme`, followed 
 - Dark: the Graphite colours above (page `#111418`, menu `#151920`, cards `#181C22`, accent `#3FCF8E`), with pills,
   notes and borders matched to the light roles. Every text colour meets 4.5:1 on its background in both sets.
 - Shape: cards 10 px corners, buttons 6 px corners and 44 px tall (36 px in a list row: the agreed minimum stays),
-  pills 24 px, tick boxes 20 px, switches 44 x 24, content at most 1000 px wide, 36 px from the menu.
+  pills 24 px, tick boxes 20 px, switches 44 x 24, content 36 px from the menu and the right edge, at most 1400 px wide and centred beyond (0.5.3; the canvas had 1000 px on the left).
 - Line icons from the canvas's SVG paths (Theme/Icons.cs draws them; 1.8 stroke on a 24 grid).
 - Changes to the canvas, agreed in the analysis: the PIN keeps today's rule (4 to 12 characters, the same in every
   PC's Settings; the canvas said 4 to 8 digits typed when adding a printer); Pause / Resume, PCs that print here

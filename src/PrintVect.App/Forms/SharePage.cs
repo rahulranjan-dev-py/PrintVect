@@ -136,7 +136,7 @@ namespace PrintVect.App.Forms
             TableLayoutPanel how = Make.Stack(10, Make.Label(Strings.ShareHowTitle, ThemeFonts.TextSemi, Palette.Text, Ui.Pad(0)),
                 Step(1, Strings.ShareHow1), Step(2, Strings.ShareHow2), Step(3, string.Format(Strings.ShareHow3, Environment.MachineName)));
             TableLayoutPanel right = Make.Stack(16, Make.Card(today, 20, 18), Make.Card(how, 20, 18));
-            Add(new TwoColumns(left, right, 520, 999, 260, 1, 24), 24);
+            Add(new TwoColumns(left, right, 620, 999, 260, 1, 24), 24);   // the list needs its four columns: the right side goes under it sooner
 
             _timer = new Timer { Interval = 30 * 1000 };
             _timer.Tick += (s, e) => OnTimer();
@@ -473,17 +473,31 @@ namespace PrintVect.App.Forms
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-        /// <summary>One printer of this PC: tick, name and kind, the name other PCs see, status, Pause / Resume.</summary>
-        private sealed class PrinterRow : TableLayoutPanel
+        /// <summary>
+        /// One printer of this PC: tick, name and kind, the name other PCs see, status, Pause / Resume; or the list's
+        /// header. Laid out by hand on four columns (64 px, 55 % and 45 % of the rest, 196 px), each part measured at the
+        /// width it really gets: as a TableLayoutPanel with percent columns the row was measured at other column widths
+        /// than it then used, and at some window sizes came out far taller than its text (owner's photos, 0.5.2).
+        /// </summary>
+        private sealed class PrinterRow : Panel
         {
+            private const int TickColumn = 64;
+            private const int StatusColumn = 196;
+            private const int CellGap = 14;
+
             private readonly SharePage _page;
             private readonly LocalPrinterInfo _printer;
             private readonly bool _header;
             private readonly bool _first;
+            private readonly Label[] _headings;
             private readonly TickBox _tick;
+            private readonly Label _title;
+            private readonly Label _kind;
             private readonly InputBox _name;
             private readonly StatusPill _status;
             private readonly ThemedButton _pause;
+            private readonly FlowLayoutPanel _statusCell;
+            private int _lastHeight = -1;
 
             public PrinterRow(SharePage page, LocalPrinterInfo printer, bool header, bool first)
             {
@@ -491,43 +505,30 @@ namespace PrintVect.App.Forms
                 _printer = printer;
                 _header = header;
                 _first = first;
-                ColumnCount = 4;
-                RowCount = 1;
                 AutoSize = true;
                 Margin = Ui.Pad(0);
                 Padding = header ? Ui.Pad(20, 11, 20, 11) : Ui.Pad(20, 10, 20, 10);
                 BackColor = header ? Palette.HeaderBg : Palette.Card;
                 SetStyle(ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer, true);
-                ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Ui.S(64)));
-                ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
-                ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
-                ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Ui.S(196)));
-                RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
                 if (header)
                 {
-                    Controls.Add(HeaderText(Strings.ShareColShare), 0, 0);
-                    Controls.Add(HeaderText(Strings.ShareColPrinter), 1, 0);
-                    Controls.Add(HeaderText(Strings.ShareColName), 2, 0);
-                    Controls.Add(HeaderText(Strings.ShareColStatus), 3, 0);
+                    _headings = new[]
+                    {
+                        OneLine(Strings.ShareColShare, ThemeFonts.Small, Palette.Muted), OneLine(Strings.ShareColPrinter, ThemeFonts.Small, Palette.Muted),
+                        OneLine(Strings.ShareColName, ThemeFonts.Small, Palette.Muted), OneLine(Strings.ShareColStatus, ThemeFonts.Small, Palette.Muted)
+                    };
+                    Controls.AddRange(_headings);
                     return;
                 }
 
                 SharedPrinter shared = page._host.FindShared(printer.Name);
-                _tick = new TickBox { Checked = shared != null, Anchor = AnchorStyles.Left, AccessibleName = string.Format(Strings.ShareTickAccessible, printer.Name) };
+                _tick = new TickBox { Checked = shared != null, AccessibleName = string.Format(Strings.ShareTickAccessible, printer.Name) };
                 _tick.CheckedChanged += (s, e) => OnTicked();
-                Label name = Make.Label(printer.Name, ThemeFonts.TextSemi, Palette.Text, Ui.Pad(0));
+                _title = Make.Wrap(printer.Name, ThemeFonts.TextSemi, Palette.Text, Ui.Pad(0));
                 string kind = Texts.PrinterKind(printer);
-                var kindLabel = new Label
-                {
-                    Text = kind, Font = ThemeFonts.Small, ForeColor = Palette.Faint, AutoSize = false, AutoEllipsis = true, UseMnemonic = false,
-                    Height = TextRenderer.MeasureText("Ag", ThemeFonts.Small).Height, Margin = Ui.Pad(0)
-                };
-                Control nameCell = kind.Length == 0 ? (Control)name : Make.Stack(2, name, kindLabel);
-                nameCell.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-                nameCell.Dock = DockStyle.None;
-                nameCell.Margin = Ui.Pad(0, 0, 14, 0);
-                _name = new InputBox(220, 38, ThemeFonts.Text) { Soft = true, Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = Ui.Pad(0, 0, 14, 0) };
+                _kind = kind.Length == 0 ? null : OneLine(kind, ThemeFonts.Small, Palette.Faint);
+                _name = new InputBox(220, 38, ThemeFonts.Text) { Soft = true };
                 _name.Box.Text = shared == null ? printer.Name : shared.FriendlyName;
                 _name.Box.AccessibleName = string.Format(Strings.ShareNameAccessible, printer.Name);
                 _name.Box.Leave += (s, e) => SaveName();
@@ -539,25 +540,105 @@ namespace PrintVect.App.Forms
                         SaveName();
                     }
                 };
-                _status = new StatusPill { Anchor = AnchorStyles.Left, Margin = Ui.Pad(0, 0, 10, 0) };
+                _status = new StatusPill { Margin = Ui.Pad(0, 0, 10, 0) };
                 _pause = new ThemedButton(Strings.SharePauseShort, ButtonKind.Ghost, Glyph.Pause) { Compact = true, Margin = Ui.Pad(0) };
                 _pause.Click += (s, e) => TogglePause();
-                FlowLayoutPanel statusCell = Make.Row(_status, _pause);
-                statusCell.WrapContents = false;
-                statusCell.Anchor = AnchorStyles.Left;
+                _statusCell = Make.Row(_status, _pause);
+                _statusCell.WrapContents = false;
 
-                Controls.Add(_tick, 0, 0);
-                Controls.Add(nameCell, 1, 0);
-                Controls.Add(_name, 2, 0);
-                Controls.Add(statusCell, 3, 0);
+                Controls.Add(_tick);
+                Controls.Add(_title);
+                if (_kind != null) Controls.Add(_kind);
+                Controls.Add(_name);
+                Controls.Add(_statusCell);
                 ShowStatus();
             }
 
-            private static Label HeaderText(string text)
+            /// <summary>A single line that ends in "…" when its column is too narrow (headings, the printer's kind).</summary>
+            private static Label OneLine(string text, Font font, Color colour)
             {
-                Label label = Make.Label(text, ThemeFonts.Small, Palette.Muted, Ui.Pad(0));
-                label.Anchor = AnchorStyles.Left;
-                return label;
+                return new Label
+                {
+                    Text = text, Font = font, ForeColor = colour, BackColor = Color.Transparent, AutoSize = false, AutoEllipsis = true,
+                    UseMnemonic = false, Margin = Ui.Pad(0)
+                };
+            }
+
+            public override Size GetPreferredSize(Size proposedSize)
+            {
+                int width = proposedSize.Width > 0 && proposedSize.Width < 100000 ? proposedSize.Width : Math.Max(Width, 1);
+                return new Size(width, Arrange(width, new List<KeyValuePair<Control, Rectangle>>()));
+            }
+
+            /// <summary>Where each part goes in a row this wide; returns the row's height.</summary>
+            private int Arrange(int width, List<KeyValuePair<Control, Rectangle>> place)
+            {
+                int inner = Math.Max(0, width - Padding.Horizontal);
+                int tickWidth = Ui.S(TickColumn), statusWidth = Ui.S(StatusColumn), gap = Ui.S(CellGap);
+                int rest = Math.Max(0, inner - tickWidth - statusWidth);
+                int nameWidth = rest * 55 / 100;
+                int boxWidth = rest - nameWidth;
+                int x0 = Padding.Left, x1 = x0 + tickWidth, x2 = x1 + nameWidth, x3 = x2 + boxWidth;
+                int top = Padding.Top;
+                int lineHeight = TextRenderer.MeasureText("Ag", ThemeFonts.Small).Height;
+
+                if (_header)
+                {
+                    int[] xs = { x0, x1, x2, x3 };
+                    int[] ws = { tickWidth, nameWidth, boxWidth, statusWidth };
+                    for (int i = 0; i < _headings.Length; i++)
+                    {
+                        place.Add(new KeyValuePair<Control, Rectangle>(_headings[i], new Rectangle(xs[i], top, Math.Max(1, ws[i] - gap), lineHeight)));
+                    }
+                    return lineHeight + Padding.Vertical;
+                }
+
+                int textWidth = Math.Max(1, nameWidth - gap);
+                int titleHeight = _title.GetPreferredSize(new Size(textWidth, 0)).Height;
+                int kindHeight = _kind == null ? 0 : Ui.S(2) + lineHeight;
+                Size tick = _tick.GetPreferredSize(Size.Empty);
+                int boxHeight = _name.GetPreferredSize(Size.Empty).Height;
+                Size status = _statusCell.GetPreferredSize(Size.Empty);
+                int content = Math.Max(Math.Max(titleHeight + kindHeight, tick.Height), Math.Max(boxHeight, status.Height));
+                int Centre(int height) => top + (content - height) / 2;
+
+                int nameTop = Centre(titleHeight + kindHeight);
+                place.Add(new KeyValuePair<Control, Rectangle>(_tick, new Rectangle(x0, Centre(tick.Height), tick.Width, tick.Height)));
+                place.Add(new KeyValuePair<Control, Rectangle>(_title, new Rectangle(x1, nameTop, textWidth, titleHeight)));
+                if (_kind != null)
+                {
+                    place.Add(new KeyValuePair<Control, Rectangle>(_kind, new Rectangle(x1, nameTop + titleHeight + Ui.S(2), textWidth, lineHeight)));
+                }
+                place.Add(new KeyValuePair<Control, Rectangle>(_name, new Rectangle(x2, Centre(boxHeight), Math.Max(Ui.S(60), boxWidth - gap), boxHeight)));
+                place.Add(new KeyValuePair<Control, Rectangle>(_statusCell, new Rectangle(x3, Centre(status.Height), status.Width, status.Height)));
+                return content + Padding.Vertical;
+            }
+
+            protected override void OnLayout(LayoutEventArgs levent)
+            {
+                Place();
+            }
+
+            protected override void OnResize(EventArgs eventargs)
+            {
+                base.OnResize(eventargs);
+                Place();   // Mono may skip the layout of a control resized while its parent lays out
+            }
+
+            private void Place()
+            {
+                if (_header ? _headings == null : _statusCell == null) return;   // still being built
+                var place = new List<KeyValuePair<Control, Rectangle>>();
+                int height = Arrange(Width, place);
+                foreach (KeyValuePair<Control, Rectangle> part in place)
+                {
+                    if (part.Key.Bounds != part.Value) part.Key.Bounds = part.Value;
+                }
+                if (height != _lastHeight)
+                {
+                    _lastHeight = height;
+                    if (Parent != null && height != Height) Parent.PerformLayout(this, "PreferredSize");
+                }
             }
 
             private void ShowStatus()
@@ -570,6 +651,7 @@ namespace PrintVect.App.Forms
                 _pause.Text = paused ? Strings.ShareResumeShort : Strings.SharePauseShort;
                 _pause.Glyph = paused ? Glyph.Play : Glyph.Pause;
                 _pause.AccessibleName = string.Format(paused ? Strings.ShareResumeAccessible : Strings.SharePauseAccessible, _printer.Name);
+                PerformLayout();   // Pause came or went: the status part has another width
             }
 
             private void OnTicked()
