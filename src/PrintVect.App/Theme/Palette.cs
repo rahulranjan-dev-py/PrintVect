@@ -71,7 +71,9 @@ namespace PrintVect.App.Theme
             HeaderBg = Hex(0x1C2128), NestedBorder = Hex(0x2A313B), Segment = Hex(0x1F252D), SegmentSelected = Hex(0x2E3641),
             Hover = Hex(0x20262E), Pressed = Hex(0x262D37), Selection = Hex(0x232B36), NavActive = Hex(0x232A33),
             NavHover = Hex(0x1C2128), Report = Hex(0x14181D), DialogFooter = Hex(0x1C2128),
-            Knob = Hex(0xFFFFFF), KnobOff = Hex(0x9BA6B4), SwitchOffTrack = Hex(0x181C22), SwitchOffBorder = Hex(0x6E7887),
+            // A dark knob on the light green track, as Windows 11 draws its own switches in dark mode: a white one was
+            // nearly invisible on it (owner's photos, 0.5.2).
+            Knob = Hex(0x06150E), KnobOff = Hex(0x9BA6B4), SwitchOffTrack = Hex(0x181C22), SwitchOffBorder = Hex(0x6E7887),
             TickOffFill = Hex(0x111418), TickOffBorder = Hex(0x7D8896),
             Shadow = Color.FromArgb(70, 0, 0, 0), ToastBg = Hex(0xEEF1F5), ToastText = Hex(0x111418)
         };

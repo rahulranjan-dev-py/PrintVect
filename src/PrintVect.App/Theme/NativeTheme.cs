@@ -147,13 +147,30 @@ namespace PrintVect.App.Theme
             }
         }
 
-        /// <summary>Scroll bars of a list, grid or text box in the theme in use (dark ones: Windows 10 1809 and later).</summary>
+        /// <summary>
+        /// Scroll bars of a list, grid or text box in the theme in use (dark ones: Windows 10 1809 and later). A list's
+        /// own scroll bars (a DataGridView has two) get their window only when they are first needed, so each one is
+        /// themed then: the job list's stayed light in the dark colours (owner's photo, 0.5.2).
+        /// </summary>
         public static void UseThemedScrollBars(Control control)
         {
             if (_uxThemeMissing || !IsWindows10OrLater())
             {
                 return;
             }
+            Hook(control);
+            foreach (Control child in control.Controls)
+            {
+                if (child is ScrollBar) Hook(child);
+            }
+            control.ControlAdded += (s, e) =>
+            {
+                if (e.Control is ScrollBar) Hook(e.Control);
+            };
+        }
+
+        private static void Hook(Control control)
+        {
             if (control.IsHandleCreated)
             {
                 Apply(control);
@@ -167,13 +184,6 @@ namespace PrintVect.App.Theme
             try
             {
                 SetWindowTheme(control.Handle, theme, null);
-                foreach (Control child in control.Controls)
-                {
-                    if (child is ScrollBar && child.IsHandleCreated)
-                    {
-                        SetWindowTheme(child.Handle, theme, null);
-                    }
-                }
             }
             catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
             {
