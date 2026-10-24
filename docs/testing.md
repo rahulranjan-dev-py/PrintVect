@@ -534,6 +534,32 @@ Reported by the owner on 2026-10-23, one issue at a time.
 | 5 | On Office printers click in the "PC name or IP address" box, then press Tab repeatedly. | The focus moves through Office printers and the menu only; it never disappears into a page you cannot see. |
 | 6 | Share my printers: look at "Other PCs find this PC as". | The PC name with its network cards and addresses, as before (they may appear a moment after the page). |
 
+## 0.5.3: layout fixes from the owner's photos
+
+Reported by the owner on 2026-10-24 with photos of the Windows 11 PC in Dark colours.
+
+1. Maximised, every page kept a 1000 px column on the left and an empty band about a third of the window on the right.
+   Pages now use the width up to 1400 px (scaled with the Windows text size) and are centred beyond that.
+2. Share my printers: at some window sizes each printer row was far taller than its text. Each row was a table with
+   percentage columns, which Windows measured at other column widths than it then used; the rows are now laid out by
+   hand at the real widths. The list also keeps more room before the right-hand cards move under it.
+3. Jobs: the list's scroll bar stayed light in the dark colours (it is created only when the list first needs it).
+4. Dark colours: the switches showed a white knob on the light green track, barely visible; the knob is now dark.
+5. Settings, Network: the settings file's path broke inside a word ("confi" / "g.json"); Open folder now moves under
+   the path when both do not fit on one line.
+6. Settings, Updates: after a failed check ("github.com did not answer in time", often the network not ready yet at
+   start-up) the next try was a day later; it is now 30 minutes later.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.3. On each PC: Settings, Check now, Update now. | "Version 0.5.3 · up to date" under the menu. |
+| 1 | Maximise the window; open each page. | The content fills the width (on a very wide screen it sits in the middle with equal space left and right); no wide empty band on the right. |
+| 2 | Restore the window to its normal size, Share my printers. Drag the window's right edge to make it narrower and wider. | Each printer row is just tall enough for its name (a long name wraps onto a second line and its row grows a little); no rows with large empty space; the headings stay on one line. When narrow, the cards on the right move under the list. |
+| 3 | Dark colours, Jobs, make the window short so the list scrolls. | The list's scroll bar is dark. |
+| 4 | Dark colours, Settings: look at the switches. | A switched-on switch is green with a dark knob on the right; a switched-off one is dark with a grey knob on the left. |
+| 5 | Settings, Network card, at the normal window size. | The path C:\ProgramData\PrintVect\config.json is on one line, with Open folder beside it or under it. |
+| 6 | Pull the network cable (or turn off Wi-Fi), Exit and start PrintVect, plug the cable in again, wait 30 minutes. | Settings, Updates: first "Could not check…", then after about 30 minutes the normal "PrintVect is up to date" (log: "Update check: trying again in 30 min."). |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

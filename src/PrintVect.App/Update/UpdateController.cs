@@ -31,6 +31,11 @@ namespace PrintVect.App.Update
     {
         public static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(45);
         public static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
+        /// <summary>
+        /// A check that failed (the network not up yet at start-up, github.com slow) is tried again after this, not a day
+        /// later: Settings kept "Could not check … at 09:35" all day (owner's photo, 0.5.2).
+        /// </summary>
+        public static readonly TimeSpan RetryAfterFailure = TimeSpan.FromMinutes(30);
 
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
@@ -299,7 +304,9 @@ namespace PrintVect.App.Update
             await CheckAsync();
             if (!_disposed && _config.CheckForUpdates)
             {
-                Schedule(CheckInterval);
+                bool failed = LastResult != null && LastResult.Outcome == UpdateCheckOutcome.Failed;
+                if (failed) Log.Info("Update check: trying again in " + RetryAfterFailure.TotalMinutes + " min.");
+                Schedule(failed ? RetryAfterFailure : CheckInterval);
             }
         }
 

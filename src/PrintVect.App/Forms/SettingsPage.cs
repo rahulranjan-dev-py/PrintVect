@@ -136,7 +136,11 @@ namespace PrintVect.App.Forms
             openFolder.Click += (s, e) => OpenFolder(Path.GetDirectoryName(_store.Path));
             FlowLayoutPanel chips = Make.Row(Chip(Strings.SettingsFindsPrinters, "UDP " + _config.DiscoveryPort),
                 Chip(Strings.SettingsCarriesJobs, "TCP " + _config.JobPort));
-            var configRow = new SplitRow(null, Make.Wrap(_store.Path, ThemeFonts.Small, Palette.TextSecondary, Ui.Pad(0)), openFolder, 160, 12);
+            // The button moves under the path when the path does not fit on one line beside it: it broke inside a word
+            // ("confi" / "g.json", owner's photo, 0.5.2).
+            int pathWidth = (int)Math.Ceiling(TextRenderer.MeasureText(_store.Path, ThemeFonts.Small).Width / Ui.Scale) + 4;
+            var configRow = new SplitRow(null, Make.Wrap(_store.Path, ThemeFonts.Small, Palette.TextSecondary, Ui.Pad(0)), openFolder,
+                Math.Max(160, pathWidth), 12);
             Card networkCard = Make.Card(Make.Stack(10, Make.CardTitle(Strings.SettingsNetworkTitle), chips,
                 Make.Muted(Strings.SettingsPortsNote), configRow), 20, 18);
 
