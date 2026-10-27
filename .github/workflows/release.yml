@@ -137,7 +137,9 @@ jobs:
                      "Download **PrintVect-Setup-$env:VERSION.exe** and run it on a PC that does not have PrintVect yet. " +
                      "PCs that already run PrintVect find this version by themselves within a day (Settings tab, Updates) " +
                      "and install it with one click.`n`n" +
-                     "The .sha256 file is the checksum PrintVect verifies after downloading."
+                     "The .sha256 file is the checksum PrintVect verifies after downloading.`n`n" +
+                     "Code signing: free code signing provided by SignPath.io, certificate by SignPath Foundation " +
+                     "(policy: https://github.com/rahulranjan-dev-py/PrintVect/blob/main/CODE_SIGNING.md)."
             # Draft first, then publish: the release never shows up without its files.
             gh release create $env:TAG --target $env:GITHUB_SHA --title "PrintVect $env:VERSION" --notes $notes --draft $exe "$exe.sha256"
             if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
