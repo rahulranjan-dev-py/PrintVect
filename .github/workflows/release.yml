@@ -131,6 +131,9 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "gh release upload failed with exit code $LASTEXITCODE" }
           } else {
             $notes = "PrintVect $env:VERSION`n`n" +
+                     "PrintVect lets every Windows PC in a small office print to the office's printers over the local network, " +
+                     "with no printer driver to install and no Windows password on the PCs that print. " +
+                     "What it does and how to use it: https://github.com/rahulranjan-dev-py/PrintVect#readme`n`n" +
                      "Download **PrintVect-Setup-$env:VERSION.exe** and run it on a PC that does not have PrintVect yet. " +
                      "PCs that already run PrintVect find this version by themselves within a day (Settings tab, Updates) " +
                      "and install it with one click.`n`n" +
