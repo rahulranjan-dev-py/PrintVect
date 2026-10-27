@@ -175,7 +175,7 @@
     <value>Status</value>
   </data>
   <data name="ShareIntro" xml:space="preserve">
-    <value>Let other PCs in the office print on the printers connected to this PC.</value>
+    <value>Let other PCs on this network print on the printers connected to this PC.</value>
   </data>
   <data name="ShareLoading" xml:space="preserve">
     <value>Reading the printer list...</value>
@@ -443,13 +443,13 @@ Details: {0}</value>
     <value>Cancelled</value>
   </data>
   <data name="SettingsPinCaption" xml:space="preserve">
-    <value>Office PIN</value>
+    <value>Sharing PIN</value>
   </data>
   <data name="SettingsPinOn" xml:space="preserve">
     <value>Set. Other PCs need the same PIN to print here, and this PC sends it with every job.</value>
   </data>
   <data name="SettingsPinOff" xml:space="preserve">
-    <value>Without a PIN, any PC on the office network can print to this PC's shared printers.</value>
+    <value>Without a PIN, any PC on the network can print to this PC's shared printers.</value>
   </data>
   <data name="SettingsPinSet" xml:space="preserve">
     <value>Set PIN…</value>
@@ -461,15 +461,15 @@ Details: {0}</value>
     <value>Remove PIN</value>
   </data>
   <data name="SettingsPinRemoveConfirm" xml:space="preserve">
-    <value>Remove the office PIN on this PC?
+    <value>Remove the sharing PIN on this PC?
 
-Any PC in the office can then print here, and PCs that still ask for a PIN will refuse this PC's jobs until theirs is removed too.</value>
+Any PC on the network can then print here, and PCs that still ask for a PIN will refuse this PC's jobs until theirs is removed too.</value>
   </data>
   <data name="SettingsPinSaved" xml:space="preserve">
-    <value>Office PIN saved. Set the same PIN on every PC that prints to or from this one.</value>
+    <value>Sharing PIN saved. Set the same PIN on every PC that prints to or from this one.</value>
   </data>
   <data name="SettingsPinRemoved" xml:space="preserve">
-    <value>Office PIN removed on this PC.</value>
+    <value>Sharing PIN removed on this PC.</value>
   </data>
   <data name="SettingsKeepHours" xml:space="preserve">
     <value>{0} hour(s)</value>
@@ -478,13 +478,13 @@ Any PC in the office can then print here, and PCs that still ask for a PIN will 
     <value>Every PC must use the same ports. They can only be changed in the settings file.</value>
   </data>
   <data name="PinTitle" xml:space="preserve">
-    <value>Office PIN</value>
+    <value>Sharing PIN</value>
   </data>
   <data name="PinSetTitle" xml:space="preserve">
-    <value>Set the office PIN</value>
+    <value>Set the sharing PIN</value>
   </data>
   <data name="PinChangeTitle" xml:space="preserve">
-    <value>Change the office PIN</value>
+    <value>Change the sharing PIN</value>
   </data>
   <data name="PinExplain" xml:space="preserve">
     <value>Every PC that prints through PrintVect must have the same PIN: a PC that shares printers refuses jobs with a different one. Use 4 to 12 characters; digits are easiest to pass on.</value>
@@ -620,16 +620,16 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Network</value>
   </data>
   <data name="CheckPinOff" xml:space="preserve">
-    <value>Office PIN not set</value>
+    <value>Sharing PIN not set</value>
   </data>
   <data name="CheckPinOffSharing" xml:space="preserve">
-    <value>Any PC on the office network can print here.</value>
+    <value>Any PC on the network can print here.</value>
   </data>
   <data name="CheckPinOffText" xml:space="preserve">
-    <value>Open to the office network once sharing is on.</value>
+    <value>Open to every PC on the network once sharing is on.</value>
   </data>
   <data name="CheckPinOn" xml:space="preserve">
-    <value>Office PIN set</value>
+    <value>Sharing PIN set</value>
   </data>
   <data name="CheckPinOnText" xml:space="preserve">
     <value>Jobs from PCs without the same PIN are refused.</value>
@@ -707,13 +707,13 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>When another PC prints to this PC's printers, the job shows here.</value>
   </data>
   <data name="JobsSeeOffice" xml:space="preserve">
-    <value>See office printers</value>
+    <value>See printers on other PCs</value>
   </data>
   <data name="JobsSentEmpty" xml:space="preserve">
     <value>Nothing sent from this PC yet</value>
   </data>
   <data name="JobsSentEmptyNoPrinter" xml:space="preserve">
-    <value>Add a printer of another PC on Office printers, then print to it from any program. Each job shows here.</value>
+    <value>Add a printer of another PC (Printers on other PCs), then print to it from any program. Each job shows here.</value>
   </data>
   <data name="JobsSentEmptyText" xml:space="preserve">
     <value>Print from any program to {0}. Each job shows here and moves from Waiting to Printed.</value>
@@ -749,7 +749,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Software printer · saves an XPS file</value>
   </data>
   <data name="NavOffice" xml:space="preserve">
-    <value>Office printers</value>
+    <value>Printers on other PCs</value>
   </data>
   <data name="NavVersionLatest" xml:space="preserve">
     <value>up to date</value>
@@ -779,7 +779,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>PC name or IP address</value>
   </data>
   <data name="OfficeFound" xml:space="preserve">
-    <value>Found in the office, not added yet</value>
+    <value>Found on the network, not added yet</value>
   </data>
   <data name="OfficeInPrintWindows" xml:space="preserve">
     <value>In Print windows:</value>
@@ -911,7 +911,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Other PCs find this PC as</value>
   </data>
   <data name="ShareHow1" xml:space="preserve">
-    <value>On that PC, open PrintVect and go to Office printers.</value>
+    <value>On that PC, open PrintVect and go to Printers on other PCs.</value>
   </data>
   <data name="ShareHow2" xml:space="preserve">
     <value>This PC's shared printers appear there by themselves. Press Add to this PC.</value>
@@ -932,7 +932,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Name other PCs see for {0}</value>
   </data>
   <data name="ShareNameHint" xml:space="preserve">
-    <value>Use a short, clear name for the office, like “Counter 1 Laser”.</value>
+    <value>Use a short, clear name everyone recognises, like “Counter 1 Laser” or “Upstairs Printer”.</value>
   </data>
   <data name="ShareNoAddress" xml:space="preserve">
     <value>No network address right now: check the network cable or the Wi-Fi.</value>
@@ -968,10 +968,10 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Set a PIN</value>
   </data>
   <data name="SharePinNoticeOff" xml:space="preserve">
-    <value>No office PIN. Once sharing is on, any PC on the office network can print here.</value>
+    <value>No sharing PIN. Once sharing is on, any PC on the network can print here.</value>
   </data>
   <data name="SharePinNoticeOn" xml:space="preserve">
-    <value>No office PIN: any PC on the office network can print here.</value>
+    <value>No sharing PIN: any PC on the network can print here.</value>
   </data>
   <data name="SharePrintedHere" xml:space="preserve">
     <value>Printed here today</value>
@@ -1010,16 +1010,16 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Turn on sharing</value>
   </data>
   <data name="ShareWithOffice" xml:space="preserve">
-    <value>Share with the office</value>
+    <value>Share with other PCs</value>
   </data>
   <data name="SharingDialogHeading" xml:space="preserve">
-    <value>Share printers with the office?</value>
+    <value>Share printers with other PCs?</value>
   </data>
   <data name="SharingDialogNoPrinter" xml:space="preserve">
     <value>Tick at least one printer.</value>
   </data>
   <data name="SharingDialogPin" xml:space="preserve">
-    <value>Office PIN</value>
+    <value>Sharing PIN</value>
   </data>
   <data name="SharingDialogPinAgain" xml:space="preserve">
     <value>Type the PIN again</value>
@@ -1028,7 +1028,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters. Leave it blank to share without a PIN.</value>
   </data>
   <data name="SharingDialogPinSet" xml:space="preserve">
-    <value>This PC already has an office PIN. Other PCs need the same PIN in their Settings to print here.</value>
+    <value>This PC already has a sharing PIN. Other PCs need the same PIN in their Settings to print here.</value>
   </data>
   <data name="SharingDialogPrinters" xml:space="preserve">
     <value>Printers to share</value>
@@ -1037,7 +1037,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>(recommended)</value>
   </data>
   <data name="SharingDialogText" xml:space="preserve">
-    <value>Other PCs on the office network will be able to print to the printers you choose here.</value>
+    <value>Other PCs on the network will be able to print to the printers you choose here.</value>
   </data>
   <data name="SharingDialogTitle" xml:space="preserve">
     <value>Turn on sharing</value>
