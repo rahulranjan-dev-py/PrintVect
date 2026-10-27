@@ -161,7 +161,7 @@ namespace PrintVect.Core.Protocol
                 ct.ThrowIfCancellationRequested();
                 SafeClose(client);
                 throw new HostUnreachableException(DisplayName + " did not answer within " + ConnectTimeout.TotalSeconds
-                                                   + " seconds. Check that the PC is switched on, connected to the office network, "
+                                                   + " seconds. Check that the PC is switched on, connected to the same network, "
                                                    + "and running PrintVect with sharing ON.");
             }
 

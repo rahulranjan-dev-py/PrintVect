@@ -325,7 +325,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN not set.
+        ///   Looks up a localized string similar to Sharing PIN not set.
         /// </summary>
         internal static string CheckPinOff {
             get {
@@ -334,7 +334,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Any PC on the office network can print here..
+        ///   Looks up a localized string similar to Any PC on the network can print here..
         /// </summary>
         internal static string CheckPinOffSharing {
             get {
@@ -343,7 +343,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Open to the office network once sharing is on..
+        ///   Looks up a localized string similar to Open to every PC on the network once sharing is on..
         /// </summary>
         internal static string CheckPinOffText {
             get {
@@ -352,7 +352,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN set.
+        ///   Looks up a localized string similar to Sharing PIN set.
         /// </summary>
         internal static string CheckPinOn {
             get {
@@ -1063,7 +1063,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to See office printers.
+        ///   Looks up a localized string similar to See printers on other PCs.
         /// </summary>
         internal static string JobsSeeOffice {
             get {
@@ -1081,7 +1081,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Add a printer of another PC on Office printers, then print to it from any program. Each job shows he [rest of string was truncated].
+        ///   Looks up a localized string similar to Add a printer of another PC (Printers on other PCs), then print to it from any program. Each job sho [rest of string was truncated].
         /// </summary>
         internal static string JobsSentEmptyNoPrinter {
             get {
@@ -1189,7 +1189,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office printers.
+        ///   Looks up a localized string similar to Printers on other PCs.
         /// </summary>
         internal static string NavOffice {
             get {
@@ -1279,7 +1279,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Found in the office, not added yet.
+        ///   Looks up a localized string similar to Found on the network, not added yet.
         /// </summary>
         internal static string OfficeFound {
             get {
@@ -1450,7 +1450,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Change the office PIN.
+        ///   Looks up a localized string similar to Change the sharing PIN.
         /// </summary>
         internal static string PinChangeTitle {
             get {
@@ -1504,7 +1504,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Set the office PIN.
+        ///   Looks up a localized string similar to Set the sharing PIN.
         /// </summary>
         internal static string PinSetTitle {
             get {
@@ -1522,7 +1522,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN.
+        ///   Looks up a localized string similar to Sharing PIN.
         /// </summary>
         internal static string PinTitle {
             get {
@@ -1801,7 +1801,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN.
+        ///   Looks up a localized string similar to Sharing PIN.
         /// </summary>
         internal static string SettingsPinCaption {
             get {
@@ -1828,7 +1828,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Without a PIN, any PC on the office network can print to this PC's shared printers..
+        ///   Looks up a localized string similar to Without a PIN, any PC on the network can print to this PC's shared printers..
         /// </summary>
         internal static string SettingsPinOff {
             get {
@@ -1855,7 +1855,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Remove the office PIN on this PC?  Any PC in the office can then print here, and PCs that still ask  [rest of string was truncated].
+        ///   Looks up a localized string similar to Remove the sharing PIN on this PC?  Any PC on the network can then print here, and PCs that still as [rest of string was truncated].
         /// </summary>
         internal static string SettingsPinRemoveConfirm {
             get {
@@ -1864,7 +1864,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN removed on this PC..
+        ///   Looks up a localized string similar to Sharing PIN removed on this PC..
         /// </summary>
         internal static string SettingsPinRemoved {
             get {
@@ -1873,7 +1873,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN saved. Set the same PIN on every PC that prints to or from this one..
+        ///   Looks up a localized string similar to Sharing PIN saved. Set the same PIN on every PC that prints to or from this one..
         /// </summary>
         internal static string SettingsPinSaved {
             get {
@@ -1999,7 +1999,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to On that PC, open PrintVect and go to Office printers..
+        ///   Looks up a localized string similar to On that PC, open PrintVect and go to Printers on other PCs..
         /// </summary>
         internal static string ShareHow1 {
             get {
@@ -2035,7 +2035,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Let other PCs in the office print on the printers connected to this PC..
+        ///   Looks up a localized string similar to Let other PCs on this network print on the printers connected to this PC..
         /// </summary>
         internal static string ShareIntro {
             get {
@@ -2080,7 +2080,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Use a short, clear name for the office, like “Counter 1 Laser”..
+        ///   Looks up a localized string similar to Use a short, clear name everyone recognises, like “Counter 1 Laser” or “Upstairs Printer”..
         /// </summary>
         internal static string ShareNameHint {
             get {
@@ -2233,7 +2233,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to No office PIN. Once sharing is on, any PC on the office network can print here..
+        ///   Looks up a localized string similar to No sharing PIN. Once sharing is on, any PC on the network can print here..
         /// </summary>
         internal static string SharePinNoticeOff {
             get {
@@ -2242,7 +2242,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to No office PIN: any PC on the office network can print here..
+        ///   Looks up a localized string similar to No sharing PIN: any PC on the network can print here..
         /// </summary>
         internal static string SharePinNoticeOn {
             get {
@@ -2404,7 +2404,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Share with the office.
+        ///   Looks up a localized string similar to Share with other PCs.
         /// </summary>
         internal static string ShareWithOffice {
             get {
@@ -2413,7 +2413,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Share printers with the office?.
+        ///   Looks up a localized string similar to Share printers with other PCs?.
         /// </summary>
         internal static string SharingDialogHeading {
             get {
@@ -2431,7 +2431,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Office PIN.
+        ///   Looks up a localized string similar to Sharing PIN.
         /// </summary>
         internal static string SharingDialogPin {
             get {
@@ -2458,7 +2458,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to This PC already has an office PIN. Other PCs need the same PIN in their Settings to print here..
+        ///   Looks up a localized string similar to This PC already has a sharing PIN. Other PCs need the same PIN in their Settings to print here..
         /// </summary>
         internal static string SharingDialogPinSet {
             get {
@@ -2485,7 +2485,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Other PCs on the office network will be able to print to the printers you choose here..
+        ///   Looks up a localized string similar to Other PCs on the network will be able to print to the printers you choose here..
         /// </summary>
         internal static string SharingDialogText {
             get {

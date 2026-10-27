@@ -54,7 +54,7 @@ flowchart LR
 
 1. On the PC that has the printer (the **host**), open PrintVect, **Share my printers**, **Turn on sharing**, and
    tick the printers to share.
-2. On every other PC (a **client**), open PrintVect, **Office printers**: the shared printers appear by themselves.
+2. On every other PC (a **client**), open PrintVect, **Printers on other PCs**: the shared printers appear by themselves.
    Press **Add to this PC**.
 3. Print from any program to `PrintVect - <printer> @<PC>`. The job travels to the host and comes out of its
    printer; the **Jobs** page on both PCs shows what happened to it.
@@ -67,7 +67,7 @@ flowchart LR
 - **Jobs page** on both sides: sent, printed, waiting or failed, with **Retry** and **Cancel**. A job whose host is
   switched off waits and goes out with **Retry**; a job is never printed twice.
 - **Asks how many copies** before a job leaves the PC (can be switched off).
-- **PIN** (optional, the "office PIN" in Settings): only PCs with the same PIN can print to the shared printers.
+- **Sharing PIN** (optional): only PCs with the same PIN can print to the shared printers.
 - **Pause / Resume** a shared printer; see which PCs print on this one.
 - **Phone hotspot friendly**: warns when Windows treats the network as public and fixes it with one click; a job
   finds the host's new address by itself.
@@ -80,7 +80,7 @@ flowchart LR
 
 - Finding printers (UDP 9150) and print jobs (TCP 9151) stay on your local network. The setup program opens those
   ports in Windows Firewall for PrintVect only, on private and domain networks only, never on public ones.
-- Without an office PIN, any PC on the same network can print to the shared printers; set the same PIN on every
+- Without a sharing PIN, any PC on the same network can print to the shared printers; set the same PIN on every
   PC to limit that (Settings, Security). Print jobs are not encrypted on the network.
 - PrintVect runs as a normal user. Only its small helper, `PrintVect.Elevate.exe`, asks for administrator rights,
   for the few tasks that need them: adding or removing a printer, starting with Windows, making a network private.
@@ -118,13 +118,13 @@ The window has a menu on the left: the PC's name and whether it shares its
 printers at the top, then four pages, and the version at the bottom. Settings, **Colours** picks **Light**,
 **Dark** or **System default** (the light or dark mode of Windows, followed when it changes).
 
-- **Office printers**: the printers of other PCs already on this PC, each with its status, how many jobs wait
-  for it, **Test page**, **Retry waiting** and **Remove**; the printers found in the office that are not added
+- **Printers on other PCs**: the printers of other PCs already on this PC, each with its status, how many jobs
+  wait for it, **Test page**, **Retry waiting** and **Remove**; the printers found on the network that are not added
   yet (they appear by themselves; **Add to this PC**, Windows asks once for permission); and **Find a PC by
   name** for a PC that does not appear (type its name or IP address, **Look up**).
-- **Share my printers**: **Turn on sharing** opens a window to tick the printers to share and set the office
+- **Share my printers**: **Turn on sharing** opens a window to tick the printers to share and set the sharing
   PIN; **Turn off sharing** stops it. Below: the name other PCs find this PC by (**Copy PC name**), a yellow
-  note when there is no office PIN (**Set a PIN**) or when Windows treats the network as public (**Make it
+  note when there is no sharing PIN (**Set a PIN**) or when Windows treats the network as public (**Make it
   private**, see Troubleshooting), and the printers of this PC with a tick, the name other PCs see (for
   example "Counter 1 Laser"), the status and **Pause** / **Resume** (jobs from other PCs wait while a printer
   is paused). Printers of other PCs added here are not listed: they cannot be shared again. On the right: the
@@ -136,7 +136,7 @@ printers at the top, then four pages, and the version at the bottom. Settings, *
   does the same as Cancel or Remove. **Cancel all waiting** cancels every job this PC still has to send, **Clear
   list** removes the finished jobs from the list shown (nothing on any printer changes). A job received here that
   has not reached the printer yet (for example while the printer is paused) can be cancelled on this PC too.
-- **Settings**: Security (the office PIN: the same PIN on every PC), General (Colours, start with Windows,
+- **Settings**: Security (the sharing PIN: the same PIN on every PC), General (Colours, start with Windows,
   whether printing asks how many copies, how long to keep sent documents), Updates (a daily look for a newer
   version, **Check now**, **Update now** when one is ready), the network ports, and **Diagnostics**: a checklist
   of what PrintVect checked on this PC (Windows, firewall rules, folders, networks and whether one is public,
@@ -166,8 +166,8 @@ Settings, Apps removes the PrintVect printers, the firewall rules, the program a
 
 ### Using a shared printer from another PC
 
-On the PC that should print: open PrintVect, **Office printers**, press **Add to this PC** next to the
-printer under "Found in the office" (or type the host PC's name or IP address under **Find a PC by name**,
+On the PC that should print: open PrintVect, **Printers on other PCs**, press **Add to this PC** next to the
+printer under "Found on the network" (or type the host PC's name or IP address under **Find a PC by name**,
 **Look up**, then **Add to this PC**) and answer **Yes** to the Windows permission window. A printer named `PrintVect - <printer> @<host PC>` appears in every program's
 print window; what you print on it comes out of the host's printer. `PrintVect.Elevate.exe` is the
 only part that runs as administrator: it creates the printer, its port and its spool folder
@@ -225,13 +225,13 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | "is reachable but nothing is listening" from pvct-send | On the host, open PrintVect and switch sharing ON. |
 | "Neither Microsoft XPS Document Writer nor ... v4 is installed" when adding a printer | PrintVect installs Windows' own XPS Document Writer itself. If it still fails: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK, restart if asked, then Add again. |
 | "is not reachable on the network" from another PC | Check the host's IP address on its Share my printers page, then add the firewall rule above on the host. |
-| Printing stops when the PCs use a phone hotspot | Windows treats a hotspot as a **public** network, and PrintVect's firewall rules let other PCs in on private networks only. On the PC that shares the printer, Share my printers shows a yellow note: press **Make it private** and answer **Yes** (or in Windows: Settings, Network, the Wi-Fi, Network profile type **Private**). A PC that prints finds the host's new hotspot address by itself; waiting jobs: **Retry waiting** on Office printers. |
+| Printing stops when the PCs use a phone hotspot | Windows treats a hotspot as a **public** network, and PrintVect's firewall rules let other PCs in on private networks only. On the PC that shares the printer, Share my printers shows a yellow note: press **Make it private** and answer **Yes** (or in Windows: Settings, Network, the Wi-Fi, Network profile type **Private**). A PC that prints finds the host's new hotspot address by itself; waiting jobs: **Retry waiting** on Printers on other PCs. |
 | The host says the job is still printing after 60 s | Look at the printer and at the Windows print queue on the host (Settings, Printers & scanners, the printer, Open print queue). The job is in that queue and prints when the printer is ready; PrintVect keeps reporting its page progress for up to 15 minutes. |
 | Microsoft Print to PDF: the job shows Printing until you answer the Save window | That is how Windows works: choose a file name and the job becomes Printed. |
 | Settings says "Could not check for a newer version: this PC cannot reach github.com" | The PC has no internet connection right now (or a proxy blocks github.com). Printing is not affected; the check tries again the next day, or press **Check now** later. |
 | "The update did not run (the setup program ended with code ...)" | The Windows permission question was answered No, or the setup failed: the reason is in `C:\ProgramData\PrintVect\updates\update-<version>.log`. Press **Update now** again. |
 | After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
-| A job waits with "asks for the office PIN" | The two PCs have different office PINs (or one has none). Set the same PIN in Settings on both, then press **Retry waiting** (Office printers) on the PC that printed. |
+| A job waits with "asks for the sharing PIN" | The two PCs have different sharing PINs (or one has none). Set the same PIN in Settings on both, then press **Retry waiting** (Printers on other PCs) on the PC that printed. |
 | A job waits with "is paused there" | Someone pressed **Pause** on the PC that has the printer. Press **Resume** there (Share my printers). |
 | A job waits with "stopped answering after it received this job" | The PC with the printer was switched off or lost the network during the job. When it is back, check whether the page came out; if not, press **Retry waiting** (or right-click the job, **Retry**). A page that already printed is never printed twice. |
 | Update now says jobs are still being handled | A shared printer is paused with jobs waiting. Resume it (or wait until they printed), then press Update now again. |
@@ -255,7 +255,7 @@ tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
   For a problem, add the report from Settings, Diagnostics, **Copy report** (read it first: it holds the PC's name,
   its network addresses and the printer names).
 - Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
-- If PrintVect saves your office some trouble, please give it a star on GitHub: it helps other homes and offices find it.
+- If PrintVect saves you some trouble, please give it a star on GitHub: it helps other homes and offices find it.
 
 ## For developers
 

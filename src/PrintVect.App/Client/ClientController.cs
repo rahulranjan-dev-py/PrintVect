@@ -489,7 +489,7 @@ namespace PrintVect.App.Client
         {
             var lines = new List<string>();
             lines.Add("Elevate helper: " + (File.Exists(ElevateLauncher.DefaultExePath()) ? "present" : "MISSING") + " (" + ElevateLauncher.DefaultExePath() + ")");
-            lines.Add("Discovery: " + (_discovery.IsRunning ? "looking every " + _discovery.Interval.TotalSeconds + " s on UDP port " + _config.DiscoveryPort : "idle (runs while the Office printers page is open)"));
+            lines.Add("Discovery: " + (_discovery.IsRunning ? "looking every " + _discovery.Interval.TotalSeconds + " s on UDP port " + _config.DiscoveryPort : "idle (runs while the Printers on other PCs page is open)"));
             IList<DiscoveredHost> found = _discovery.Hosts;
             lines.Add("Hosts found: " + (found.Count == 0 ? "(none)" : string.Join("; ", found.Select(h => h.Host + " at " + h.Ip + ":" + h.Port
                 + " with " + h.Printers.Count + " printer(s)" + (h.Manual ? ", typed" : ", seen " + h.LastSeen.ToString("HH:mm:ss", CultureInfo.InvariantCulture))))));

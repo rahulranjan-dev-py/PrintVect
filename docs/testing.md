@@ -582,6 +582,29 @@ same); the new message appears there only once 0.5.4 is installed, at the next u
 | 2 | A Windows 11 PC whose Smart App Control is in evaluation or on, with 0.5.4: Diagnostics checklist. | A blue i line "Smart App Control is in evaluation" or "Smart App Control is on" with what it means for updates. |
 | 3 | Later, when a version after 0.5.4 is published: on a PC with 0.5.4 and Smart App Control On, press Update now. | Instead of "An Application Control policy has blocked this file": "Windows did not let the update start: Smart App Control is on, and PrintVect's setup program is not signed yet…" with where to turn it off. Printing keeps working. |
 
+## 0.5.5: no office words
+
+The owner, 2026-10-27: PrintVect is for homes too (one printer, a few laptops), so the app no longer speaks of the
+office. Only words change, and the menu is 16 px wider so its longest name fits; settings, the PIN and added printers
+stay as they are.
+
+| Before (0.5.4) | Now (0.5.5) |
+|----------------|-------------|
+| Office printers (menu, page title) | Printers on other PCs |
+| Found in the office, not added yet | Found on the network, not added yet |
+| Share with the office / Share printers with the office? | Share with other PCs / Share printers with other PCs? |
+| Office PIN | Sharing PIN |
+| any PC on the office network | any PC on the network |
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.5. On each PC: Settings, Check now, Update now. | "Version 0.5.5 · up to date" under the menu. On a PC with 0.5.4 and Smart App Control On, this is also step 3 of 0.5.4: the plain "Smart App Control is on" message instead of the Windows error. |
+| 1 | Look at the menu on the left; click Printers on other PCs; make the window as small as it goes. | The first item reads "Printers on other PCs" in full (no "…"), also in bold when selected. Nothing on the pages overlaps. |
+| 2 | Printers on other PCs page. | Title "Printers on other PCs"; the section below the added printers is "Found on the network, not added yet". |
+| 3 | Share my printers on a PC without a PIN; then Turn on sharing (or Turn off and on again). | Card "Share with other PCs"; yellow note "No sharing PIN: any PC on the network can print here."; the window's heading "Share printers with other PCs?" and its PIN field "Sharing PIN". |
+| 4 | Settings: Security, Set PIN…; then Diagnostics. | "Sharing PIN" with "Not set" or "Set"; the PIN window "Set the sharing PIN"; the checklist says "Sharing PIN not set" or "Sharing PIN set". A PIN set before stays set. |
+| 5 | On a PC with a PIN, print to a PC whose PIN differs. | The job waits with "… asks for the sharing PIN, and this job came with a different one or none. Set the same sharing PIN in PrintVect Settings on both PCs." |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

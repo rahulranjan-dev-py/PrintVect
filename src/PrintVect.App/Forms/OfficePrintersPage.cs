@@ -18,9 +18,10 @@ using PrintVect.Core.Protocol;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// "Office printers" (was "Use shared printers"; the redesign of 0.5.0): the printers from other PCs already on this
-    /// PC, one card row each with its status, waiting jobs and Test page / Retry waiting / Remove; the printers found in
-    /// the office that are not added yet (UDP discovery runs while this page is visible); and Find a PC by name.
+    /// "Printers on other PCs" ("Office printers" from the redesign of 0.5.0 until 0.5.4, before that "Use shared
+    /// printers"; 0.5.5 drops the office words because PrintVect serves homes too): the printers from other PCs already
+    /// on this PC, one card row each with its status, waiting jobs and Test page / Retry waiting / Remove; the printers
+    /// found on the network that are not added yet (UDP discovery runs while this page is visible); and Find a PC by name.
     /// </summary>
     internal sealed class OfficePrintersPage : PageScroller, IPage
     {
