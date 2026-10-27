@@ -21,6 +21,10 @@ newer version: once a day it looks at this repository's releases on github.com a
 with one click (Settings page; the daily look can be switched off). Nothing about the office, its
 printers or its documents is ever sent anywhere.
 
+**Code signing and privacy:** see [CODE_SIGNING.md](CODE_SIGNING.md). Free code signing provided by SignPath.io,
+certificate by SignPath Foundation (applied for in October 2026: Windows 11's Smart App Control blocks unsigned setup
+programs, so until then a PC where it is On cannot install updates from inside PrintVect).
+
 ## Status
 
 Work is done in milestones (see `docs/MudranSetu_Claude_Code_Guide.pdf`, section 9; MudranSetu
