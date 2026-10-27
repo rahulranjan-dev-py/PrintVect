@@ -21,9 +21,8 @@ newer version: once a day it looks at this repository's releases on github.com a
 with one click (Settings page; the daily look can be switched off). Nothing about the office, its
 printers or its documents is ever sent anywhere.
 
-**Code signing and privacy:** see [CODE_SIGNING.md](CODE_SIGNING.md). Free code signing provided by SignPath.io,
-certificate by SignPath Foundation (applied for in October 2026: Windows 11's Smart App Control blocks unsigned setup
-programs, so until then a PC where it is On cannot install updates from inside PrintVect).
+**Code signing and privacy:** see [CODE_SIGNING.md](CODE_SIGNING.md). PrintVect is not signed yet, so Windows 11's
+Smart App Control (where it is On) refuses its setup program, also when PrintVect updates itself.
 
 ## Status
 
@@ -62,9 +61,8 @@ Download the latest **PrintVect-Setup-<version>.exe** from this repository's
 [Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases/latest) and run it on each office PC (it asks
 for administrator rights once). PCs that already run PrintVect find new versions by themselves (Settings, Updates).
 
-**Code signing:** free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
-[SignPath Foundation](https://signpath.org); see [CODE_SIGNING.md](CODE_SIGNING.md) for the policy and the privacy
-policy. Signing has been applied for (October 2026); until the first signed release:
+**Not signed yet** (see [CODE_SIGNING.md](CODE_SIGNING.md), which also has the privacy policy). Until the first signed
+release:
 
 - Windows SmartScreen may warn when the setup program first runs: click **More info**, then **Run anyway**.
 - Chrome or Edge may hold the download back; choose **Keep** in the downloads list (Ctrl+J).
