@@ -564,8 +564,7 @@ Reported by the owner on 2026-10-24 with photos of the Windows 11 PC in Dark col
 
 Reported by the owner on 2026-10-25: on the Windows 11 PC, Update now ended with "The setup program could not be
 started: An Application Control policy has blocked this file". Smart App Control is On there (Windows Security, App &
-browser control), and it runs only programs it trusts or that are signed; PrintVect's setup program is not signed yet
-(the SignPath Foundation declined the free certificate on 2026-10-27 because the project is still new).
+browser control), and it runs only programs it trusts or that are signed; PrintVect's setup program is not signed yet.
 
 - A setup program refused by Windows (error 4551, Smart App Control or an App Control policy; error 1260, AppLocker)
   now gives a plain message: with Smart App Control On, that it is on and how to turn it off; otherwise, to ask
