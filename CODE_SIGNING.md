@@ -30,10 +30,10 @@ These rules will apply from the first signed release:
 PrintVect collects no personal data and sends no documents, usage statistics or crash reports to its authors or to
 anyone else.
 
-- **Inside the office network.** PCs running PrintVect find each other (UDP port 9150) and send print jobs (TCP port
+- **Inside the local network.** PCs running PrintVect find each other (UDP port 9150) and send print jobs (TCP port
   9151) to the PC that has the printer. Every 5 minutes a PC that prints on another PC's printers tells that PC its
   name, its Windows version, its PrintVect version and the printers it uses, so that PC can show "PCs that print here".
-  None of this leaves the office network.
+  None of this leaves the local network.
 - **The internet.** Once a day, and when someone presses *Check now*, PrintVect asks GitHub (`api.github.com`) for the
   latest release of this repository; when someone presses *Update now* it downloads the new setup program from GitHub.
   GitHub then sees the PC's public IP address and the program name and version (`PrintVect/<version>`); see
