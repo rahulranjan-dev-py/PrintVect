@@ -121,7 +121,7 @@ namespace PrintVect.Core.Diagnostics
                 return lines;
             }
             lines.Add("Discovery port (UDP): " + config.DiscoveryPort + ", job port (TCP): " + config.JobPort);
-            lines.Add("PIN: " + (string.IsNullOrEmpty(config.Pin) ? "not set (open to the office network)" : "set"));
+            lines.Add("PIN: " + (string.IsNullOrEmpty(config.Pin) ? "not set (open to every PC on the network)" : "set"));
             lines.Add("Sharing: " + (config.SharingEnabled ? "ON" : "OFF")
                       + ", shared printers: " + config.SharedPrinters.Count
                       + ", remote printers added: " + config.RemotePrinters.Count);

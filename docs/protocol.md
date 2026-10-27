@@ -3,7 +3,7 @@
 PrintVect is the chosen product name for the tool described in
 `docs/MudranSetu_Claude_Code_Guide.pdf` (section 6). This page is the
 protocol from that brief with the PrintVect identifiers substituted.
-Everything here is LAN-only; nothing ever leaves the office network.
+Everything here is LAN-only; nothing ever leaves the local network.
 
 ## Identifiers
 
@@ -22,7 +22,7 @@ relay) and **631** are never allowed.
 
 | Channel           | Transport                                 | Format |
 |-------------------|-------------------------------------------|--------|
-| Discovery request | UDP broadcast to `255.255.255.255:9150`   | ASCII text `PVECT-DISCOVER 1`. Sent every 10 s while the *Office printers* page is open, on **Search again**, and once (listening 3 s) when a job cannot reach its host: a host on a phone hotspot gets a new address each time it connects, and the job is then sent to the address it answers from (0.5.0). |
+| Discovery request | UDP broadcast to `255.255.255.255:9150`   | ASCII text `PVECT-DISCOVER 1`. Sent every 10 s while the *Printers on other PCs* page (*Office printers* until 0.5.4) is open, on **Search again**, and once (listening 3 s) when a job cannot reach its host: a host on a phone hotspot gets a new address each time it connects, and the job is then sent to the address it answers from (0.5.0). |
 | Discovery reply   | UDP unicast back to the sender            | One JSON object, see below. |
 | Job transfer      | TCP 9151, one job per connection          | `PVCT` (4 ASCII bytes), 4-byte little-endian header length, UTF-8 JSON header, then the raw file bytes. The host answers one JSON line, then closes. |
 | Status query      | TCP 9151                                  | Same framing with header `{"type":"status","jobId":"guid"}` and no body. Same reply format. |
@@ -81,7 +81,7 @@ mismatch. The client sets `doc` from the package's `docProps/core.xml` title whe
 
 `retry` (0.4.0, optional, default false) on an `ok:false` reply means the job did not print but sending the same
 job again makes sense: the host lost it (PrintVect there was closed, or sharing went off while its printer was
-paused; also a status request for a job the host does not know), or it was refused for the office PIN. The client
+paused; also a status request for a job the host does not know), or it was refused for the sharing PIN. The client
 then keeps the file for **Retry waiting** instead of filing it as failed. A host that receives a job id it
 already printed, or still has queued, answers with that job's state and does not print it again, so Retry never
 prints a page twice.
@@ -102,7 +102,7 @@ printer name (case-insensitive), so a person can type a name into `pvct-send`.
 
 ## Rules
 
-- Optional office PIN, set in Settings on both sides (Set PIN…, 0.4.0). The header carries the
+- Optional sharing PIN (the office PIN until 0.5.4), set in Settings on both sides (Set PIN…, 0.4.0). The header carries the
   SHA-256 of the PIN; the host rejects a mismatch with a clear message and `retry:true`.
   An empty PIN means open to the LAN.
 - Limits: max file 200 MB, connect timeout 5 s, transfer timeout 5 min,

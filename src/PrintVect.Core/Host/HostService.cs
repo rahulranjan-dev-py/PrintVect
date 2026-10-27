@@ -639,8 +639,8 @@ namespace PrintVect.Core.Host
 
             if (!PinHash.Matches(Pin, header.Pin))
             {
-                return host + " asks for the office PIN, and this job came with a different one or none. "
-                       + "Set the same office PIN in PrintVect Settings on both PCs.";
+                return host + " asks for the sharing PIN, and this job came with a different one or none. "
+                       + "Set the same sharing PIN in PrintVect Settings on both PCs.";
             }
             if (!JobFormats.IsKnown(header.Format))
             {

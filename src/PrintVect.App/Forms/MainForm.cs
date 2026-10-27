@@ -48,7 +48,8 @@ namespace PrintVect.App.Forms
     internal sealed class MainForm : Form, IShell
     {
         private const int MessageDisplaySeconds = 8;
-        private const int SidebarWidth = 232;
+        /// <summary>248 since 0.5.5 (was 232): "Printers on other PCs" fits in the menu in semibold.</summary>
+        private const int SidebarWidth = 248;
 
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
@@ -93,7 +94,7 @@ namespace PrintVect.App.Forms
             KeyPreview = true;
             Rectangle screen = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Ui.S(1220), screen.Width - Ui.S(40)), Math.Min(Ui.S(800), screen.Height - Ui.S(60)));
-            MinimumSize = new Size(Math.Min(Ui.S(920), screen.Width), Math.Min(Ui.S(600), screen.Height));
+            MinimumSize = new Size(Math.Min(Ui.S(936), screen.Width), Math.Min(Ui.S(600), screen.Height));   // 920 + the wider menu (0.5.5)
 
             Build(PageId.Office);
             _prepare.Tick += (s, e) => PrepareNextPage();

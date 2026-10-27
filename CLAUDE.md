@@ -26,7 +26,7 @@ docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual t
 ## Architecture
 - src/PrintVect.Core     class library: Config/, Logging/, Diagnostics/, Protocol/, Host/, Printing/,
                          Client/ (spool watcher, sender), Elevation/, Discovery/, Update/. No UI references.
-- src/PrintVect.App      WinForms tray exe in the owner's 0.5.0 redesign (docs/design/design-spec.md): side menu with Office printers,
+- src/PrintVect.App      WinForms tray exe in the owner's 0.5.0 redesign (docs/design/design-spec.md): side menu with Printers on other PCs,
                          Share my printers, Jobs, Settings. Theme/: painted controls, Palette (Light + Dark), ThemeManager (Light /
                          Dark / System default; a change rebuilds the window). An opened page stays laid out behind the open one
                          (brought to front, IPage.SetOpen; 0.5.2); Reveal keeps the window cloaked until drawn. Close = tray.
@@ -59,21 +59,21 @@ the UI thread). Printer statuses and printing sit behind IPrinterStatusSource / 
 unit-tested with fakes over loopback TCP (tests never load System.Printing, which Mono lacks).
 
 ## Protocol v1 (docs/protocol.md has the JSON)
-- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the Office printers page is
-  open, and once when a job cannot reach its host; hosts reply by UDP unicast with a JSON printer list.
+- Discovery: client broadcasts `PVECT-DISCOVER 1` to 255.255.255.255:9150 every 10 s while the Printers on other PCs
+  page is open, and once when a job cannot reach its host; hosts reply by UDP unicast with a JSON printer list.
 - Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header + file bytes. Host
   answers one JSON line ({ok, jobId, state, message}) and closes. Status: header {"type":"status","jobId"}, no body.
 - List: header {"type":"list"}, reply = discovery JSON + ok. Hello (M6b-2): {"type":"hello",client,os,appVersion,
   printers} every 5 min to each host used -> its "PCs that use this PC". Refusals: drained, ok=false; "retry":true =
   keep for Retry (lost job, PIN). A job id already printed or still queued gets its state back, never printed twice.
-- Office PIN: header carries its SHA-256 hex; empty = open on the LAN. Limits: file 200 MB, connect 5 s, transfer 5 min,
+- Sharing PIN: header carries its SHA-256 hex; empty = open on the LAN. Limits: file 200 MB, connect 5 s, transfer 5 min,
   discovery 2 s. Manual IP/name entry always exists.
 
 ## Workflow
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
-  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4.
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too).
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml
@@ -86,8 +86,8 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - The owner's Windows 11 test PC has two Ethernet cards on different subnets (172.16.x and
   192.168.10.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
   broadcast and 255.255.255.255; DiscoveryResponder binds 0.0.0.0:9150 and answers from the address
-  on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs while the Office printers page
-  is visible; a typed name goes through the TCP list request and joins the same found list.
+  on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs while the Printers on other PCs
+  page is visible; a typed name goes through the TCP list request and joins the same found list.
 - Firewall rules allow private and domain networks only (brief 10); a phone hotspot comes up Public, so Share my printers
   warns (Core NetworkProfiles: Network List Manager COM) and Make it private runs Elevate network-private (0.5.0).
 - Seen on the owner's Windows 11 host: PrintQueue.AddJob(fastCopy:false) worked for Microsoft Print to PDF
