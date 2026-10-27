@@ -1,0 +1,55 @@
+name: Something does not work
+description: PrintVect showed an error, did not print, or did something unexpected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time. The Troubleshooting table in the README answers the most common problems:
+        https://github.com/rahulranjan-dev-py/PrintVect#troubleshooting
+  - type: input
+    id: version
+    attributes:
+      label: PrintVect version
+      description: Shown at the bottom left of the PrintVect window.
+      placeholder: "0.5.4"
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows
+      multiple: true
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows 8 or 8.1
+        - Windows 7
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which PC has the problem?
+      options:
+        - The PC that has the printer (shares it)
+        - A PC that prints to a shared printer
+        - Both
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Exact error messages help.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostics report
+      description: >
+        In PrintVect: Settings, Diagnostics, Copy report, then paste it here. Read it first: it contains the PC's
+        name, its network addresses and the printer names; remove anything you do not want to be public.
+      render: text

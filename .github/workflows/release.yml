@@ -2,7 +2,7 @@ name: release
 
 # Publishes a GitHub Release carrying the setup program. Every installed PrintVect looks at the latest
 # release once a day (Settings tab, Updates) and offers it with one click, so this is how an update
-# reaches the office PCs. Three ways to start it (README, "Publishing a new version"):
+# reaches the office PCs. Three ways to start it (docs/releasing.md):
 #   1. on the GitHub website: Releases > Draft a new release, new tag v<Version>, target = the branch, Publish;
 #      the setup program and its checksum are added to that release a few minutes later;
 #   2. push a tag that matches <Version> in Directory.Build.props:   git tag v0.2.0 && git push origin v0.2.0
