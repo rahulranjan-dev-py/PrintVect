@@ -2,9 +2,8 @@
 
 **Status: PrintVect is not signed yet.** The setup program and the program files carry no publisher signature, so
 Windows SmartScreen may warn before the setup program runs, and a Windows 11 PC with Smart App Control On refuses to
-run it. PrintVect applied for free code signing from the SignPath Foundation in October 2026; the application was
-declined because the project is still new and not yet widely known. Signing will come with a later application or a
-certificate bought in the maintainer's name; this page will then say from which version on releases are signed.
+run it. Signing will come with a code signing certificate; this page will then say from which version on releases are
+signed.
 
 ## When releases are signed
 
