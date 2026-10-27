@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PrintVect.Core;
 using PrintVect.Core.Config;
+using PrintVect.Core.Diagnostics;
 using PrintVect.Core.Logging;
 using PrintVect.Core.Update;
 using Timer = System.Windows.Forms.Timer;
@@ -216,7 +217,7 @@ namespace PrintVect.App.Update
             catch (Exception ex)
             {
                 Log.Error("Update: the setup program could not be started.", ex);
-                LastInstallError = string.Format(Strings.UpdateStartFailed, ex.Message);
+                LastInstallError = StartFailure(ex);
                 Phase = UpdatePhase.Idle;
                 RaiseChanged();
                 return LastInstallError;
@@ -308,6 +309,21 @@ namespace PrintVect.App.Update
                 if (failed) Log.Info("Update check: trying again in " + RetryAfterFailure.TotalMinutes + " min.");
                 Schedule(failed ? RetryAfterFailure : CheckInterval);
             }
+        }
+
+        /// <summary>
+        /// A plain message for a setup program that did not start. Windows refusing it (Smart App Control, or a rule that
+        /// allows only approved programs) gets its own message saying what to do, instead of Windows' own words (0.5.4).
+        /// </summary>
+        private static string StartFailure(Exception ex)
+        {
+            if (!AppControl.IsBlockedByPolicy(ex))
+            {
+                return string.Format(Strings.UpdateStartFailed, ex.Message);
+            }
+            SmartAppControlState state = AppControl.ReadSmartAppControl();
+            Log.Warn("Update: Windows blocked the unsigned setup program. " + AppControl.Describe(state) + ".");
+            return state == SmartAppControlState.On ? Strings.UpdateBlockedSmartAppControl : Strings.UpdateBlockedByPolicy;
         }
 
         private async Task CheckAsync()

@@ -45,7 +45,8 @@ was the working name before PrintVect was chosen).
 | 0.5.0 | The owner's redesign: side menu, Light / Dark / System default colours, Office printers page, Turn on sharing window, PrintVect's own printers can no longer be shared again; the phone hotspot fix (Make it private, a job finds a host's new address by itself) | **released 2026-10-22, awaiting test** |
 | 0.5.1 | Pages open in one go: no more jumping or flicker when moving between Office printers, Share my printers, Jobs and Settings | **released 2026-10-23, awaiting test** |
 | 0.5.2 | The owner's list of look-and-feel fixes: the window no longer opens from the tray as empty white boxes; pages switch at once | **released 2026-10-23, awaiting test** |
-| 0.5.3 | Layout fixes from the owner's photos: pages use the width of a maximised window (centred beyond 1400 px), printer rows on Share my printers as tall as their text, dark scroll bar on the job list, visible switch knob in Dark colours, the settings path no longer broken mid-word, a failed update check tried again after 30 minutes | **done, awaiting test** |
+| 0.5.3 | Layout fixes from the owner's photos: pages use the width of a maximised window (centred beyond 1400 px), printer rows on Share my printers as tall as their text, dark scroll bar on the job list, visible switch knob in Dark colours, the settings path no longer broken mid-word, a failed update check tried again after 30 minutes | **released 2026-10-24, awaiting test** |
+| 0.5.4 | When Windows blocks an update (Smart App Control, or a rule that allows only approved programs), a plain message says so and what to do; Diagnostics shows whether Smart App Control is on | **done, awaiting test** |
 
 ## Requirements
 
