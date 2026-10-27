@@ -1,12 +1,14 @@
-# Code signing policy
+# Code signing and privacy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
-[SignPath Foundation](https://signpath.org).
+**Status: PrintVect is not signed yet.** The setup program and the program files carry no publisher signature, so
+Windows SmartScreen may warn before the setup program runs, and a Windows 11 PC with Smart App Control On refuses to
+run it. PrintVect applied for free code signing from the SignPath Foundation in October 2026; the application was
+declined because the project is still new and not yet widely known. Signing will come with a later application or a
+certificate bought in the maintainer's name; this page will then say from which version on releases are signed.
 
-**Status:** applied for in October 2026. Releases up to and including 0.5.3 are not signed; this page will say from
-which version on they are.
+## When releases are signed
 
-## What is signed
+These rules will apply from the first signed release:
 
 - The setup program published on this repository's
   [GitHub Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases), `PrintVect-Setup-<version>.exe`, and
