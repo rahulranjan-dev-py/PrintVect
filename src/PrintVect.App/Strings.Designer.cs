@@ -442,6 +442,42 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Smart App Control is in evaluation.
+        /// </summary>
+        internal static string CheckSmartAppControlEvaluation {
+            get {
+                return ResourceManager.GetString("CheckSmartAppControlEvaluation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows may switch it on by itself. Then Update now cannot install PrintVect's updates on this PC un [rest of string was truncated].
+        /// </summary>
+        internal static string CheckSmartAppControlEvaluationText {
+            get {
+                return ResourceManager.GetString("CheckSmartAppControlEvaluationText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Smart App Control is on.
+        /// </summary>
+        internal static string CheckSmartAppControlOn {
+            get {
+                return ResourceManager.GetString("CheckSmartAppControlOn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows runs only programs it trusts or that are signed. Printing works, but PrintVect's updates are [rest of string was truncated].
+        /// </summary>
+        internal static string CheckSmartAppControlOnText {
+            get {
+                return ResourceManager.GetString("CheckSmartAppControlOnText", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
         internal static string CopiesCancel {
@@ -2625,6 +2661,24 @@ namespace PrintVect.App {
         internal static string UpdateBannerText {
             get {
                 return ResourceManager.GetString("UpdateBannerText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows did not let the update start: a rule on this PC allows only approved programs, and PrintVect [rest of string was truncated].
+        /// </summary>
+        internal static string UpdateBlockedByPolicy {
+            get {
+                return ResourceManager.GetString("UpdateBlockedByPolicy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Windows did not let the update start: Smart App Control is on, and PrintVect's setup program is not  [rest of string was truncated].
+        /// </summary>
+        internal static string UpdateBlockedSmartAppControl {
+            get {
+                return ResourceManager.GetString("UpdateBlockedSmartAppControl", resourceCulture);
             }
         }
 

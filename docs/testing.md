@@ -560,6 +560,29 @@ Reported by the owner on 2026-10-24 with photos of the Windows 11 PC in Dark col
 | 5 | Settings, Network card, at the normal window size. | The path C:\ProgramData\PrintVect\config.json is on one line, with Open folder beside it or under it. |
 | 6 | Pull the network cable (or turn off Wi-Fi), Exit and start PrintVect, plug the cable in again, wait 30 minutes. | Settings, Updates: first "Could not check…", then after about 30 minutes the normal "PrintVect is up to date" (log: "Update check: trying again in 30 min."). |
 
+## 0.5.4: when Windows blocks an update
+
+Reported by the owner on 2026-10-25: on the Windows 11 PC, Update now ended with "The setup program could not be
+started: An Application Control policy has blocked this file". Smart App Control is On there (Windows Security, App &
+browser control), and it runs only programs it trusts or that are signed; PrintVect's setup program is not signed yet
+(the SignPath Foundation declined the free certificate on 2026-10-27 because the project is still new).
+
+- A setup program refused by Windows (error 4551, Smart App Control or an App Control policy; error 1260, AppLocker)
+  now gives a plain message: with Smart App Control On, that it is on and how to turn it off; otherwise, to ask
+  whoever looks after the PC. The log has the line "Update: Windows blocked the unsigned setup program."
+- Diagnostics shows "Smart App Control is on" or "… is in evaluation" (blue i) in the checklist, and the report's
+  Windows section has a "Smart App Control:" line on every PC.
+
+Note: a PC where Smart App Control is On cannot install 0.5.4 itself from inside PrintVect either (the block is the
+same); the new message appears there only once 0.5.4 is installed, at the next update after it.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.4. On the Windows 10 PC (and any PC without the block): Settings, Check now, Update now. | "Version 0.5.4 · up to date" under the menu. |
+| 1 | That PC: Settings, Diagnostics, Show full report. | In the Windows section: "Smart App Control: not available on this Windows" (Windows 10), or Off / Evaluation / On on Windows 11. |
+| 2 | A Windows 11 PC whose Smart App Control is in evaluation or on, with 0.5.4: Diagnostics checklist. | A blue i line "Smart App Control is in evaluation" or "Smart App Control is on" with what it means for updates. |
+| 3 | Later, when a version after 0.5.4 is published: on a PC with 0.5.4 and Smart App Control On, press Update now. | Instead of "An Application Control policy has blocked this file": "Windows did not let the update start: Smart App Control is on, and PrintVect's setup program is not signed yet…" with where to turn it off. Printing keeps working. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

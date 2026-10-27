@@ -509,6 +509,7 @@ namespace PrintVect.App.Forms
             public IList<string> Folders;
             public IList<NetworkConnection> Networks;
             public string Windows, DotNet;
+            public SmartAppControlState SmartAppControl;
             public DateTime Started;
         }
 
@@ -574,6 +575,7 @@ namespace PrintVect.App.Forms
             snapshot.Networks = NetworkProfiles.Connected();
             snapshot.Windows = WindowsInfo.Edition();
             snapshot.DotNet = NetFrameworkInfo.Describe();
+            snapshot.SmartAppControl = AppControl.ReadSmartAppControl();
             snapshot.Started = Process.GetCurrentProcess().StartTime;
             return snapshot;
         }
@@ -629,6 +631,11 @@ namespace PrintVect.App.Forms
             string buildText = build > 0 ? s.Windows.Substring(build + 2).TrimEnd(')') : "";
             items.Add(Tuple.Create(WindowsInfo.IsWindows ? CheckLevel.Ok : CheckLevel.Neutral, edition,
                 (buildText.Length > 0 ? char.ToUpperInvariant(buildText[0]) + buildText.Substring(1) + " · " : "") + ".NET Framework " + s.DotNet));
+
+            if (s.SmartAppControl == SmartAppControlState.On)
+                items.Add(Tuple.Create(CheckLevel.Info, Strings.CheckSmartAppControlOn, Strings.CheckSmartAppControlOnText));
+            else if (s.SmartAppControl == SmartAppControlState.Evaluation)
+                items.Add(Tuple.Create(CheckLevel.Info, Strings.CheckSmartAppControlEvaluation, Strings.CheckSmartAppControlEvaluationText));
 
             if (s.Tcp == FirewallRuleState.Present && s.Udp == FirewallRuleState.Present)
                 items.Add(Tuple.Create(CheckLevel.Ok, Strings.CheckFirewall, string.Format(Strings.CheckFirewallOk, _config.JobPort, _config.DiscoveryPort)));
