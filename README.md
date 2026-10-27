@@ -55,24 +55,21 @@ was the working name before PrintVect was chosen).
   needs SP1 plus updates KB4474419 and KB4490628 first.
 - All PCs on the same office network.
 
-## Getting the program (until the installer exists)
+## Download
 
-1. Open the **Actions** tab of this repository on GitHub and pick the latest green run.
-2. Download the artifact `PrintVect-build-<number>` and unzip it into a folder such as
-   `C:\PrintVect`.
-3. Run `PrintVect.App.exe`. A PrintVect icon appears in the tray (bottom-right, near the clock)
-   and the PrintVect window opens.
+Download the latest **PrintVect-Setup-<version>.exe** from this repository's
+[Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases/latest) and run it on each office PC (it asks
+for administrator rights once). PCs that already run PrintVect find new versions by themselves (Settings, Updates).
 
-Because the program is new and not yet signed, browsers and Windows treat it with suspicion:
+**Code signing:** free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org); see [CODE_SIGNING.md](CODE_SIGNING.md) for the policy and the privacy
+policy. Signing has been applied for (October 2026); until the first signed release:
 
-- Chrome may say "Chrome blocked this download because the file is dangerous". Open the
-  downloads list (Ctrl+J), click the three-dot menu on the blocked entry and choose **Download
-  dangerous file** (or **Keep**), then confirm. Microsoft Edge shows a similar warning with
-  **Keep** under its menu. The digest shown next to the artifact on the Actions page identifies
-  the exact file GitHub built from this repository's source.
-- Windows SmartScreen may warn when you first run it: click **More info**, then **Run anyway**.
-- If Windows Defender removes `PrintVect.App.exe` from the folder, add `C:\PrintVect` to its
-  exclusions (Windows Security, Virus & threat protection, Manage settings, Exclusions).
+- Windows SmartScreen may warn when the setup program first runs: click **More info**, then **Run anyway**.
+- Chrome or Edge may hold the download back; choose **Keep** in the downloads list (Ctrl+J).
+- On a Windows 11 PC with Smart App Control On (Windows Security, App & browser control) Windows refuses to run the
+  unsigned setup program ("An Application Control policy has blocked this file"), including through Update now.
+- The `.sha256` file next to each setup program is its checksum; PrintVect checks it before installing an update.
 
 Or build it yourself: install Visual Studio 2022 Build Tools with the ".NET Framework 4.8
 targeting pack", then run in the repo folder:
