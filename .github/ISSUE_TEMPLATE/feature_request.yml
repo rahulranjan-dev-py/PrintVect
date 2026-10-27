@@ -5,8 +5,8 @@ body:
   - type: textarea
     id: need
     attributes:
-      label: What would help your office
-      description: The situation and what gets in the way today. A real example helps most.
+      label: What would help you
+      description: Your situation, at home or at work, and what gets in the way today. A real example helps most.
     validations:
       required: true
   - type: textarea

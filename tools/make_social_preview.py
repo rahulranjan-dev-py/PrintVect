@@ -25,9 +25,9 @@ CHIP = "#1F3B73"
 CHIP_TEXT = "#EEF3FC"
 GREEN = "#34D399"
 
-TAG_LINES = ["Share the office printers with", "every Windows PC on the network"]
+TAG_LINES = ["Share a printer with every Windows", "PC and laptop, at home or at work"]
 BODY_LINE = "No printer drivers and no passwords on the PCs that print."
-CHIPS = ["Windows 10 and 11", "Office network only", "Free, open source (MIT)"]
+CHIPS = ["Windows 10 and 11", "Stays on your network", "Free, open source (MIT)"]
 
 
 def font(weight, size):

@@ -2,7 +2,7 @@
 
 <h1 align="center">PrintVect</h1>
 
-<p align="center"><b>Share the office printers with every Windows PC on the network.<br>
+<p align="center"><b>Share a printer with every Windows PC and laptop on your network, at home or in the office.<br>
 No printer drivers and no Windows passwords on the PCs that print.</b></p>
 
 <p align="center">
@@ -19,13 +19,14 @@ No printer drivers and no Windows passwords on the PCs that print.</b></p>
 <a href="#troubleshooting">Troubleshooting</a>
 </p>
 
-PrintVect is a small, free tray app for small offices. The PC that has a printer shares it in a few clicks; every
-other PC adds it with one click and prints to it from any program, like a printer of its own. No print server, no
-cloud, no accounts: printing stays on the office network.
+PrintVect is a small, free tray app for homes and small offices: one printer and a few laptops at home, or several
+printers and many PCs at work. The PC that has a printer shares it in a few clicks; every other PC or laptop adds it
+with one click and prints to it from any program, like a printer of its own. No print server, no cloud, no accounts:
+printing stays on your own network.
 
 ## Why
 
-Windows' own printer sharing is hard work in a small office without an IT department:
+Windows' own printer sharing is hard work at home or in a small office without an IT department:
 
 - Since the PrintNightmare security fixes of 2021, Windows asks for an administrator password when a PC connects to
   a shared printer and has to install its driver.
@@ -48,7 +49,7 @@ flowchart LR
         direction TB
         pv["PrintVect in the tray"] --> drv["The printer's own driver,<br/>already working on this PC"] --> prn["Printer<br/>USB or network"]
     end
-    client -- "the document, over the office network" --> host
+    client -- "the document, over your home or office network" --> host
 ```
 
 1. On the PC that has the printer (the **host**), open PrintVect, **Share my printers**, **Turn on sharing**, and
@@ -60,13 +61,13 @@ flowchart LR
 
 ## Features
 
-- **Finds the office's printers by itself**, on every network card of the PC; a PC name or IP address can be typed
-  in too.
+- **Finds the shared printers by itself**, over Wi-Fi or cable, on every network card of the PC; a PC name or IP
+  address can be typed in too.
 - **A normal Windows printer** on each client, so every program can print to it.
 - **Jobs page** on both sides: sent, printed, waiting or failed, with **Retry** and **Cancel**. A job whose host is
   switched off waits and goes out with **Retry**; a job is never printed twice.
 - **Asks how many copies** before a job leaves the PC (can be switched off).
-- **Office PIN** (optional): only PCs with the same PIN can print to the shared printers.
+- **PIN** (optional, the "office PIN" in Settings): only PCs with the same PIN can print to the shared printers.
 - **Pause / Resume** a shared printer; see which PCs print on this one.
 - **Phone hotspot friendly**: warns when Windows treats the network as public and fixes it with one click; a job
   finds the host's new address by itself.
@@ -77,9 +78,9 @@ flowchart LR
 
 ## Security and privacy
 
-- Finding printers (UDP 9150) and print jobs (TCP 9151) stay on the office network. The setup program opens those
+- Finding printers (UDP 9150) and print jobs (TCP 9151) stay on your local network. The setup program opens those
   ports in Windows Firewall for PrintVect only, on private and domain networks only, never on public ones.
-- Without an office PIN, any PC on the office network can print to the shared printers; set the same PIN on every
+- Without an office PIN, any PC on the same network can print to the shared printers; set the same PIN on every
   PC to limit that (Settings, Security). Print jobs are not encrypted on the network.
 - PrintVect runs as a normal user. Only its small helper, `PrintVect.Elevate.exe`, asks for administrator rights,
   for the few tasks that need them: adding or removing a printer, starting with Windows, making a network private.
@@ -91,7 +92,7 @@ flowchart LR
 ## Download
 
 Download the latest **PrintVect-Setup-<version>.exe** from this repository's
-[Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases/latest) and run it on each office PC (it asks
+[Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases/latest) and run it on each PC or laptop (it asks
 for administrator rights once). PCs that already run PrintVect find new versions by themselves (Settings, Updates).
 What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
@@ -101,7 +102,7 @@ Requirements:
 - .NET Framework 4.8. Windows 10 (May 2019 update or later) and Windows 11 already have it. Windows 7 and 8.1 need
   the offline installer `ndp48-x86-x64-allos-enu.exe`; Windows 7 also needs SP1 plus updates KB4474419 and
   KB4490628 first.
-- All PCs on the same office network.
+- All PCs on the same network (the same Wi-Fi or router).
 
 **Not signed yet** (see [CODE_SIGNING.md](CODE_SIGNING.md)). Until the first signed release:
 
@@ -254,7 +255,7 @@ tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
   For a problem, add the report from Settings, Diagnostics, **Copy report** (read it first: it holds the PC's name,
   its network addresses and the printer names).
 - Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
-- If PrintVect saves your office some trouble, please give it a star on GitHub: it helps other small offices find it.
+- If PrintVect saves your office some trouble, please give it a star on GitHub: it helps other homes and offices find it.
 
 ## For developers
 
