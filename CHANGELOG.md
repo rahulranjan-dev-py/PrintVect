@@ -4,6 +4,13 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
+## 0.5.5
+
+No office words in the app, because PrintVect serves homes too: the Office printers page is now **Printers on other
+PCs**, the office PIN the **sharing PIN**, "Found in the office" is "Found on the network", and "Share with the
+office" is "Share with other PCs". The menu is 16 px wider so its longest name fits. Settings, the PIN and added
+printers stay as they are. **Tested:** awaiting test.
+
 ## 0.5.4 (2026-10-27)
 
 When Windows blocks an update (Smart App Control, or a rule that allows only approved programs), a plain message says

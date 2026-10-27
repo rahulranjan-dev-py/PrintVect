@@ -172,7 +172,7 @@ namespace PrintVect.Tests
                 Assert.IsFalse(client.IsRunning, "nobody wants discovery after the search: it stops");
                 Assert.IsNotNull(client.LastRoundAt, "the search asked at least once");
 
-                client.Start();   // the Office printers page opens
+                client.Start();   // the Printers on other PCs page opens
                 await client.SearchAsync(TimeSpan.FromMilliseconds(100), CancellationToken.None);
                 Assert.IsTrue(client.IsRunning, "a search does not stop the page's discovery");
                 client.Stop();

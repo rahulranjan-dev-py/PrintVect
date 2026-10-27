@@ -58,10 +58,12 @@ HTML with inline styles; the values below are the ones to replicate). Icon sourc
 - PIN screen and the copies question are small dark windows in the same cards, buttons and fonts; Windows draws their frame.
 
 ## Redesign of 0.5.0 (owner's canvas "PrintVect Redesign", 2026-10-22)
-Five screens from the owner (light, a menu on the left): Office printers, Share my printers, Turn on sharing (window),
-Jobs, Settings. Built as drawn, with a Dark set of the same layout and a switch: Settings, General, **Colours**:
+Five screens from the owner (light, a menu on the left): Office printers (Printers on other PCs since 0.5.5), Share my
+printers, Turn on sharing (window), Jobs, Settings. Built as drawn, with a Dark set of the same layout and a switch: Settings, General, **Colours**:
 Light / Dark / System default (Windows' app mode, `AppsUseLightTheme`, followed while running). Default: System default.
 
+- 0.5.5: no office words (PrintVect serves homes too): Printers on other PCs, sharing PIN, "Found on the network".
+  The menu is 248 px wide (was 232) so "Printers on other PCs" fits in semibold; the window's minimum width 936 (920).
 - Fonts: Noto Sans (Regular, Medium, SemiBold, Bold; static, cut to Latin) and JetBrains Mono (Regular, SemiBold).
   Page title 26 px, section title 16 px, card title 15 to 17 px, text 14 px, secondary 13 px, pills 12.5 px.
 - Light (the canvas): page `#F3F5F4`, menu `#E9EEEC`, cards `#FFFFFF` with border `#DAE2DE`, text `#17211E`, muted
