@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrintVect.Core.Config;
@@ -108,6 +109,42 @@ namespace PrintVect.Tests
             Assert.AreEqual(Path.Combine(paths.Root, "config.json"), paths.ConfigFile);
             Assert.AreEqual(Path.Combine(paths.Root, "spool"), paths.SpoolDir);
             Assert.AreEqual(Path.Combine(paths.Root, "logs"), paths.LogsDir);
+        }
+    }
+
+    [TestClass]
+    public class AppControlTests
+    {
+        [TestMethod]
+        public void TheRegistryValueGivesTheSmartAppControlState()
+        {
+            Assert.AreEqual(SmartAppControlState.NotAvailable, AppControl.FromValue(null));
+            Assert.AreEqual(SmartAppControlState.Off, AppControl.FromValue(0));
+            Assert.AreEqual(SmartAppControlState.On, AppControl.FromValue(1));
+            Assert.AreEqual(SmartAppControlState.Evaluation, AppControl.FromValue(2));
+            Assert.AreEqual(SmartAppControlState.Unknown, AppControl.FromValue(7));
+            Assert.AreEqual(SmartAppControlState.Unknown, AppControl.FromValue("1"));
+        }
+
+        [TestMethod]
+        public void AProgramBlockedByAWindowsRuleIsToldApartFromOtherStartFailures()
+        {
+            // "An Application Control policy has blocked this file" (Smart App Control), owner's PC, 0.5.3.
+            Assert.IsTrue(AppControl.IsBlockedByPolicy(new Win32Exception(AppControl.PolicyViolation)));
+            Assert.IsTrue(AppControl.IsBlockedByPolicy(new Win32Exception(AppControl.DisabledByPolicy)));
+            Assert.IsTrue(AppControl.IsBlockedByPolicy(new InvalidOperationException("outer", new Win32Exception(AppControl.PolicyViolation))));
+            Assert.IsFalse(AppControl.IsBlockedByPolicy(new Win32Exception(2)));   // file not found
+            Assert.IsFalse(AppControl.IsBlockedByPolicy(new Win32Exception(1223)));   // the Windows permission question answered No
+            Assert.IsFalse(AppControl.IsBlockedByPolicy(new System.IO.FileNotFoundException()));
+            Assert.IsFalse(AppControl.IsBlockedByPolicy(null));
+        }
+
+        [TestMethod]
+        public void ReadingTheStateNeverThrowsAndIsDescribed()
+        {
+            SmartAppControlState state = AppControl.ReadSmartAppControl();
+            if (!WindowsInfo.IsWindows) Assert.AreEqual(SmartAppControlState.NotAvailable, state);
+            StringAssert.StartsWith(AppControl.Describe(state), "Smart App Control: ");
         }
     }
 }

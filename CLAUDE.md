@@ -73,7 +73,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
-  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes).
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4.
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
   4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml

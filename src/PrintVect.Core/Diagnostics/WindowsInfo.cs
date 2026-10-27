@@ -37,6 +37,7 @@ namespace PrintVect.Core.Diagnostics
             lines.Add(".NET Framework: " + NetFrameworkInfo.Describe() + ", CLR " + Environment.Version);
             lines.Add("PC name: " + Environment.MachineName + ", user: " + Environment.UserName
                       + (Environment.UserInteractive ? "" : " (no desktop session)"));
+            lines.Add(AppControl.Describe(AppControl.ReadSmartAppControl()));
             lines.Add("Display language: " + CultureInfo.CurrentUICulture.Name
                       + ", formats: " + CultureInfo.CurrentCulture.Name
                       + ", up for " + FormatUptime());
