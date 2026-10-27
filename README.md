@@ -1,68 +1,109 @@
-# PrintVect
+<p align="center"><img src="docs/design/printvect-icon-256.png" width="96" height="96" alt="PrintVect icon"></p>
 
-PrintVect lets every PC in a small office print to every printer in the office, whatever
-version of Windows each PC runs (Windows 7 SP1 through Windows 11), with **no driver
-installation and no Windows user name or password on the client side**.
+<h1 align="center">PrintVect</h1>
 
-It exists because built-in Windows printer sharing does not work across a mix of Windows 7,
-8, 10 and 11 machines: drivers differ per Windows version, Windows 7 shares over SMB1 which
-newer Windows disables, and the PrintNightmare hardening makes every connection ask for an
-administrator. PrintVect side-steps all of that:
+<p align="center"><b>Share the office printers with every Windows PC on the network.<br>
+No printer drivers and no Windows passwords on the PCs that print.</b></p>
 
-- The PC that has the printer (the **host**) runs PrintVect in the tray and offers the printer
-  to the office.
-- Any other PC (a **client**) adds that printer as a *virtual printer* which uses the Microsoft
-  XPS Document Writer driver that every Windows from 7 to 11 already has.
-- When someone prints, the client sends the job file over the office network to the host, and
-  the host prints it with its own, already-working driver.
+<p align="center">
+<a href="https://github.com/rahulranjan-dev-py/PrintVect/releases/latest"><img src="https://img.shields.io/github/v/release/rahulranjan-dev-py/PrintVect?label=download&color=0B7A5B" alt="Latest release"></a>
+<a href="https://github.com/rahulranjan-dev-py/PrintVect/actions/workflows/build.yml"><img src="https://github.com/rahulranjan-dev-py/PrintVect/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+<img src="https://img.shields.io/badge/Windows-10%20%7C%2011-1F3B73" alt="Windows 10 and 11">
+<a href="LICENSE"><img src="https://img.shields.io/github/license/rahulranjan-dev-py/PrintVect?color=1F3B73" alt="MIT licence"></a>
+</p>
 
-Printing stays on the office LAN. The only thing PrintVect ever fetches from the internet is its own
-newer version: once a day it looks at this repository's releases on github.com and offers an update
-with one click (Settings page; the daily look can be switched off). Nothing about the office, its
-printers or its documents is ever sent anywhere.
+<p align="center">
+<a href="https://github.com/rahulranjan-dev-py/PrintVect/releases/latest"><b>Download for Windows</b></a> ·
+<a href="#how-it-works">How it works</a> ·
+<a href="#security-and-privacy">Security and privacy</a> ·
+<a href="#troubleshooting">Troubleshooting</a>
+</p>
 
-**Code signing and privacy:** see [CODE_SIGNING.md](CODE_SIGNING.md). PrintVect is not signed yet, so Windows 11's
-Smart App Control (where it is On) refuses its setup program, also when PrintVect updates itself.
+PrintVect is a small, free tray app for small offices. The PC that has a printer shares it in a few clicks; every
+other PC adds it with one click and prints to it from any program, like a printer of its own. No print server, no
+cloud, no accounts: printing stays on the office network.
 
-## Status
+## Why
 
-Work is done in milestones (see `docs/MudranSetu_Claude_Code_Guide.pdf`, section 9; MudranSetu
-was the working name before PrintVect was chosen).
+Windows' own printer sharing is hard work in a small office without an IT department:
 
-| Milestone | What it delivers | State |
-|-----------|------------------|-------|
-| M0 | Solution scaffold, CI build, empty tray app with Diagnostics tab | **done, verified on Windows 11** |
-| M1 | Host role: printer list, share toggle, job listener, printing, `pvct-send` test tool | **done, verified on Windows 11 host with a Windows 10 sender** |
-| M2 | Client role: virtual printer through the Elevate helper, spool watcher, status balloons, Use tab | **done, verified on Windows 10 and 11 clients** |
-| M3 | Hosts found by themselves (UDP discovery on every network card), found-printers list, job history that survives a restart | **done, verified on two Windows 11 PCs and a Windows 10 PC** |
-| M4 | Windows 7 pass | **skipped**: no Windows 7 PC in the office; tested on Windows 10 and 11 only |
-| M5 | Installer (Inno Setup): Program Files, firewall rules, autostart, clean uninstall, bundled fonts and the new icon | **done, verified on Windows 10 (daily use)** |
-| M6a | Updates from inside the program: daily look at the GitHub releases, one-click install, release workflow | **done, verified on three PCs (0.2.0 to 0.2.1 by itself)** |
-| M6b-1 | The new look (docs/design): dark Graphite window, bundled fonts, top bar with pages, Jobs page, Diagnostics inside Settings | **done, reported OK by the owner** |
-| M6b-2 | Hardening: editable settings and office PIN, copies question, PCs that use a host, Pause / Resume, jobs kept for Retry when a host is lost, plain-language errors | **released in 0.4.0 (2026-10-17), not tested** |
-| 0.4.1 | Jobs page: right-click Retry / Cancel job / Remove from list / Copy details, Cancel all waiting, Clear list; bigger green tick boxes on Share my printers | **done, awaiting test** |
-| 0.5.0 | The owner's redesign: side menu, Light / Dark / System default colours, Office printers page, Turn on sharing window, PrintVect's own printers can no longer be shared again; the phone hotspot fix (Make it private, a job finds a host's new address by itself) | **released 2026-10-22, awaiting test** |
-| 0.5.1 | Pages open in one go: no more jumping or flicker when moving between Office printers, Share my printers, Jobs and Settings | **released 2026-10-23, awaiting test** |
-| 0.5.2 | The owner's list of look-and-feel fixes: the window no longer opens from the tray as empty white boxes; pages switch at once | **released 2026-10-23, awaiting test** |
-| 0.5.3 | Layout fixes from the owner's photos: pages use the width of a maximised window (centred beyond 1400 px), printer rows on Share my printers as tall as their text, dark scroll bar on the job list, visible switch knob in Dark colours, the settings path no longer broken mid-word, a failed update check tried again after 30 minutes | **released 2026-10-24, awaiting test** |
-| 0.5.4 | When Windows blocks an update (Smart App Control, or a rule that allows only approved programs), a plain message says so and what to do; Diagnostics shows whether Smart App Control is on | **done, awaiting test** |
+- Since the PrintNightmare security fixes of 2021, Windows asks for an administrator password when a PC connects to
+  a shared printer and has to install its driver.
+- Every PC needs the printer's driver for its own version of Windows, and some older printers have none for newer
+  Windows.
+- Connecting asks for a Windows user name and password of the PC that has the printer.
 
-## Requirements
+PrintVect side-steps all of that. The PCs that print use the Microsoft XPS Document Writer driver that Windows
+already has, and the PC with the printer prints with the driver that already works there.
 
-- Windows 7 SP1, 8, 8.1, 10 or 11 (32-bit or 64-bit).
-- .NET Framework 4.8. Windows 10 (May 2019 update or later) and Windows 11 already have it.
-  Windows 7 and 8.1 need the offline installer `ndp48-x86-x64-allos-enu.exe`; Windows 7 also
-  needs SP1 plus updates KB4474419 and KB4490628 first.
-- All PCs on the same office network.
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph client ["A PC that prints"]
+        direction TB
+        app["Any program<br/>Word, Excel, a browser, a PDF reader"] --> vp["Printer: PrintVect - Laser @COUNTER-1<br/>Windows' own XPS writer, nothing to install"]
+    end
+    subgraph host ["COUNTER-1, the PC with the printer"]
+        direction TB
+        pv["PrintVect in the tray"] --> drv["The printer's own driver,<br/>already working on this PC"] --> prn["Printer<br/>USB or network"]
+    end
+    client -- "the document, over the office network" --> host
+```
+
+1. On the PC that has the printer (the **host**), open PrintVect, **Share my printers**, **Turn on sharing**, and
+   tick the printers to share.
+2. On every other PC (a **client**), open PrintVect, **Office printers**: the shared printers appear by themselves.
+   Press **Add to this PC**.
+3. Print from any program to `PrintVect - <printer> @<PC>`. The job travels to the host and comes out of its
+   printer; the **Jobs** page on both PCs shows what happened to it.
+
+## Features
+
+- **Finds the office's printers by itself**, on every network card of the PC; a PC name or IP address can be typed
+  in too.
+- **A normal Windows printer** on each client, so every program can print to it.
+- **Jobs page** on both sides: sent, printed, waiting or failed, with **Retry** and **Cancel**. A job whose host is
+  switched off waits and goes out with **Retry**; a job is never printed twice.
+- **Asks how many copies** before a job leaves the PC (can be switched off).
+- **Office PIN** (optional): only PCs with the same PIN can print to the shared printers.
+- **Pause / Resume** a shared printer; see which PCs print on this one.
+- **Phone hotspot friendly**: warns when Windows treats the network as public and fixes it with one click; a job
+  finds the host's new address by itself.
+- **Updates itself** from this repository's releases with one click (the daily check can be switched off).
+- **Light, Dark** or the Windows setting; plain-language messages written for people who are not IT staff.
+- **Diagnostics** page with a checklist and a report to copy when something does not work.
+- Free and open source under the MIT licence. Built with C# and .NET Framework 4.8 (WinForms).
+
+## Security and privacy
+
+- Finding printers (UDP 9150) and print jobs (TCP 9151) stay on the office network. The setup program opens those
+  ports in Windows Firewall for PrintVect only, on private and domain networks only, never on public ones.
+- Without an office PIN, any PC on the office network can print to the shared printers; set the same PIN on every
+  PC to limit that (Settings, Security). Print jobs are not encrypted on the network.
+- PrintVect runs as a normal user. Only its small helper, `PrintVect.Elevate.exe`, asks for administrator rights,
+  for the few tasks that need them: adding or removing a printer, starting with Windows, making a network private.
+- The only internet connection is the update check: once a day PrintVect asks GitHub for this repository's latest
+  release, and downloads it when someone presses **Update now**. No telemetry, no crash reports, no accounts; logs and settings stay on the PC. Details:
+  [CODE_SIGNING.md](CODE_SIGNING.md), which also holds the privacy policy.
+- To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Download
 
 Download the latest **PrintVect-Setup-<version>.exe** from this repository's
 [Releases](https://github.com/rahulranjan-dev-py/PrintVect/releases/latest) and run it on each office PC (it asks
 for administrator rights once). PCs that already run PrintVect find new versions by themselves (Settings, Updates).
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
-**Not signed yet** (see [CODE_SIGNING.md](CODE_SIGNING.md), which also has the privacy policy). Until the first signed
-release:
+Requirements:
+
+- Windows 10 or 11, 32-bit or 64-bit (tested). Windows 7 SP1, 8 and 8.1 should work but are not tested.
+- .NET Framework 4.8. Windows 10 (May 2019 update or later) and Windows 11 already have it. Windows 7 and 8.1 need
+  the offline installer `ndp48-x86-x64-allos-enu.exe`; Windows 7 also needs SP1 plus updates KB4474419 and
+  KB4490628 first.
+- All PCs on the same office network.
+
+**Not signed yet** (see [CODE_SIGNING.md](CODE_SIGNING.md)). Until the first signed release:
 
 - Windows SmartScreen may warn when the setup program first runs: click **More info**, then **Run anyway**.
 - Chrome or Edge may hold the download back; choose **Keep** in the downloads list (Ctrl+J).
@@ -70,20 +111,9 @@ release:
   unsigned setup program ("An Application Control policy has blocked this file"), including through Update now.
 - The `.sha256` file next to each setup program is its checksum; PrintVect checks it before installing an update.
 
-Or build it yourself: install Visual Studio 2022 Build Tools with the ".NET Framework 4.8
-targeting pack", then run in the repo folder:
-
-```
-msbuild PrintVect.sln /t:Restore /p:Configuration=Release
-msbuild PrintVect.sln /p:Configuration=Release
-tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
-```
-
-`dotnet build PrintVect.sln -c Release` with the .NET 8 SDK works too.
-
 ## Using it
 
-The window (the owner's redesign of 0.5.0) has a menu on the left: the PC's name and whether it shares its
+The window has a menu on the left: the PC's name and whether it shares its
 printers at the top, then four pages, and the version at the bottom. Settings, **Colours** picks **Light**,
 **Dark** or **System default** (the light or dark mode of Windows, followed when it changes).
 
@@ -123,7 +153,7 @@ Closing the window only hides it; PrintVect keeps running in the tray. To stop i
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's
 autostart entry uses this).
 
-### Installing with the setup program (M5)
+### Installing with the setup program
 
 Download `PrintVect-Setup-<version>.exe` from the latest entry on the **Releases** page of this
 repository (or the `PrintVect-Setup-<n>` artifact of the latest green build on the Actions page, which is
@@ -133,7 +163,7 @@ already in `C:\ProgramData\PrintVect`, opens TCP 9151 and UDP 9150 in Windows Fi
 only, adds a Start menu entry and starts PrintVect with Windows (hidden in the tray). Uninstalling from
 Settings, Apps removes the PrintVect printers, the firewall rules, the program and its data folder.
 
-### Using a shared printer from another PC (client role, M2)
+### Using a shared printer from another PC
 
 On the PC that should print: open PrintVect, **Office printers**, press **Add to this PC** next to the
 printer under "Found in the office" (or type the host PC's name or IP address under **Find a PC by name**,
@@ -206,36 +236,34 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | Update now says jobs are still being handled | A shared printer is paused with jobs waiting. Resume it (or wait until they printed), then press Update now again. |
 | Something else | Settings, Diagnostics, **Copy report**, and send the text to the person who supports PrintVect. |
 
-## Publishing a new version
+## Building from source
 
-PCs that run PrintVect look at this repository's **latest release** once a day and offer it with one
-click, so an update reaches the office by making a release. First the version number must go up:
-raise the three version lines in `Directory.Build.props` (for example `0.2.0` to `0.2.1`), commit,
-push, and wait for the green build. Then, on the GitHub website:
+Install Visual Studio 2022 Build Tools with the ".NET Framework 4.8 targeting pack", then run in the repo folder:
 
-1. Open `https://github.com/rahulranjan-dev-py/PrintVect/releases/new`.
-2. Click **Choose a tag**, type `v0.2.1`, then click **Create new tag: v0.2.1 on publish**.
-3. Click **Target: main** and pick the branch that has the new version. Do not skip this.
-4. In **Release title** type `PrintVect 0.2.1`. Leave everything else as it is.
-5. Click **Publish release**.
-6. Wait five minutes and refresh: the release now lists `PrintVect-Setup-0.2.1.exe` and
-   `PrintVect-Setup-0.2.1.exe.sha256`, built and attached by GitHub (Actions, run named **release**).
+```
+msbuild PrintVect.sln /t:Restore /p:Configuration=Release
+msbuild PrintVect.sln /p:Configuration=Release
+tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
+```
 
-Until the files are there, the PCs report "release v0.2.1 has no PrintVect-Setup file attached" and
-try again later. Drafts and pre-releases are ignored by the PCs. A release whose version already has
-a setup program is left alone (the run only warns), so the version number must always go up first.
-For people with git, pushing a tag (`git tag v0.2.1 && git push origin v0.2.1`) does the same, and so
-does **Actions**, **release**, **Run workflow** once the workflow file is on the default branch.
+`dotnet build PrintVect.sln -c Release` with the .NET 8 SDK works too.
 
-On each PC, PrintVect then shows a balloon and a yellow strip "A newer PrintVect (0.2.1) is ready to
-install". **Update now** downloads the setup program into `C:\ProgramData\PrintVect\updates\`, checks
-its size and SHA-256, and runs it silently; Windows asks the usual permission question once, PrintVect
-closes for a few seconds and opens again as the new version. Nothing is installed without that click.
+## Help and feedback
+
+- Questions, problems and ideas: open an [issue](https://github.com/rahulranjan-dev-py/PrintVect/issues/new/choose).
+  For a problem, add the report from Settings, Diagnostics, **Copy report** (read it first: it holds the PC's name,
+  its network addresses and the printer names).
+- Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- If PrintVect saves your office some trouble, please give it a star on GitHub: it helps other small offices find it.
 
 ## For developers
 
 - `CLAUDE.md` holds the condensed rules; the full brief is in `docs/`.
-- `docs/protocol.md` describes the wire protocol; `docs/testing.md` the manual test steps per milestone.
+- `docs/protocol.md` describes the wire protocol; `docs/testing.md` the manual test steps per version;
+  `docs/releasing.md` how a new version is published.
 - Every user-visible string lives in `src/PrintVect.App/Strings.resx`. After editing it without
   Visual Studio, run `python3 tools/generate_strings.py`.
-- Licence: MIT (see `LICENSE`).
+
+## Licence
+
+MIT, see [LICENSE](LICENSE). Fonts: SIL Open Font License 1.1 (`src/PrintVect.App/Fonts`).
