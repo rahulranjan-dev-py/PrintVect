@@ -364,6 +364,12 @@ Details: {0}</value>
   <data name="UpdateStartFailed" xml:space="preserve">
     <value>The setup program could not be started: {0}</value>
   </data>
+  <data name="UpdateBlockedSmartAppControl" xml:space="preserve">
+    <value>Windows did not let the update start: Smart App Control is on, and PrintVect's setup program is not signed yet. PrintVect keeps working as it is. To install updates on this PC, turn off Smart App Control (Windows Security, App &amp; browser control, Smart App Control settings).</value>
+  </data>
+  <data name="UpdateBlockedByPolicy" xml:space="preserve">
+    <value>Windows did not let the update start: a rule on this PC allows only approved programs, and PrintVect's setup program is not signed yet. PrintVect keeps working as it is. Ask whoever looks after this PC to allow the PrintVect setup program, or to install the update.</value>
+  </data>
   <data name="UpdateJobsBusy" xml:space="preserve">
     <value>{0} print job(s) are still being handled. Wait for them to finish, then press Update now again.</value>
   </data>
@@ -639,6 +645,18 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
   </data>
   <data name="CheckSharingOffText" xml:space="preserve">
     <value>No printers shared · {0} printer(s) added from other PCs</value>
+  </data>
+  <data name="CheckSmartAppControlOn" xml:space="preserve">
+    <value>Smart App Control is on</value>
+  </data>
+  <data name="CheckSmartAppControlOnText" xml:space="preserve">
+    <value>Windows runs only programs it trusts or that are signed. Printing works, but PrintVect's updates are not signed yet, so Update now cannot install them on this PC.</value>
+  </data>
+  <data name="CheckSmartAppControlEvaluation" xml:space="preserve">
+    <value>Smart App Control is in evaluation</value>
+  </data>
+  <data name="CheckSmartAppControlEvaluationText" xml:space="preserve">
+    <value>Windows may switch it on by itself. Then Update now cannot install PrintVect's updates on this PC until they are signed.</value>
   </data>
   <data name="CopiesFewer" xml:space="preserve">
     <value>One copy less</value>
