@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Troubleshooting
+    url: https://github.com/rahulranjan-dev-py/PrintVect#troubleshooting
+    about: Answers to the most common problems.
+  - name: Report a security problem
+    url: https://github.com/rahulranjan-dev-py/PrintVect/blob/main/SECURITY.md
+    about: Please do not describe a security problem in a public issue.
