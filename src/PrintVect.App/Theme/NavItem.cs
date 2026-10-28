@@ -14,6 +14,13 @@ namespace PrintVect.App.Theme
         /// <summary>44 px of item and 4 px of gap below it (docked items ignore margins).</summary>
         public const int HeightPx = 48;
 
+        private const int IconLeftPx = 8 + 3 + 12;   // after the green bar
+        private const int IconPx = 20;
+        private const int TextGapPx = 12;
+        private const int TextRightPx = 8;
+        private const TextFormatFlags TextFlags = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine
+                                                  | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
+
         private readonly Glyph _glyph;
         private bool _active;
         private bool _hover;
@@ -29,6 +36,18 @@ namespace PrintVect.App.Theme
             Margin = Ui.Pad(0);
             Height = Ui.S(HeightPx);
             Dock = DockStyle.Top;
+        }
+
+        /// <summary>
+        /// The width an item needs to show this name in full (0.5.6): measured by Windows in both weights, the way
+        /// OnPaint draws it, because Windows draws the open page's semibold a few pixels wider than other tools predict.
+        /// </summary>
+        public static int WidthToFit(string text)
+        {
+            var unlimited = new Size(int.MaxValue, int.MaxValue);
+            int textWidth = Math.Max(TextRenderer.MeasureText(text, ThemeFonts.TextSemi, unlimited, TextFlags).Width,
+                                     TextRenderer.MeasureText(text, ThemeFonts.TextMedium, unlimited, TextFlags).Width);
+            return Ui.S(IconLeftPx) + Ui.S(IconPx) + Ui.S(TextGapPx) + textWidth + Ui.S(TextRightPx) + 1;
         }
 
         public bool Active
@@ -89,12 +108,12 @@ namespace PrintVect.App.Theme
                 }
             }
             Color ink = _active ? Palette.Text : Palette.TextSecondary;
-            int iconSize = Ui.S(20);
-            int x = Ui.S(8 + 3 + 12);
+            int iconSize = Ui.S(IconPx);
+            int x = Ui.S(IconLeftPx);
             Icons.Draw(g, _glyph, new RectangleF(x, (h - iconSize) / 2f, iconSize, iconSize), ink);
-            x += iconSize + Ui.S(12);
-            TextRenderer.DrawText(g, Text, _active ? ThemeFonts.TextSemi : ThemeFonts.TextMedium, new Rectangle(x, 0, Width - x - Ui.S(8), h), ink,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            x += iconSize + Ui.S(TextGapPx);
+            TextRenderer.DrawText(g, Text, _active ? ThemeFonts.TextSemi : ThemeFonts.TextMedium, new Rectangle(x, 0, Width - x - Ui.S(TextRightPx), h), ink,
+                TextFlags);
             if (Focused && ShowFocusCues)
             {
                 using (GraphicsPath ring = Ui.RoundRect(new RectangleF(1.5f, 1.5f, Width - 4f, h - 4f), Ui.S(5)))

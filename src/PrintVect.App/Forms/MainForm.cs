@@ -48,8 +48,9 @@ namespace PrintVect.App.Forms
     internal sealed class MainForm : Form, IShell
     {
         private const int MessageDisplaySeconds = 8;
-        /// <summary>248 since 0.5.5 (was 232): "Printers on other PCs" fits in the menu in semibold.</summary>
+        /// <summary>The menu's narrowest width; it grows to fit the longest page name (0.5.6, SidebarWidthFor).</summary>
         private const int SidebarWidth = 248;
+        private const int SidebarSidePadding = 14;
 
         private readonly AppPaths _paths;
         private readonly ConfigStore _store;
@@ -58,6 +59,7 @@ namespace PrintVect.App.Forms
         private readonly ClientController _client;
         private readonly UpdateController _updates;
         private readonly List<NavItem> _nav = new List<NavItem>();
+        private readonly int _sidebarWidth;
         private readonly List<Control> _pages = new List<Control>();
 
         private Panel _pageHost;
@@ -94,7 +96,10 @@ namespace PrintVect.App.Forms
             KeyPreview = true;
             Rectangle screen = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Ui.S(1220), screen.Width - Ui.S(40)), Math.Min(Ui.S(800), screen.Height - Ui.S(60)));
-            MinimumSize = new Size(Math.Min(Ui.S(936), screen.Width), Math.Min(Ui.S(600), screen.Height));   // 920 + the wider menu (0.5.5)
+            _sidebarWidth = SidebarWidthFor(Strings.NavOffice, Strings.TabShare, Strings.TabJobs, Strings.TabSettings);
+            Log.Info("Side menu: " + _sidebarWidth + " px wide (at least " + Ui.S(SidebarWidth) + ").");
+            // The pages keep the room they had with 0.5.4's 232 px menu at the smallest window.
+            MinimumSize = new Size(Math.Min(Ui.S(920 - 232) + _sidebarWidth, screen.Width), Math.Min(Ui.S(600), screen.Height));
 
             Build(PageId.Office);
             _prepare.Tick += (s, e) => PrepareNextPage();
@@ -203,9 +208,24 @@ namespace PrintVect.App.Forms
             ResumeLayout(true);
         }
 
+        /// <summary>
+        /// 248 px, or wider where Windows draws a page name wider than that (0.5.6: on the owner's PC the open page's
+        /// "Printers on other PCs" still ended in "…" at 248 px, a few pixels more than measured on Linux).
+        /// </summary>
+        private static int SidebarWidthFor(params string[] titles)
+        {
+            int widest = 0;
+            foreach (string title in titles)
+            {
+                widest = Math.Max(widest, NavItem.WidthToFit(title));
+            }
+            return Math.Max(Ui.S(SidebarWidth), widest + 2 * Ui.S(SidebarSidePadding));
+        }
+
         private Control CreateSidebar()
         {
-            var bar = new SidePanel { Dock = DockStyle.Left, Width = Ui.S(SidebarWidth), BackColor = Palette.Sidebar, Padding = Ui.Pad(14, 20, 14, 18) };
+            var bar = new SidePanel { Dock = DockStyle.Left, Width = _sidebarWidth, BackColor = Palette.Sidebar,
+                                      Padding = Ui.Pad(SidebarSidePadding, 20, SidebarSidePadding, 18) };
 
             var brand = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, RowCount = 1, Dock = DockStyle.Top, Margin = Ui.Pad(0), Padding = Ui.Pad(6, 0, 0, 0), BackColor = Palette.Sidebar };
             brand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));

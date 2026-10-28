@@ -64,6 +64,8 @@ Light / Dark / System default (Windows' app mode, `AppsUseLightTheme`, followed 
 
 - 0.5.5: no office words (PrintVect serves homes too): Printers on other PCs, sharing PIN, "Found on the network".
   The menu is 248 px wide (was 232) so "Printers on other PCs" fits in semibold; the window's minimum width 936 (920).
+- 0.5.6: on Windows that name still ended in "…" when open (semibold draws wider there), so the menu now measures its
+  page names with TextRenderer and grows past 248 px when needed; the minimum window width grows by the same amount.
 - Fonts: Noto Sans (Regular, Medium, SemiBold, Bold; static, cut to Latin) and JetBrains Mono (Regular, SemiBold).
   Page title 26 px, section title 16 px, card title 15 to 17 px, text 14 px, secondary 13 px, pills 12.5 px.
 - Light (the canvas): page `#F3F5F4`, menu `#E9EEEC`, cards `#FFFFFF` with border `#DAE2DE`, text `#17211E`, muted
