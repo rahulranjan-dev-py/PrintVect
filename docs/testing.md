@@ -605,6 +605,19 @@ stay as they are.
 | 4 | Settings: Security, Set PIN…; then Diagnostics. | "Sharing PIN" with "Not set" or "Set"; the PIN window "Set the sharing PIN"; the checklist says "Sharing PIN not set" or "Sharing PIN set". A PIN set before stays set. |
 | 5 | On a PC with a PIN, print to a PC whose PIN differs. | The job waits with "… asks for the sharing PIN, and this job came with a different one or none. Set the same sharing PIN in PrintVect Settings on both PCs." |
 
+## 0.5.6: the menu fits "Printers on other PCs"
+
+Seen in the owner's screenshot of 0.5.5 (2026-10-28): the open page's name in the menu read "Printers on other P…".
+Windows draws the semibold name a few pixels wider than measured on Linux, so 248 px was still short. The menu now
+asks Windows how wide each page name is and makes itself wide enough (never narrower than 248 px); the smallest window
+grows by the same amount, so the pages keep their room. Nothing else changes.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.6. On each PC: Settings, Check now, Update now. | "Version 0.5.6 · up to date" under the menu. |
+| 1 | Click Printers on other PCs, then each of the other pages; make the window as small as it goes. | Every menu item shows its full name, also in bold when it is the open page: "Printers on other PCs" with no "…". The pages look as before. |
+| 2 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | A line "Side menu: 2nn px wide (at least 248)." near the start. If the name is still cut off, paste that line. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

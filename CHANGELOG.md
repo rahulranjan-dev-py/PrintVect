@@ -4,7 +4,12 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
-## 0.5.5
+## 0.5.6
+
+The menu fits "Printers on other PCs" in full, also in bold as the open page: it now measures the page names on the
+PC and makes itself wide enough (at least 248 px). **Tested:** awaiting test.
+
+## 0.5.5 (2026-10-27)
 
 No office words in the app, because PrintVect serves homes too: the Office printers page is now **Printers on other
 PCs**, the office PIN the **sharing PIN**, "Found in the office" is "Found on the network", and "Share with the
