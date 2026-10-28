@@ -49,7 +49,7 @@ jobs kept for Retry when a host is lost, plain-language errors. **Tested:** not 
 
 ## 0.3.0 and earlier (2026-09-29 to 2026-10-17)
 
-Milestones M0 to M6b-1 (see `docs/MudranSetu_Claude_Code_Guide.pdf`, section 9; MudranSetu was the working name
+Milestones M0 to M6b-1 (see `docs/brief.md`, section 9; MudranSetu was the working name
 before PrintVect was chosen):
 
 | Milestone | What it delivers | Tested |

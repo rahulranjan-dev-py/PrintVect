@@ -259,7 +259,7 @@ tests\PrintVect.Tests\bin\Release\net48\PrintVect.Tests.exe
 
 ## For developers
 
-- `CLAUDE.md` holds the condensed rules; the full brief is in `docs/`.
+- `CLAUDE.md` holds the condensed rules; the full brief is `docs/brief.md`.
 - `docs/protocol.md` describes the wire protocol; `docs/testing.md` the manual test steps per version;
   `docs/releasing.md` how a new version is published.
 - Every user-visible string lives in `src/PrintVect.App/Strings.resx`. After editing it without

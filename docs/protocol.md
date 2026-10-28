@@ -1,7 +1,7 @@
 # PrintVect wire protocol, version 1
 
 PrintVect is the chosen product name for the tool described in
-`docs/MudranSetu_Claude_Code_Guide.pdf` (section 6). This page is the
+`docs/brief.md` (section 6). This page is the
 protocol from that brief with the PrintVect identifiers substituted.
 Everything here is LAN-only; nothing ever leaves the local network.
 

@@ -3,7 +3,7 @@
 ## What this is
 Windows tray app that shares printers across a LAN of Windows 10 / 11 PCs (Windows 7 / 8 by construction only,
 untested) without drivers or credentials on the client. Full brief (written under the working name MudranSetu):
-docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
+docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 
 ## Hard rules (never change without asking the owner)
 - C# on .NET Framework 4.8 only (LangVersion 7.3). WinForms. AnyCPU, Prefer 32-bit OFF.
@@ -70,7 +70,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   discovery 2 s. Manual IP/name entry always exists.
 
 ## Workflow
-- One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
+- One milestone at a time (M0..M6 in the brief, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
   updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too).
