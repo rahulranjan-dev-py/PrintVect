@@ -267,7 +267,7 @@ namespace PrintVect.App.Forms
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        /// <summary>Each network card that is up with its IPv4 addresses ("Ethernet" 10.128.40.175).</summary>
+        /// <summary>Each network card that is up with its IPv4 addresses ("Ethernet" 192.168.1.20).</summary>
         private static List<KeyValuePair<string, List<string>>> NetworkCards()
         {
             return Core.Discovery.LocalNetworks.List()

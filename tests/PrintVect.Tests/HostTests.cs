@@ -618,15 +618,15 @@ namespace PrintVect.Tests
         public async Task Job_MarksItsPcAsSeenAndKeepsTheHelloDetails()
         {
             RequestHeader hello = RequestHeader.ForHello("Windows 11 Pro 24H2", "0.4.0", new[] { "abc123" });
-            hello.Client = "SPM";
+            hello.Client = "COUNTER2";
             await Client().SendHelloAsync(hello, CancellationToken.None);
 
             RequestHeader header = RequestHeader.ForJob("abc123", "test.xps", JobFormats.Xps, 0, "Doc", "");
-            header.Client = "SPM";
+            header.Client = "COUNTER2";
             await Client().SendJobAsync(header, WriteXps(2000), null, CancellationToken.None);
 
             ClientPresence pc = _host.Presence.All().Single();
-            Assert.AreEqual("SPM", pc.Name);
+            Assert.AreEqual("COUNTER2", pc.Name);
             Assert.AreEqual("Windows 11 Pro 24H2", pc.Windows, "a job does not wipe what the hello said");
         }
 

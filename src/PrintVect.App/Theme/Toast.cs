@@ -6,7 +6,7 @@ using System.Windows.Forms;
 namespace PrintVect.App.Theme
 {
     /// <summary>
-    /// A short message at the bottom right of the page ("Copied NDCNEWPC03", "Test page sent") that goes away by itself
+    /// A short message at the bottom right of the page ("Copied ACCOUNTS-PC", "Test page sent") that goes away by itself
     /// after a few seconds. It replaces the old status bar, which the redesign does not have; a click closes it.
     /// </summary>
     internal sealed class Toast : Control

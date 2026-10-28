@@ -20,7 +20,7 @@ namespace PrintVect.Core.Diagnostics
             get { return IsWindows && Environment.OSVersion.Version >= new Version(6, 2); }
         }
 
-        /// <summary>One line for the start of the log, e.g. "Windows 11 Pro 23H2 (build 22631.4037), 64-bit, .NET Framework 4.8.1, PC COUNTER1, user spm".</summary>
+        /// <summary>One line for the start of the log, e.g. "Windows 11 Pro 23H2 (build 22631.4037), 64-bit, .NET Framework 4.8.1, PC COUNTER1, user user1".</summary>
         public static string OneLine()
         {
             return Edition() + ", " + (Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")

@@ -52,18 +52,18 @@ The test file `PrintVect-test-page.xps` is in that folder too (also in `docs/sam
 | # | Do this | Expect this |
 |---|---------|-------------|
 | 1 | Download the latest `PrintVect-build-<n>` artifact (if Chrome blocks it as dangerous, use **Download dangerous file** from the entry's three-dot menu in the downloads list; see README), unzip it over `C:\PrintVect` (replace all files). Start `PrintVect.App.exe`. | The window opens as before. The **Share my printers** tab now shows a table of the printers on this PC with columns Share, Printer, Friendly name, Status. |
-| 2 | Tick **Share** for `Microsoft Print to PDF` and for the HP Laser you want to test. Double-click the Friendly name cell of each, type a short name, press Enter. **Write the two names down: every `pvct-send` command below must use them exactly** (the examples use `PDF` and `Mail Branch`). | The names stay after pressing Refresh. `C:\ProgramData\PrintVect\config.json` now lists them under `SharedPrinters`. |
+| 2 | Tick **Share** for `Microsoft Print to PDF` and for the HP Laser you want to test. Double-click the Friendly name cell of each, type a short name, press Enter. **Write the two names down: every `pvct-send` command below must use them exactly** (the examples use `PDF` and `Counter 1 Laser`). | The names stay after pressing Refresh. `C:\ProgramData\PrintVect\config.json` now lists them under `SharedPrinters`. |
 | 3 | Tick **Share the ticked printers with the office**. | The line under it reads "Sharing is ON. Other PCs can send print jobs to this PC on port 9151." The status bar says "Sharing is ON". If Windows shows a "Windows Security Alert" for PrintVect.App, tick Private networks and click **Allow access**. |
 | 4 | Open a Command Prompt (no admin needed): `cd C:\PrintVect` then `pvct-send list 127.0.0.1` | It prints "Host DESKTOP-... shares 2 printer(s)" and the two friendly names with their status. These are the names to use in the next steps. |
 | 5 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "PDF"` (use your name for the PDF printer from step 2) | A **Save Print Output As** window appears (from Microsoft Print to PDF). Save it as `C:\PrintVect\test.pdf` **within a minute**; PrintVect waits for Windows, and Windows waits for you. The command prints "printed - Printed on ..." (if you took longer than a minute it first says "printing", then "printed" a moment after you save). Two balloons appear from the tray: Printing... and Printed... The Share tab lists the job with state Printed and "Jobs printed today: 1". Open test.pdf: the PrintVect test page with a blue frame and five grey boxes. |
-| 6 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "Mail Branch"` (your name for the laser from step 2) | Paper comes out of the HP Laser within about 10 s and the command says printed. |
-| 6b | **Only if step 6 failed:** `pvct-send PrintVect-test-shapes.xps 127.0.0.1 "Mail Branch"` (same page without any text or font). | If this prints a blue cross and a grey diamond, the font in the text page is the problem. |
-| 6c | **Only if step 6 failed:** make a Windows-made XPS: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK. Print any page from Notepad to "Microsoft XPS Document Writer", choose Save as type **XPS Document (*.xps)**, save as `C:\PrintVect\notepad.xps`. Then `pvct-send notepad.xps 127.0.0.1 "Mail Branch"`. | If this prints, PrintVect's own test page is the problem; if it fails too, the printing path is. Report the host log lines "Driver ...", "Spooler job N opened ... data type ..." and "Windows job N status: ...". |
+| 6 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "Counter 1 Laser"` (your name for the laser from step 2) | Paper comes out of the HP Laser within about 10 s and the command says printed. |
+| 6b | **Only if step 6 failed:** `pvct-send PrintVect-test-shapes.xps 127.0.0.1 "Counter 1 Laser"` (same page without any text or font). | If this prints a blue cross and a grey diamond, the font in the text page is the problem. |
+| 6c | **Only if step 6 failed:** make a Windows-made XPS: Settings, Apps, Optional features, More Windows features, tick **Microsoft XPS Document Writer**, OK. Print any page from Notepad to "Microsoft XPS Document Writer", choose Save as type **XPS Document (*.xps)**, save as `C:\PrintVect\notepad.xps`. Then `pvct-send notepad.xps 127.0.0.1 "Counter 1 Laser"`. | If this prints, PrintVect's own test page is the problem; if it fails too, the printing path is. Report the host log lines "Driver ...", "Spooler job N opened ... data type ..." and "Windows job N status: ...". |
 | 6a | **Only if nothing came out in step 6:** on the host open Settings, Bluetooth & devices, Printers & scanners, the HP Laser, **Open print queue**. Also print any page from Notepad straight to the HP Laser. | Report what the queue window shows for the job named "PrintVect: PrintVect-test-page from ..." (Printing, Error, Sent to printer, or nothing), whether the Notepad page printed, and whether the printer is connected by USB or Wi-Fi (Printer properties, Ports tab). |
 | 7 | `pvct-send PrintVect-test-page.xps 127.0.0.1 "No such printer"` | "The host refused: No shared printer called ... Shared printers: ..." and errorlevel 1. |
 | 8 | Untick **Share the ticked printers with the office**, then run `pvct-send list 127.0.0.1` | "127.0.0.1 is reachable but nothing is listening on port 9151..." and errorlevel 3. **Now tick sharing ON again and check the status bar says "Sharing is ON"; steps 9 to 11 need it.** |
-| 9 | Second PC (Windows 7, 10 or 11 with .NET 4.8; a laptop on the office network is fine): copy the whole `C:\PrintVect` folder there. On the host, open **Diagnostics** and note the IPv4 address under Network (for you: `10.169.183.66` or `10.148.93.218`, whichever network the second PC is on). On the second PC: `pvct-send list <host-ip>`. | The same printer list as in step 4. If it says the host is not reachable, add the firewall rule on the host (command below) and try again. |
-| 10 | On the second PC: `pvct-send PrintVect-test-page.xps <host-ip> "Mail Branch"` (your laser's name) | Paper comes out of the host's printer; balloons appear on the host; the job is listed in the host's Share tab with "From" = the second PC's name. |
+| 9 | Second PC (Windows 7, 10 or 11 with .NET 4.8; a laptop on the office network is fine): copy the whole `C:\PrintVect` folder there. On the host, open **Diagnostics** and note the IPv4 address under Network (for you: `172.16.183.66` or `192.168.10.218`, whichever network the second PC is on). On the second PC: `pvct-send list <host-ip>`. | The same printer list as in step 4. If it says the host is not reachable, add the firewall rule on the host (command below) and try again. |
+| 10 | On the second PC: `pvct-send PrintVect-test-page.xps <host-ip> "Counter 1 Laser"` (your laser's name) | Paper comes out of the host's printer; balloons appear on the host; the job is listed in the host's Share tab with "From" = the second PC's name. |
 | 11 | With sharing ON, right-click the host's tray icon, Exit, then start PrintVect again. | Sharing is ON again without touching anything (the status bar says so), because config.json remembers the last setting. (If it was OFF when you exited, it stays OFF; that is by design.) |
 | 12 | Optional PIN test: on the host, Exit PrintVect, open `C:\ProgramData\PrintVect\config.json` in Notepad, change `"Pin": ""` to `"Pin": "1234"`, save, start PrintVect. From the second PC: send without `/pin`, then with `/pin 1234`. | The first is refused with a message about the PIN; the second prints. Set the PIN back to `""` afterwards. |
 | 13 | Diagnostics tab, Copy to clipboard. | The new section "Printer sharing (host role)" shows sharing ON, the shared printers with ids, today's counts and the last jobs. |
@@ -93,7 +93,7 @@ also left an empty test.pdf; delete it before retrying.
 
 Build 16 on 2026-10-01: **M1 accepted.** Steps 5, 6, 9, 10, 11 and 13 passed: the PDF printer showed the
 Save window again (System.Printing, port PORTPROMPT:), the HP Laser printed through the direct spooler path
-(port USB001, XPS2GDI), the Windows 10 PC DESKTOP-CTQLFOK printed on the host's laser over the office LAN,
+(port USB001, XPS2GDI), the Windows 10 PC CLIENT-PC printed on the host's laser over the office LAN,
 and sharing was ON again after Exit and restart.
 
 Build 15 on 2026-10-01: paper came out of the HP Laser for the first time (the direct spooler path with
@@ -139,27 +139,27 @@ What to paste back after M1:
 
 ## M2: client role (print from another PC through a virtual printer)
 
-Host PC = the Windows 11 PC from M1 (DESKTOP-JK66OQV, sharing ON, "Mail Branch" = the HP Laser).
-Client PC = the Windows 10 PC (DESKTOP-CTQLFOK). Both run the same build. The client needs no
+Host PC = the Windows 11 PC from M1 (HOST-PC, sharing ON, "Counter 1 Laser" = the HP Laser).
+Client PC = the Windows 10 PC (CLIENT-PC). Both run the same build. The client needs no
 driver for the laser: PrintVect creates a printer that uses Windows' own XPS Document Writer and
 ships the file to the host.
 
 | # | Do this | Expect this |
 |---|---------|-------------|
 | 1 | On **both** PCs: Exit PrintVect from the tray, download the latest `PrintVect-build-<n>`, unzip it over `C:\PrintVect` (replace all), start `PrintVect.App.exe`. On the host check the status bar says "Sharing is ON". | Both windows open. On the client, the **Use shared printers** tab shows a "PC name or IP address" box, **Look up**, an empty printer list, **Add to this PC**, and the lists "Printers from other PCs on this PC" and "Jobs sent from this PC". |
-| 2 | On the client: Use tab, type the host's address `10.148.93.218` (its PC name `DESKTOP-JK66OQV` works too) and press **Look up**. | "DESKTOP-JK66OQV shares 2 printer(s):" and the list shows Mail Branch and Microsoft Print to PDF with their status. |
-| 3 | Select **Mail Branch** and press **Add to this PC**. Windows shows its permission window (UAC): choose **Yes** (if it asks for an administrator name and password, type them). | After a few seconds: "PrintVect - Mail Branch @DESKTOP-JK66OQV is ready. Print to it from any program; the pages come out on DESKTOP-JK66OQV." The printer is listed under "Printers from other PCs on this PC", and also in Windows Settings, Printers & scanners. |
+| 2 | On the client: Use tab, type the host's address `192.168.10.218` (its PC name `HOST-PC` works too) and press **Look up**. | "HOST-PC shares 2 printer(s):" and the list shows Counter 1 Laser and Microsoft Print to PDF with their status. |
+| 3 | Select **Counter 1 Laser** and press **Add to this PC**. Windows shows its permission window (UAC): choose **Yes** (if it asks for an administrator name and password, type them). | After a few seconds: "PrintVect - Counter 1 Laser @HOST-PC is ready. Print to it from any program; the pages come out on HOST-PC." The printer is listed under "Printers from other PCs on this PC", and also in Windows Settings, Printers & scanners. |
 | 3a | **Only if step 3 failed:** paste the message shown and, from the client, both logs `C:\ProgramData\PrintVect\logs\PrintVect-<date>.log` and `PrintVect-Elevate-<date>.log`. The Elevate log lists the installed printer drivers; the printer needs "Microsoft XPS Document Writer" (any version). | |
-| 4 | Select the new printer in the list and press **Send test page**. | Within about 10 s the job appears under "Jobs sent from this PC" as Sending, then Printed; the PrintVect test page comes out of the host's laser; a balloon says "PrintVect-test-page printed on DESKTOP-JK66OQV". On the host, the Share tab lists the job from DESKTOP-CTQLFOK. |
-| 5 | **The real test.** On the client open Notepad, type a line, File, Print, choose "PrintVect - Mail Branch @DESKTOP-JK66OQV", Print. | Within 10 s the page comes out of the host's laser. The job list shows the document name (e.g. "Untitled - Notepad") with state Printed and a balloon appears. |
+| 4 | Select the new printer in the list and press **Send test page**. | Within about 10 s the job appears under "Jobs sent from this PC" as Sending, then Printed; the PrintVect test page comes out of the host's laser; a balloon says "PrintVect-test-page printed on HOST-PC". On the host, the Share tab lists the job from CLIENT-PC. |
+| 5 | **The real test.** On the client open Notepad, type a line, File, Print, choose "PrintVect - Counter 1 Laser @HOST-PC", Print. | Within 10 s the page comes out of the host's laser. The job list shows the document name (e.g. "Untitled - Notepad") with state Printed and a balloon appears. |
 | 6 | Print the same Notepad page twice quickly (Print, Print again straight away). | Two pages come out and two jobs are listed. |
-| 7 | Host-off test: on the host untick "Share the ticked printers with the office". On the client print from Notepad again. | Within about a minute (three tries, each to the IP and then to the PC name) the job turns **Waiting** (orange) with "DESKTOP-JK66OQV could not be reached after 3 tries ... press Retry", a balloon says the same, and "Waiting jobs" shows 1 next to the printer. Turn sharing ON again on the host, then on the client select the printer and press **Retry waiting jobs**: the page prints **as the same job**: the orange row turns Sending, then Printed. |
+| 7 | Host-off test: on the host untick "Share the ticked printers with the office". On the client print from Notepad again. | Within about a minute (three tries, each to the IP and then to the PC name) the job turns **Waiting** (orange) with "HOST-PC could not be reached after 3 tries ... press Retry", a balloon says the same, and "Waiting jobs" shows 1 next to the printer. Turn sharing ON again on the host, then on the client select the printer and press **Retry waiting jobs**: the page prints **as the same job**: the orange row turns Sending, then Printed. |
 | 8 | Exit PrintVect on the client (tray, Exit), start it again, print from Notepad. | It still prints: the printer and its folder are remembered in config.json. |
 | 9 | Optional: add "Microsoft Print to PDF" the same way and print to it from the client. | The **Save Print Output As** window appears on the **host** PC (that is where the PDF printer is); after saving there the job shows Printed on the client. |
 | 10 | Client: Diagnostics tab, Copy to clipboard. | The section "Printers from other PCs (client role)" lists the printer with its folder, "Elevate helper: present", and the last jobs. |
 | 11 | Client: select the printer, press **Remove**, Yes, then Yes in the Windows permission window. | The printer disappears from the list and from Windows Settings, and `C:\ProgramData\PrintVect\spool\<id>` is gone. Add it again afterwards if you want to keep using it. |
 
-Build 20 on 2026-10-05: steps 1 to 6, 8 and 10 passed on the Windows 10 PC DESKTOP-CTQLFOK. The
+Build 20 on 2026-10-05: steps 1 to 6, 8 and 10 passed on the Windows 10 PC CLIENT-PC. The
 printer was created with the "Microsoft XPS Document Writer v4" driver (the older writer is not installed
 there), so Notepad jobs arrive as OpenXPS; the host printed them on the HP Laser through the spooler
 (XPS2GDI), which settles pitfall 11.2 for Windows 10/11 hosts. Step 7: the job went Waiting as expected,
@@ -168,14 +168,14 @@ its own job id, so the orange row itself turns Sending and Printed, and it also 
 document the user printed ("Untitled - Notepad", read from the virtual printer's own queue while the
 file is written) instead of job-<id>. Step 11 (Remove) is still to be reported.
 
-Build 22 on 2026-10-05, on a third PC (host NIRSACHATTISO sharing "SPM"): Add to this PC failed with
+Build 22 on 2026-10-05, on a third PC (host OFFICE-2 sharing "COUNTER2"): Add to this PC failed with
 "Neither Microsoft XPS Document Writer nor ... v4 is installed on this PC". That PC has no XPS Document
 Writer at all (the Windows feature is off). Build 23 installs Windows' own XPS writer driver from the
 driver store and, when the store does not have it, turns on the Windows feature "Microsoft XPS Document
 Writer" itself (DISM, no internet needed, up to a few minutes) before creating the printer. The Elevate
 log shows each step; if Windows asks for a restart, the message says so.
 
-Build 23 on 2026-10-05: **M2 accepted.** On the third PC the SPM printer of NIRSACHATTISO was added (the
+Build 23 on 2026-10-05: **M2 accepted.** On the third PC the printer "COUNTER2" of OFFICE-2 was added (the
 XPS writer driver installed by PrintVect) and the test page printed; on the Windows 10 PC step 7 (Retry
 resumes the same job) and step 11 (Remove) passed.
 
@@ -199,7 +199,7 @@ What to paste back after M2:
 
 ## M3: finding hosts by themselves, job history after a restart
 
-Host PC = the Windows 11 PC (sharing ON). Client PC = the Windows 10 PC (its "Mail Branch" printer
+Host PC = the Windows 11 PC (sharing ON). Client PC = the Windows 10 PC (its "Counter 1 Laser" printer
 from M2 is still there) or any other office PC with PrintVect. Nobody should have to type an address
 any more: while the **Use shared printers** tab is open, PrintVect asks the office every 10 seconds
 (UDP port 9150, out of every network card) and lists every PC that answers.
@@ -208,14 +208,14 @@ any more: while the **Use shared printers** tab is open, PrintVect asks the offi
 |---|---------|-------------|
 | 1 | On both PCs: Exit PrintVect, unzip the latest `PrintVect-build-<n>` over `C:\PrintVect`, start it. On the host check "Sharing is ON". If Windows shows a "Windows Security Alert" for PrintVect.App on the host, tick Private networks and **Allow access** (that is the UDP port). | Both windows open. |
 | 2 | Host: Diagnostics tab, Refresh. | Under "Printer sharing (host role)": "Discovery: answering on UDP port 9150 (0 request(s) answered)". If it says OFF with a reason, paste it. |
-| 3 | Client: open the **Use shared printers** tab and wait up to 10 s. | "Printers found in the office:" lists Mail Branch and Microsoft Print to PDF with Host PC DESKTOP-JK66OQV, **without typing anything**. The line next to the heading says "2 printer(s) on 1 PC(s)". A printer already on this PC is grey with ", on this PC" after its status. |
+| 3 | Client: open the **Use shared printers** tab and wait up to 10 s. | "Printers found in the office:" lists Counter 1 Laser and Microsoft Print to PDF with Host PC HOST-PC, **without typing anything**. The line next to the heading says "2 printer(s) on 1 PC(s)". A printer already on this PC is grey with ", on this PC" after its status. |
 | 3a | **Only if the list stays empty for 30 s:** on the host run the UDP firewall command below in a Command Prompt **as administrator**, then on the client click another tab and come back to the Use tab. | The list fills within 10 s. If not, paste the Diagnostics text of both PCs. |
 | 4 | Client: select a printer that is not on this PC yet (Microsoft Print to PDF), **Add to this PC**, Yes to Windows. | Added as in M2; it now shows ", on this PC" in the found list and appears under "Printers from other PCs on this PC". |
 | 5 | Host: untick sharing. Client: watch the found list. | Within about 30 s the host's printers disappear and the grey line says "No PC is sharing a printer right now...". Tick sharing ON again on the host: they are back within 10 s. |
 | 6 | Restart test: on the client, Exit PrintVect and start it again; look at "Jobs sent from this PC". Do the same on the host and look at the Share tab's job list. | The jobs from before the restart are still listed on both PCs, with their states, and "Printed today" still counts them (files `jobs-client.json` and `jobs-host.json` in `C:\ProgramData\PrintVect`). |
-| 7 | Typing still works: in "Not listed? PC name or IP address" type `DESKTOP-JK66OQV`, **Look up**. | The status line says "DESKTOP-JK66OQV shares 2 printer(s)" and the host stays in the found list. |
-| 8 | Client: Diagnostics, Refresh (with the Use tab visited first). | "Discovery: looking every 10 s on UDP port 9150" or "idle (runs while the Use tab is open)", and "Hosts found: DESKTOP-JK66OQV at 10.148.93.218:9151 with 2 printer(s), seen hh:mm:ss". |
-| 9 | Optional, the third PC (SPM): open its Use tab. | It lists the host(s) on its network by itself too. |
+| 7 | Typing still works: in "Not listed? PC name or IP address" type `HOST-PC`, **Look up**. | The status line says "HOST-PC shares 2 printer(s)" and the host stays in the found list. |
+| 8 | Client: Diagnostics, Refresh (with the Use tab visited first). | "Discovery: looking every 10 s on UDP port 9150" or "idle (runs while the Use tab is open)", and "Hosts found: HOST-PC at 192.168.10.218:9151 with 2 printer(s), seen hh:mm:ss". |
+| 9 | Optional, the third PC (COUNTER2): open its Use tab. | It lists the host(s) on its network by itself too. |
 
 Firewall rule for discovery on the host (only if step 3a was needed; run as administrator):
 
@@ -229,7 +229,7 @@ answers from the right card: it picks the address on the asker's subnet, so the 
 another subnet is still reachable by typing its name or IP.
 
 Build 26 on 2026-10-07: **M3 accepted.** Both PCs found each other by themselves (the Windows 11 host
-answered 148 requests, NIRSACHATTISO 122), a 2 MB Word letter printed from the host onto NIRSACHATTISO's
+answered 148 requests, OFFICE-2 122), a 2 MB Word letter printed from the host onto OFFICE-2's
 laser, Remove and the restart worked. Two things seen in the diagnostics were tidied in build 27: a PC with
 two network cards flipped between its own two addresses every round (a log line each time; the found list
 now keeps the address that still answers), and every PC listed its own printers under "found in the
@@ -263,12 +263,12 @@ The program is not signed yet, so Windows SmartScreen warns once: **More info**,
 
 | # | Do this | Expect this |
 |---|---------|-------------|
-| 1 | On the Windows 10 PC: download `PrintVect-Setup-<n>`, unzip it, run `PrintVect-Setup-0.1.0.exe` (More info, Run anyway if SmartScreen appears). Accept the licence, keep both tick boxes ticked, Install, Finish with "Start PrintVect now" ticked. | Setup closes the running PrintVect by itself, shows a note that the old copy in `C:\PrintVect` can be deleted, and PrintVect opens. The printer "PrintVect - Mail Branch @DESKTOP-JK66OQV" is still under "Printers from other PCs on this PC" (settings were kept). |
+| 1 | On the Windows 10 PC: download `PrintVect-Setup-<n>`, unzip it, run `PrintVect-Setup-0.1.0.exe` (More info, Run anyway if SmartScreen appears). Accept the licence, keep both tick boxes ticked, Install, Finish with "Start PrintVect now" ticked. | Setup closes the running PrintVect by itself, shows a note that the old copy in `C:\PrintVect` can be deleted, and PrintVect opens. The printer "PrintVect - Counter 1 Laser @HOST-PC" is still under "Printers from other PCs on this PC" (settings were kept). |
 | 2 | Diagnostics tab, Refresh. | "Program file: C:\Program Files\PrintVect\PrintVect.App.exe"; under Firewall rules both "PrintVect Jobs (TCP-In)" and "PrintVect Discovery (UDP-In)" say **present**. |
 | 3 | Print from Notepad to the PrintVect printer. | Prints on the host as before. |
 | 4 | Delete the folder `C:\PrintVect`, then sign out of Windows and in again (or restart the PC). | PrintVect starts by itself in the tray (icon in the notification area, no window). The Start menu has a PrintVect entry. |
-| 5 | On the host (Windows 11): run the same setup. | Sharing is still ON afterwards with Mail Branch ticked; Diagnostics shows both firewall rules present; the client prints to it. |
-| 6 | Uninstall test on the third PC (NIRSACHATTISO): Settings, Apps, Installed apps, PrintVect, Uninstall, Yes. | Windows shows no PrintVect printer any more (Settings, Printers & scanners), the tray icon is gone, `C:\Program Files\PrintVect` and `C:\ProgramData\PrintVect` are gone, and the two firewall rules are gone (Diagnostics on another PC cannot show that; `netsh advfirewall firewall show rule name="PrintVect Jobs (TCP-In)"` in a Command Prompt says "No rules match"). Install again afterwards; the SPM printer must be added again, because an uninstall removes everything by design. |
+| 5 | On the host (Windows 11): run the same setup. | Sharing is still ON afterwards with Counter 1 Laser ticked; Diagnostics shows both firewall rules present; the client prints to it. |
+| 6 | Uninstall test on the third PC (OFFICE-2): Settings, Apps, Installed apps, PrintVect, Uninstall, Yes. | Windows shows no PrintVect printer any more (Settings, Printers & scanners), the tray icon is gone, `C:\Program Files\PrintVect` and `C:\ProgramData\PrintVect` are gone, and the two firewall rules are gone (Diagnostics on another PC cannot show that; `netsh advfirewall firewall show rule name="PrintVect Jobs (TCP-In)"` in a Command Prompt says "No rules match"). Install again afterwards; the COUNTER2 printer must be added again, because an uninstall removes everything by design. |
 | 7 | Second user: on any PC, sign in as a different Windows user and start PrintVect from the Start menu. | It starts and shows the same printers and settings (ProgramData is writable for every user now). |
 
 Known limits at M5, by design: the setup program is unsigned (SmartScreen warning until a code-signing
@@ -279,7 +279,7 @@ What to paste back after M5: whether each step matched, and the Diagnostics text
 
 Build 32 on 2026-10-09: **M5 accepted.** The setup program installed to `C:\Program Files\PrintVect` on the
 Windows 10 PC, both firewall rules were present in Diagnostics, settings and the two remote printers were kept,
-and the PC printed its real work through PrintVect all day (12 jobs to SPM on NIRSACHATTISO; the 4 jobs from
+and the PC printed its real work through PrintVect all day (12 jobs to COUNTER2 on OFFICE-2; the 4 jobs from
 the minutes that PC was unreachable stayed under Retry, as designed).
 
 ## M6a: updates from inside the program
@@ -316,7 +316,7 @@ version has been raised, is the one the PCs must find and install on their own.
 | 3 | Press **Check now**. | The text says "Asking github.com..." for a moment, then "PrintVect 0.2.0 is the latest version (checked HH:MM)". |
 | 4 | Unplug the network cable (or turn Wi-Fi off), press **Check now**, plug it back in. | "Could not check for a newer version at HH:MM: this PC cannot reach github.com (is it connected to the internet?)". Printing and the rest of PrintVect carry on. |
 | 5 | Diagnostics tab, Refresh. | A new section **Updates** with "This PC runs 0.2.0; daily check ON, next at ...", the last check result and "Release feed: https://api.github.com/repos/rahulranjan-dev-py/PrintVect/releases/latest". |
-| 6 | Install v0.2.0 the same way on the host (Windows 11) and on NIRSACHATTISO, then tell me. I raise the version to 0.2.1 and push; you then make release v0.2.1 with the same six clicks (tag `v0.2.1`, title `PrintVect 0.2.1`). | |
+| 6 | Install v0.2.0 the same way on the host (Windows 11) and on OFFICE-2, then tell me. I raise the version to 0.2.1 and push; you then make release v0.2.1 with the same six clicks (tag `v0.2.1`, title `PrintVect 0.2.1`). | |
 | 7 | Within a day (or right away with **Check now**) on each PC. | Balloon "A newer PrintVect is ready: PrintVect 0.2.1 is ready to install..." and a yellow strip at the top of the window "A newer PrintVect (0.2.1) is ready to install" with **Update now** and **Later**. Settings says "PrintVect 0.2.1 is ready to install; this PC has 0.2.0...". |
 | 8 | Press **Update now** (on the host, while nothing is printing). | "Downloading PrintVect 0.2.1: x of 2.x MB", then "Starting the update...". The Windows permission question appears for `PrintVect-Setup-0.2.1.exe`: Yes. A small setup progress window shows for a few seconds, PrintVect disappears from the tray and comes back with its window open; the status bar says "Version 0.2.1" and the balloon "This PC now runs PrintVect 0.2.1" appears. Sharing is still ON and the shared printers unchanged. |
 | 9 | Press **Update now** on another PC, but answer **No** to the Windows permission question. | PrintVect keeps running: Settings says "The update did not run (the setup program ended with code N). Press Update now again and answer Yes...". Press it again and answer Yes: the update completes as in step 8. |
@@ -332,7 +332,7 @@ the setup program is still unsigned, which is why the permission window says "Un
 without internet simply never sees updates (install the setup program by hand there).
 
 Release v0.2.0 on 2026-10-17: **steps 0 to 6 passed** (release made on the website, setup files attached by
-the release run, 0.2.0 installed by hand on the Windows 10 PC, the Windows 11 host and NIRSACHATTISO; Check now,
+the release run, 0.2.0 installed by hand on the Windows 10 PC, the Windows 11 host and OFFICE-2; Check now,
 the offline message and the Diagnostics Updates section as expected). Version raised to 0.2.1 for steps 7 to 11.
 
 Release v0.2.1 on 2026-10-17: **M6a accepted.** Steps 7 to 11 passed: every PC found 0.2.1 by itself, the host
@@ -355,12 +355,12 @@ It arrives through the updater from M6a, which is tested once more on the way: v
 | 0 | Make release v0.3.0 with the six clicks of M6a (tag `v0.3.0`, title `PrintVect 0.3.0`, target **main** once pull request #1 is merged, otherwise the branch **ccr-5c5bb225-3h4f6u**). | After five minutes the release lists `PrintVect-Setup-0.3.0.exe` and its `.sha256`. |
 | 1 | On each PC: Settings, **Check now**, then **Update now** in the yellow strip (Yes to Windows). | PrintVect comes back dark. Status bar at the bottom right: "Version 0.3.0". The title bar is dark too (on Windows 11 the same colour as the bar below it). |
 | 2 | Look at the top bar and click each page; then press Ctrl+Tab a few times. | Four pages in this order: Share my printers, Jobs, Use shared printers, Settings. The open one is white with a green line under it. On the right a pill: green **Sharing ON** on the host, grey **Sharing OFF** on a PC that shares nothing. Ctrl+Tab moves to the next page. |
-| 3 | Host, Share my printers. | Card **THIS PC**: the PC name in large letters, "Other PCs find this PC as DESKTOP-... (10.148.93.x, ...)" and **Copy**. Card **SHARING WITH THE OFFICE**: the switch on (green). Card **Printers on this PC** with the tick boxes, the names for the office and the status. On the right **PRINTED TODAY** with a number, and **How to connect a PC**. |
+| 3 | Host, Share my printers. | Card **THIS PC**: the PC name in large letters, "Other PCs find this PC as DESKTOP-... (192.168.10.x, ...)" and **Copy**. Card **SHARING WITH THE OFFICE**: the switch on (green). Card **Printers on this PC** with the tick boxes, the names for the office and the status. On the right **PRINTED TODAY** with a number, and **How to connect a PC**. |
 | 4 | Press **Copy**, then paste into Notepad. | The status bar says "Copied: DESKTOP-... (...)", and Notepad gets the same text. |
 | 5 | Turn the switch off, look at the pill, turn it on again. | Pill grey "Sharing OFF" and "Sharing is OFF. Other PCs cannot print here."; then green again. |
 | 6 | Double-click the name of a shared printer, add " 2" to it, press Enter. On the Windows 10 PC open Use shared printers. | Within a few seconds the Windows 10 PC lists the printer with the new name. Change it back afterwards. |
-| 7 | Windows 10 PC: Use shared printers. | Card **Printers in the office** lists the host's printers (the PC name in the narrow typewriter-like font); **Add to this PC** is green; the "Not listed?" box and **Look up** sit beside it. Card **Printers from other PCs on this PC** lists Mail Branch with **Send test page**, **Retry waiting jobs**, **Remove**. |
-| 8 | There: select Mail Branch, **Send test page**. Open Jobs on both PCs. | The page prints. Windows 10 PC, **Sent from this PC**: a new row whose state turns green "Printed". Host, **Received from other PCs**: the same job, green "Printed"; the counts on the right of both titles and the host's PRINTED TODAY went up by one. |
+| 7 | Windows 10 PC: Use shared printers. | Card **Printers in the office** lists the host's printers (the PC name in the narrow typewriter-like font); **Add to this PC** is green; the "Not listed?" box and **Look up** sit beside it. Card **Printers from other PCs on this PC** lists Counter 1 Laser with **Send test page**, **Retry waiting jobs**, **Remove**. |
+| 8 | There: select Counter 1 Laser, **Send test page**. Open Jobs on both PCs. | The page prints. Windows 10 PC, **Sent from this PC**: a new row whose state turns green "Printed". Host, **Received from other PCs**: the same job, green "Printed"; the counts on the right of both titles and the host's PRINTED TODAY went up by one. |
 | 9 | Print a normal document from Word or Notepad to the PrintVect printer. | Prints as before; it appears on the Jobs pages as in step 8. |
 | 10 | Settings page. | Left: the settings, then **Updates** with its green switch and "PrintVect 0.3.0 is the latest version". Right: **Diagnostics** fills in by itself; **Copy to clipboard** (green) puts it on the clipboard and the status bar says so; **Open log folder** opens Explorer. In the text, the log lines include "Fonts: 5 of 5 font files loaded; text Manrope, names JetBrains Mono". |
 | 11 | Right-click the tray icon. | The menu is dark too (Open PrintVect, Exit). |
@@ -401,17 +401,17 @@ Every PC needs 0.4.0: a host still on 0.3.0 logs an "unknown request type" line 
 | # | Do this | Expect this |
 |---|---------|-------------|
 | 0 | Tell me to publish v0.4.0 (or Actions, release, Run workflow on main). Then on each PC: Settings, Check now, Update now. | Status bar: "Version 0.4.0" on every PC. |
-| 1 | Host, Share my printers, card **PCs that use this PC**, about a minute after the others updated. | The Windows 10 PC and NIRSACHATTISO are listed by name, with "Windows 10 ... · PrintVect 0.4.0" under the name and a green **Connected** pill. |
+| 1 | Host, Share my printers, card **PCs that use this PC**, about a minute after the others updated. | The Windows 10 PC and OFFICE-2 are listed by name, with "Windows 10 ... · PrintVect 0.4.0" under the name and a green **Connected** pill. |
 | 2 | Exit PrintVect on the Windows 10 PC (tray icon, Exit). Wait 15 minutes, look at the host's card again. Start PrintVect there again. | Its pill turns grey "Last seen HH:MM". After the restart it is green again within a minute. |
-| 3 | Windows 10 PC: print one page from Notepad to "PrintVect - Mail Branch @..." | A window "how many copies?" appears at once: the document name, the printer and host, a big 1, − and +. Press + once, then **Print**. Two pages come out on the host. |
+| 3 | Windows 10 PC: print one page from Notepad to "PrintVect - Counter 1 Laser @..." | A window "how many copies?" appears at once: the document name, the printer and host, a big 1, − and +. Press + once, then **Print**. Two pages come out on the host. |
 | 4 | Print again and press **Cancel**. | Nothing prints. Jobs page, Sent from this PC: the job is grey "Cancelled". |
 | 5 | Print again and do not touch the window. | The Print button counts down from 60; at 0 the window closes and one page prints. |
-| 6 | Use shared printers, Mail Branch, **Send test page**. | No copies window; the test page prints. |
-| 7 | Host: Share my printers, click the row of the shared printer (Mail Branch), **Pause printer**. On the Windows 10 PC open Use shared printers. | Host: its status turns yellow "Paused", the button now says **Resume printer** (green). Windows 10 PC: the printer's status says "Paused". |
-| 8 | Windows 10 PC: print one page (1 copy). | Nothing prints. Both Jobs pages: "Waiting on <host>: Mail Branch is paused there. It prints when someone on <host> presses Resume." |
+| 6 | Use shared printers, Counter 1 Laser, **Send test page**. | No copies window; the test page prints. |
+| 7 | Host: Share my printers, click the row of the shared printer (Counter 1 Laser), **Pause printer**. On the Windows 10 PC open Use shared printers. | Host: its status turns yellow "Paused", the button now says **Resume printer** (green). Windows 10 PC: the printer's status says "Paused". |
+| 8 | Windows 10 PC: print one page (1 copy). | Nothing prints. Both Jobs pages: "Waiting on <host>: Counter 1 Laser is paused there. It prints when someone on <host> presses Resume." |
 | 9 | Host: **Resume printer**. | The page prints within a few seconds; both Jobs pages turn green "Printed". |
 | 10 | Host: Settings, **Set PIN…**, type 1234 twice, **Save PIN**. Windows 10 PC: print one page. | Host: "Office PIN saved...". The page does not print; the Windows 10 PC's job is yellow "Waiting": "<host> asks for the office PIN, and this job came with a different one or none... Press Retry waiting jobs to send it again." |
-| 11 | Windows 10 PC: Settings, Set PIN…, 1234 twice, Save. Use shared printers, Mail Branch, **Retry waiting jobs**. | The page prints. Afterwards remove the PIN on both PCs (Settings, Remove PIN, Yes), or set it on every PC. |
+| 11 | Windows 10 PC: Settings, Set PIN…, 1234 twice, Save. Use shared printers, Counter 1 Laser, **Retry waiting jobs**. | The page prints. Afterwards remove the PIN on both PCs (Settings, Remove PIN, Yes), or set it on every PC. |
 | 12 | The brief's M6 test, host off mid-job: host Pause printer; Windows 10 PC prints one page; then on the host Exit PrintVect from the tray (or pull its network cable). | Within about 30 seconds the Windows 10 PC's job turns yellow "Waiting": "<host> stopped answering after it received this job (switched off or disconnected?), so it may not have printed. If the page did not come out, press Retry waiting jobs when <host> is back." |
 | 13 | Start PrintVect on the host again (or plug the cable back in), **Resume printer**. Windows 10 PC: **Retry waiting jobs**. | The page prints exactly once. After Exit, the host had lost the job and prints the resent one. With the cable, the host prints the job it kept on Resume and answers the Retry with "Already printed on <host> ...; not printed again." |
 | 14 | Any PC: Settings, turn **Start PrintVect with Windows** off; Yes to Windows. Sign out and in. Then turn it on again (Yes). | The status bar says "PrintVect no longer starts with Windows on this PC..."; after signing in there is no PrintVect in the tray (start it from the Start menu). Turned on again, it starts with Windows as before. |

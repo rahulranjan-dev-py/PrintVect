@@ -3,7 +3,7 @@
 ## What this is
 Windows tray app that shares printers across a LAN of Windows 10 / 11 PCs (Windows 7 / 8 by construction only,
 untested) without drivers or credentials on the client. Full brief (written under the working name MudranSetu):
-docs/MudranSetu_Claude_Code_Guide.pdf. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
+docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 
 ## Hard rules (never change without asking the owner)
 - C# on .NET Framework 4.8 only (LangVersion 7.3). WinForms. AnyCPU, Prefer 32-bit OFF.
@@ -70,7 +70,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   discovery 2 s. Manual IP/name entry always exists.
 
 ## Workflow
-- One milestone at a time (M0..M6 in the PDF, section 9). Finish, build, hand over test steps,
+- One milestone at a time (M0..M6 in the brief, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
   updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too).
@@ -83,8 +83,8 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - Commit after each milestone: `M2: client virtual printer and spool watcher`.
 - Files under %ProgramData% belong to the user who created them: the installer grants Users modify rights on
   %ProgramData%\PrintVect, and the logger still falls back to PrintVect-<user>-<date>.log if a file is not writable.
-- The owner's Windows 11 test PC has two Ethernet cards on different subnets (10.169.x and
-  10.148.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
+- The owner's Windows 11 test PC has two Ethernet cards on different subnets (172.16.x and
+  192.168.10.x), so DiscoveryClient binds one UDP socket per IPv4 address and sends to each card's directed
   broadcast and 255.255.255.255; DiscoveryResponder binds 0.0.0.0:9150 and answers from the address
   on the asker's subnet (LocalNetworks.BestLocalAddressFor). Discovery runs while the Printers on other PCs
   page is visible; a typed name goes through the TCP list request and joins the same found list.
@@ -106,7 +106,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   through raw COM function tables on an MTA thread; the empty print ticket stream MUST be closed before the document is written.
   System.Printing's XPS path needs STA: each engine runs through ApartmentRunner on its apartment. PrintDispatcher runs one worker per printer;
   HostService reports a job stuck after 20 min and retires that worker. "Ethernet 2" on that PC is a phone tethered by USB (address changes
-  per session); "Ethernet" 10.148.93.x is the office LAN; the HP Laser is on USB001.
+  per session); "Ethernet" 192.168.10.x is the office LAN; the HP Laser is on USB001.
 - Ask before: new dependency, framework change, port change, data-folder change, anything needing admin
   outside the Elevate helper, any internet use beyond the update check, a Windows Service.
 - When the owner pastes an error or log: restate what happened in one sentence, then propose the smallest fix.
@@ -117,4 +117,4 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - No silent catches: every catch logs the exception with jobId and context, then surfaces a
   plain-language message that says what to do next ("Ask the Counter 1 PC to be switched on").
 - Own minimal logger in Core (daily rolling file, 14-day retention). No logging frameworks.
-- Show PC names, not IPs, wherever possible. Users are postal clerks, not IT staff.
+- Show PC names, not IPs, wherever possible. Users are office and home users, not IT staff.

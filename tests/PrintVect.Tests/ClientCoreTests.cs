@@ -120,7 +120,7 @@ namespace PrintVect.Tests
         public void BuildsTheWindowsPrinterName()
         {
             Assert.AreEqual("PrintVect - Counter 1 Laser @COUNTER1", ClientPrinterNames.PrinterName("Counter 1 Laser", "COUNTER1"));
-            Assert.AreEqual("PrintVect - Printer @SPM", ClientPrinterNames.PrinterName("", "SPM"));
+            Assert.AreEqual("PrintVect - Printer @COUNTER2", ClientPrinterNames.PrinterName("", "COUNTER2"));
             Assert.AreEqual("PrintVect - HP Laser", ClientPrinterNames.PrinterName("HP Laser", null));
             Assert.IsTrue(ClientPrinterNames.IsPrintVectPrinter("PrintVect - X @Y"));
             Assert.IsFalse(ClientPrinterNames.IsPrintVectPrinter("HP Laser 103 107 108"));
@@ -129,11 +129,11 @@ namespace PrintVect.Tests
         [TestMethod]
         public void DropsCharactersWindowsRejects()
         {
-            string name = ClientPrinterNames.PrinterName("Mail\\Branch, Counter \"1\"", "HOST!PC");
+            string name = ClientPrinterNames.PrinterName("Counter 1\\Laser, Room \"2\"", "HOST!PC");
             Assert.IsFalse(name.Contains("\\"), name);
             Assert.IsFalse(name.Contains(","), name);
             Assert.IsFalse(name.Contains("\""), name);
-            Assert.AreEqual("PrintVect - Mail Branch Counter 1 @HOST PC", name);
+            Assert.AreEqual("PrintVect - Counter 1 Laser Room 2 @HOST PC", name);
         }
 
         [TestMethod]
@@ -174,19 +174,19 @@ namespace PrintVect.Tests
         {
             var args = new ElevateArguments { Command = ElevateCommands.AddPrinter };
             args.Options[ElevateCommands.OptionId] = "0afbc594d5975d71";
-            args.Options[ElevateCommands.OptionName] = "PrintVect - Mail Branch @DESKTOP-JK66OQV";
+            args.Options[ElevateCommands.OptionName] = "PrintVect - Counter 1 Laser @HOST-PC";
             args.Options[ElevateCommands.OptionPort] = "C:\\ProgramData\\PrintVect\\spool\\0afbc594d5975d71\\job.xps";
 
             string line = args.ToCommandLine();
-            Assert.AreEqual("add-printer /id 0afbc594d5975d71 /name \"PrintVect - Mail Branch @DESKTOP-JK66OQV\" /port C:\\ProgramData\\PrintVect\\spool\\0afbc594d5975d71\\job.xps", line);
+            Assert.AreEqual("add-printer /id 0afbc594d5975d71 /name \"PrintVect - Counter 1 Laser @HOST-PC\" /port C:\\ProgramData\\PrintVect\\spool\\0afbc594d5975d71\\job.xps", line);
 
             ElevateArguments parsed = ElevateArguments.Parse(new[]
             {
-                "Add-Printer", "/id", "0afbc594d5975d71", "/name", "PrintVect - Mail Branch @DESKTOP-JK66OQV", "-result", "C:\\r.json"
+                "Add-Printer", "/id", "0afbc594d5975d71", "/name", "PrintVect - Counter 1 Laser @HOST-PC", "-result", "C:\\r.json"
             });
             Assert.AreEqual(ElevateCommands.AddPrinter, parsed.Command);
             Assert.AreEqual("0afbc594d5975d71", parsed.Get(ElevateCommands.OptionId));
-            Assert.AreEqual("PrintVect - Mail Branch @DESKTOP-JK66OQV", parsed.Get("NAME"));
+            Assert.AreEqual("PrintVect - Counter 1 Laser @HOST-PC", parsed.Get("NAME"));
             Assert.AreEqual("C:\\r.json", parsed.Get(ElevateCommands.OptionResult));
             Assert.IsNull(parsed.Get(ElevateCommands.OptionPort));
         }

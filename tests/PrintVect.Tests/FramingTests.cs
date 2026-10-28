@@ -30,7 +30,7 @@ namespace PrintVect.Tests
         {
             RequestHeader original = RequestHeader.ForJob("Counter 1 Laser", "letter.xps", "xps", 12345, "Letter to HQ", "1234");
             original.Client = "COUNTER3";
-            original.User = "spm";
+            original.User = "user1";
 
             var stream = new MemoryStream();
             await Framing.WriteHeaderAsync(stream, original, CancellationToken.None);
@@ -45,7 +45,7 @@ namespace PrintVect.Tests
             Assert.AreEqual("xps", decoded.Format);
             Assert.AreEqual(12345, decoded.Size);
             Assert.AreEqual("COUNTER3", decoded.Client);
-            Assert.AreEqual("spm", decoded.User);
+            Assert.AreEqual("user1", decoded.User);
             Assert.AreEqual("Letter to HQ", decoded.Doc);
             Assert.AreEqual(PinHash.Compute("1234"), decoded.Pin);
             Assert.AreEqual(stream.Length, stream.Position, "nothing may be left unread");

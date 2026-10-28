@@ -1,7 +1,7 @@
 # PrintVect wire protocol, version 1
 
 PrintVect is the chosen product name for the tool described in
-`docs/MudranSetu_Claude_Code_Guide.pdf` (section 6). This page is the
+`docs/brief.md` (section 6). This page is the
 protocol from that brief with the PrintVect identifiers substituted.
 Everything here is LAN-only; nothing ever leaves the local network.
 
@@ -56,7 +56,7 @@ relay) and **631** are never allowed.
   "format": "xps",
   "size": 123456,
   "client": "COUNTER3",
-  "user": "spm",
+  "user": "user1",
   "doc": "optional document title",
   "pin": "sha256-hex of the shared PIN, or empty"
 }

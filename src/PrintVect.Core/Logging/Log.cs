@@ -57,7 +57,7 @@ namespace PrintVect.Core.Logging
         /// <summary>
         /// Files under %ProgramData% belong to the user who created them. When today's file was
         /// created by another user (or is locked), this program writes to a per-user file instead,
-        /// e.g. "PrintVect-spm-2026-09-29.log", so PrintVect still starts.
+        /// e.g. "PrintVect-user1-2026-09-29.log", so PrintVect still starts.
         /// </summary>
         public static string FallbackPrefix(string prefix)
         {

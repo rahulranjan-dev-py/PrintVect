@@ -517,7 +517,7 @@ namespace PrintVect.Tests
             var sender = new FakeJobSender();
             RemotePrinter a = Printer();
             var b = new RemotePrinter { PrinterId = "bbbbbbbbbbbbbbbb", HostName = "COUNTER1", HostIp = "127.0.0.1", FriendlyName = "Inkjet" };
-            var c = new RemotePrinter { PrinterId = "cccccccccccccccc", HostName = "SPM", HostIp = "10.0.0.2", FriendlyName = "Laser" };
+            var c = new RemotePrinter { PrinterId = "cccccccccccccccc", HostName = "COUNTER2", HostIp = "10.0.0.2", FriendlyName = "Laser" };
             using (var announcer = new PresenceAnnouncer(sender, () => new List<RemotePrinter> { a, b, c }))
             {
                 await announcer.AnnounceAsync(CancellationToken.None);
@@ -691,7 +691,7 @@ namespace PrintVect.Tests
             using (ClientService service = Service(temp, new FakeJobSender()))
             {
                 RemotePrinter a = Printer();
-                var b = new RemotePrinter { PrinterId = "bbbbbbbbbbbbbbbb", HostName = "SPM", HostIp = "10.0.0.2", FriendlyName = "Inkjet", LocalPrinterName = "PrintVect - Inkjet @SPM" };
+                var b = new RemotePrinter { PrinterId = "bbbbbbbbbbbbbbbb", HostName = "COUNTER2", HostIp = "10.0.0.2", FriendlyName = "Inkjet", LocalPrinterName = "PrintVect - Inkjet @COUNTER2" };
                 service.SetPrinters(new[] { a, b });
                 CollectionAssert.AreEquivalent(new[] { a.PrinterId, b.PrinterId }, service.WatchedPrinterIds.ToArray());
 
