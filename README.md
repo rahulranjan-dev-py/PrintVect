@@ -24,6 +24,8 @@ printers and many PCs at work. The PC that has a printer shares it in a few clic
 with one click and prints to it from any program, like a printer of its own. No print server, no cloud, no accounts:
 printing stays on your own network.
 
+![PrintVect: the Printers on other PCs page, with two printers from other PCs added](docs/screenshots/printers-on-other-pcs.png)
+
 ## Why
 
 Windows' own printer sharing is hard work at home or in a small office without an IT department:
@@ -75,6 +77,22 @@ flowchart LR
 - **Light, Dark** or the Windows setting; plain-language messages written for people who are not IT staff.
 - **Diagnostics** page with a checklist and a report to copy when something does not work.
 - Free and open source under the MIT licence. Built with C# and .NET Framework 4.8 (WinForms).
+
+## Screenshots
+
+**Share my printers**: tick the printers other PCs may use; the yellow note appears while there is no sharing PIN.
+
+![The Share my printers page](docs/screenshots/share-my-printers.png)
+
+**Jobs**: every document sent from this PC or received from other PCs, with its status; right-click a job for Retry,
+Cancel or Copy details.
+
+![The Jobs page](docs/screenshots/jobs.png)
+
+**Settings**: the sharing PIN, Light / Dark / System default colours, updates, and Diagnostics with a checklist and a
+report to copy.
+
+![The Settings page with Diagnostics](docs/screenshots/settings.png)
 
 ## Security and privacy
 
