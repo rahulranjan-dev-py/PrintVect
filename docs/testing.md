@@ -618,6 +618,24 @@ grows by the same amount, so the pages keep their room. Nothing else changes.
 | 1 | Click Printers on other PCs, then each of the other pages; make the window as small as it goes. | Every menu item shows its full name, also in bold when it is the open page: "Printers on other PCs" with no "…". The pages look as before. |
 | 2 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | A line "Side menu: 2nn px wide (at least 248)." near the start. If the name is still cut off, paste that line. |
 
+## 0.5.7: the copies window
+
+Seen in the owner's photo of 0.5.6 (2026-10-29): in the copies window the buttons covered the end of the switch's
+text ("(Settings turns it back on)" ran onto a second line), and the window came about 4 seconds after printing.
+The window is now as tall as its content; the switch is one line with the way back under it; the button says Print
+and the countdown is a line of its own. The delay came from the PC waiting for its next 2-second look at the spool
+folder after the print file was finished, then for 1 second of no change: it now looks again within half a second
+while a file waits, and half a second of no change is enough (the file must still be closed by Windows first).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.7. On each PC: Settings, Check now, Update now. | "Version 0.5.7 · up to date" under the menu. |
+| 1 | Print one page from Notepad to a PrintVect printer; count the seconds until the copies window. | The window comes about 1 to 2 seconds after the print window closes (was about 4). Nothing in it overlaps: the document, "on <printer> at <PC>", COPIES with − 1 +, the switch "Don't ask again on this PC" with "Turn it back on in Settings, General." under its text, then **Print** and **Cancel**, then "Prints by itself in 60 s if nobody answers." counting down. |
+| 2 | Press + once, then Print. | Two pages on the host, as before. |
+| 3 | Print a long Word document (20+ pages). | The window comes only once Word has finished (no half-written job is sent); the job prints complete. |
+| 4 | Print again, turn on **Don't ask again on this PC**, Print. Print once more. | The first job prints; the next one goes without the window. Settings, General: **Ask how many copies** is off. Turn it on: the window is back for the next job. |
+| 5 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | For the job of step 2: "Print job … is being written", then "New print job for …" about a second later or less (0.5.6: up to 4), then "Copies question: 2." |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

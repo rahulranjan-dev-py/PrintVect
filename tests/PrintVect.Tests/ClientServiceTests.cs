@@ -91,6 +91,23 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void TakesAFinishedFileWellBeforeTheNextPoll()
+        {
+            using (var temp = new TempFolder())
+            using (var watcher = new SpoolWatcher(temp.Path, "Test"))
+            {
+                var seen = new ManualResetEventSlim();
+                watcher.FileReady += (s, e) => seen.Set();
+                watcher.Start();
+
+                XpsPackages.Write(Path.Combine(temp.Path, "job.xps"), true, null);
+                watcher.Scan("test");   // the event of the spooler's last write; after it nothing changes until the poll
+
+                Assert.IsTrue(seen.Wait(TimeSpan.FromSeconds(1.5)), "the file waited for the " + SpoolWatcher.PollInterval.TotalSeconds + " s poll");
+            }
+        }
+
+        [TestMethod]
         public void NamesTheJobAfterTheDocumentInThePrinterQueue()
         {
             using (var temp = new TempFolder())

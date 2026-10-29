@@ -28,7 +28,9 @@ namespace PrintVect.Core.Client
     /// <summary>
     /// Watches one remote printer's spool folder for the file the Local Port writes (brief 5.2):
     /// FileSystemWatcher plus a 2-second polling fallback. A file is taken when it can be opened
-    /// exclusively and its size has not changed for one second; it is renamed to job-{guid}.xps
+    /// exclusively and its size has not changed for half a second; while one is not ready yet it is looked
+    /// at again within half a second (0.5.7: the copies window used to wait up to 3 s for the next poll
+    /// after the spooler finished). It is renamed to job-{guid}.xps
     /// at once so the next print cannot overwrite it, inspected, and announced through FileReady.
     /// While a file is being written, the virtual printer's own queue is read so the job keeps the
     /// document name the user saw ("Untitled - Notepad"). Files that are not XPS packages go to
@@ -37,7 +39,13 @@ namespace PrintVect.Core.Client
     public sealed class SpoolWatcher : IDisposable
     {
         public static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
-        public static readonly TimeSpan DefaultStableFor = TimeSpan.FromSeconds(1);
+        public static readonly TimeSpan DefaultStableFor = TimeSpan.FromMilliseconds(500);
+        /// <summary>How soon a file the spooler still holds open is tried again.</summary>
+        public static readonly TimeSpan QuickRecheck = TimeSpan.FromMilliseconds(250);
+        /// <summary>Quick re-checks stop when a file has not changed for this long; the poll carries on.</summary>
+        public static readonly TimeSpan QuickRecheckFor = TimeSpan.FromSeconds(30);
+        /// <summary>Clock and timer steps are about 16 ms on Windows: wake a little after the file has been stable long enough.</summary>
+        private static readonly TimeSpan RecheckMargin = TimeSpan.FromMilliseconds(50);
         /// <summary>A queue job seen this long ago without a file to pair it with is forgotten.</summary>
         public static readonly TimeSpan LocalJobMemory = TimeSpan.FromMinutes(10);
         public const string JobPrefix = "job-";
@@ -52,6 +60,7 @@ namespace PrintVect.Core.Client
         private readonly HashSet<uint> _knownLocalJobIds = new HashSet<uint>();
         private FileSystemWatcher _watcher;
         private Timer _poll;
+        private Timer _recheck;
         private bool _scanning;
         private bool _disposed;
 
@@ -103,6 +112,7 @@ namespace PrintVect.Core.Client
                          + PollInterval.TotalSeconds + " s instead.");
                 _watcher = null;
             }
+            _recheck = new Timer(_ => Scan("quick re-check"), null, Timeout.Infinite, Timeout.Infinite);
             _poll = new Timer(_ => Scan(null), null, PollInterval, PollInterval);
             Log.Info("Watching " + _folder + " for print jobs for \"" + _printerLabel + "\".");
         }
@@ -148,12 +158,22 @@ namespace PrintVect.Core.Client
             {
                 NoteLocalJobs();   // the print job is in the printer's queue while its file is written
             }
+            TimeSpan soonest = TimeSpan.MaxValue;
             foreach (string path in candidates)
             {
-                if (IsComplete(path))
+                TimeSpan recheckIn;
+                if (IsComplete(path, out recheckIn))
                 {
                     Claim(path);
                 }
+                else if (recheckIn > TimeSpan.Zero && recheckIn < soonest)
+                {
+                    soonest = recheckIn;
+                }
+            }
+            if (soonest != TimeSpan.MaxValue)
+            {
+                ArmRecheck(soonest);
             }
 
             lock (_gate)
@@ -201,9 +221,13 @@ namespace PrintVect.Core.Client
             }
         }
 
-        /// <summary>True when the writer has closed the file and its size has not moved for StableFor.</summary>
-        private bool IsComplete(string path)
+        /// <summary>
+        /// True when the writer has closed the file and its size has not moved for StableFor. Otherwise
+        /// <paramref name="recheckIn"/> says when to look again (zero: the watcher events and the poll will).
+        /// </summary>
+        private bool IsComplete(string path, out TimeSpan recheckIn)
         {
+            recheckIn = TimeSpan.Zero;
             long size;
             try
             {
@@ -211,20 +235,31 @@ namespace PrintVect.Core.Client
             }
             catch (IOException)
             {
-                return false;
+                return false;   // gone already
             }
-            if (size <= 0) return false;
 
             DateTime now = DateTime.UtcNow;
+            TimeSpan unchangedFor;
             lock (_gate)
             {
                 Seen seen;
                 if (!_seen.TryGetValue(path, out seen) || seen.Size != size)
                 {
-                    _seen[path] = new Seen { Size = size, Since = now };
-                    return false;
+                    seen = new Seen { Size = size, Since = now };
+                    _seen[path] = seen;
                 }
-                if (now - seen.Since < StableFor) return false;
+                unchangedFor = now - seen.Since;
+            }
+            bool quick = unchangedFor < QuickRecheckFor;
+            if (size <= 0)
+            {
+                recheckIn = quick ? QuickRecheck : TimeSpan.Zero;   // just created: the spooler writes next
+                return false;
+            }
+            if (unchangedFor < StableFor)
+            {
+                recheckIn = StableFor - unchangedFor + RecheckMargin;
+                return false;
             }
 
             try
@@ -236,12 +271,22 @@ namespace PrintVect.Core.Client
             }
             catch (IOException)
             {
-                return false;   // the spooler still has it open
+                recheckIn = quick ? QuickRecheck : TimeSpan.Zero;   // the spooler still has it open
+                return false;
             }
             catch (UnauthorizedAccessException ex)
             {
                 Log.Warn("Print file " + path + " cannot be opened for sending (" + ex.Message + "). Check the folder permissions.");
                 return false;
+            }
+        }
+
+        private void ArmRecheck(TimeSpan due)
+        {
+            lock (_gate)
+            {
+                if (_disposed || _recheck == null) return;
+                _recheck.Change(due, Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -322,6 +367,11 @@ namespace PrintVect.Core.Client
             {
                 _poll.Dispose();
                 _poll = null;
+            }
+            if (_recheck != null)
+            {
+                _recheck.Dispose();
+                _recheck = null;
             }
         }
 

@@ -16,6 +16,9 @@ namespace PrintVect.App.Theme
         private const int TrackHeight = 24;
         private const int Gap = 12;
 
+        /// <summary>Where the text starts (design pixels), for a note lined up under it.</summary>
+        public const int TextIndentPx = TrackWidth + Gap;
+
         public ToggleSwitch(string text = "")
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw
@@ -28,27 +31,11 @@ namespace PrintVect.App.Theme
             Margin = Ui.Pad(0, 4, 0, 4);
         }
 
-        /// <summary>Lets the text wrap inside this width (design pixels); 0 keeps it on one line.</summary>
-        public int WrapWidth { get; set; }
-
         public override Size GetPreferredSize(Size proposedSize)
         {
-            Size text = MeasureText();
+            Size text = string.IsNullOrEmpty(Text) ? Size.Empty : TextRenderer.MeasureText(Text, Font);
             int width = Ui.S(TrackWidth) + (text.Width > 0 ? Ui.S(Gap) + text.Width + Ui.S(4) : 0);
             return new Size(width, Math.Max(Ui.S(TrackHeight + 4), text.Height + Ui.S(4)));
-        }
-
-        private Size MeasureText()
-        {
-            if (string.IsNullOrEmpty(Text))
-            {
-                return Size.Empty;
-            }
-            if (WrapWidth > 0)
-            {
-                return TextRenderer.MeasureText(Text, Font, new Size(Ui.S(WrapWidth), int.MaxValue), TextFormatFlags.WordBreak);
-            }
-            return TextRenderer.MeasureText(Text, Font);
         }
 
         protected override void OnCheckedChanged(EventArgs e)
@@ -65,10 +52,6 @@ namespace PrintVect.App.Theme
 
             int w = Ui.S(TrackWidth), h = Ui.S(TrackHeight);
             int top = Math.Max(0, (Height - h) / 2);
-            if (WrapWidth > 0 && Height > h + Ui.S(10))
-            {
-                top = Ui.S(2);   // wrapped text: the switch sits beside the first line
-            }
             var track = new RectangleF(0.5f, top + 0.5f, w - 1f, h - 1f);
             Color fill = !Enabled ? Palette.DisabledBg : Checked ? Palette.Accent : Palette.SwitchOffTrack;
             Color edge = !Enabled ? Palette.DisabledBorder : Checked ? Palette.Accent : Palette.SwitchOffBorder;
@@ -100,8 +83,8 @@ namespace PrintVect.App.Theme
                 return;
             }
             var textRect = new Rectangle(w + Ui.S(Gap), 0, Width - w - Ui.S(Gap), Height);
-            TextFormatFlags flags = TextFormatFlags.NoPrefix | (WrapWidth > 0 ? TextFormatFlags.WordBreak : TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
-            TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? ForeColor : Palette.Disabled, flags);
+            TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? ForeColor : Palette.Disabled,
+                TextFormatFlags.NoPrefix | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
         }
     }
 }

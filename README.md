@@ -171,7 +171,8 @@ Ctrl+Tab moves to the next page.
 
 When a program prints to a PrintVect printer, a small window asks **how many copies** before the job leaves the
 PC (Windows' XPS writer loses the copies chosen in the program). Enter prints, Esc cancels; after a minute without
-an answer it prints the number shown. Settings can turn the question off.
+an answer it prints the number shown. **Don't ask again on this PC** in that window stops the question on that PC;
+Settings, General, **Ask how many copies** turns it back on.
 
 Closing the window only hides it; PrintVect keeps running in the tray. To stop it, right-click
 the tray icon and choose **Exit**. `PrintVect.App.exe /tray` starts it hidden (the installer's

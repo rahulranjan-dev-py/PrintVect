@@ -11,7 +11,8 @@ namespace PrintVect.App.Forms
     /// The copies prompt (M6b-2): appears when a program prints to a PrintVect printer, before the job leaves this PC.
     /// The XPS writer usually loses the copies chosen in the program's print window (brief 11.6), so the clerk says
     /// it here. − and + (or the arrow keys, or typing a number), Enter prints, Esc cancels. Nobody at the PC: after
-    /// a minute it prints with the number shown, so a job is never stuck behind an unanswered window.
+    /// a minute it prints with the number shown, so a job is never stuck behind an unanswered window. The window is
+    /// as tall as its content (0.5.7: the fixed height let the buttons cover the switch's second line).
     /// </summary>
     internal sealed class CopiesDialog : Form
     {
@@ -19,6 +20,7 @@ namespace PrintVect.App.Forms
         private const int MaxCopies = 99;
 
         private readonly Label _number;
+        private readonly Label _autoPrint;
         private readonly ThemedButton _print;
         private readonly ToggleSwitch _dontAsk;
         private readonly Timer _countdown;
@@ -49,8 +51,8 @@ namespace PrintVect.App.Forms
             var outer = new Panel { Dock = DockStyle.Fill, Padding = Ui.Pad(16), BackColor = Palette.Background };
             outer.Controls.Add(card);
 
-            TableLayoutPanel column = Make.Column(0, 0, 0, 100, 0, 0);
-            column.Controls.Add(Make.Label(string.Format(Strings.CopiesDocument, job.Doc), ThemeFonts.Heading, Palette.Text, Ui.Pad(0, 0, 0, 4)), 0, 0);
+            TableLayoutPanel column = Make.Column(0, 0, 0, 0, 0, 0, 100, 0, 0);
+            column.Controls.Add(Make.Wrap(string.Format(Strings.CopiesDocument, job.Doc), ThemeFonts.Heading, Palette.Text, Ui.Pad(0, 0, 0, 4)), 0, 0);
             Label where = Make.Muted(string.Format(Strings.CopiesWhere, job.PrinterFriendly, job.HostName));
             where.Margin = Ui.Pad(0, 0, 0, 12);
             column.Controls.Add(where, 0, 1);
@@ -72,26 +74,32 @@ namespace PrintVect.App.Forms
             stepper.Margin = Ui.Pad(0, 0, 0, 8);
             column.Controls.Add(stepper, 0, 3);
 
+            // One line beside the switch, the way back under it, lined up with its text.
             _dontAsk = new ToggleSwitch(Strings.CopiesDontAsk)
             {
                 Font = ThemeFonts.Secondary,
-                ForeColor = Palette.Muted,
-                WrapWidth = 320,
-                Margin = Ui.Pad(0, 0, 0, 10)
+                ForeColor = Palette.TextSecondary,
+                Margin = Ui.Pad(0)
             };
             column.Controls.Add(_dontAsk, 0, 4);
+            column.Controls.Add(Make.Wrap(Strings.CopiesDontAskHint, ThemeFonts.Tiny, Palette.Faint, Ui.Pad(ToggleSwitch.TextIndentPx, 0, 0, 16)), 0, 5);
 
-            _print = new ThemedButton("", ButtonKind.Primary);
+            _print = new ThemedButton(Strings.CopiesPrint, ButtonKind.Primary);
             _print.Click += (s, e) => Answer(_copies);
             var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary) { Margin = Ui.Pad(0) };
             cancel.Click += (s, e) => Answer(null);
-            column.Controls.Add(Make.Row(_print, cancel), 0, 5);
+            column.Controls.Add(Make.Row(_print, cancel), 0, 7);
+            _autoPrint = Make.Wrap("", ThemeFonts.Tiny, Palette.Faint, Ui.Pad(0, 8, 0, 0));
+            column.Controls.Add(_autoPrint, 0, 8);
             card.Controls.Add(column);
             Controls.Add(outer);
 
             AcceptButton = _print;
             CancelButton = cancel;
             ShowNumber();
+            int inner = ClientSize.Width - outer.Padding.Horizontal - card.Padding.Horizontal;
+            ClientSize = new Size(ClientSize.Width,
+                outer.Padding.Vertical + card.Padding.Vertical + column.GetPreferredSize(new Size(inner, 0)).Height);
             Ui.Solidify(this);
 
             _countdown = new Timer { Interval = 1000 };
@@ -177,7 +185,7 @@ namespace PrintVect.App.Forms
         private void ShowNumber()
         {
             _number.Text = _copies.ToString(CultureInfo.CurrentCulture);
-            _print.Text = string.Format(Strings.CopiesPrint, _secondsLeft);
+            _autoPrint.Text = string.Format(Strings.CopiesAutoPrint, _secondsLeft);
         }
 
         private void Answer(int? copies)
