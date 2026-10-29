@@ -30,6 +30,10 @@ namespace PrintVect.Core.Host
         private readonly IncomingSpool _spool;
         private readonly ConcurrentDictionary<TcpClient, byte> _connections = new ConcurrentDictionary<TcpClient, byte>();
         private readonly PinAttemptLimiter _pinTries = new PinAttemptLimiter();
+        private readonly Dictionary<string, RefusedConnections> _refusedConnections = new Dictionary<string, RefusedConnections>(StringComparer.OrdinalIgnoreCase);
+        private readonly object _spaceGate = new object();
+        private long _reservedBytes;
+        private Timer _sweep;
         private readonly object _lifecycle = new object();
         private SharedPrinter[] _shared = new SharedPrinter[0];
         private string _pin = "";
@@ -74,6 +78,24 @@ namespace PrintVect.Core.Host
             get { return Volatile.Read(ref _identity); }
             set { Volatile.Write(ref _identity, value); }
         }
+
+        /// <summary>Limits on simultaneous and repeated connections to the job port (0.5.8).</summary>
+        public ConnectionLimiter Connections { get; } = new ConnectionLimiter();
+
+        /// <summary>A connection must send its request within this time, or it is closed (0.5.8).</summary>
+        public TimeSpan HeaderTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// The most that received documents may take in spool\incoming\ together (0.5.8). Older files no job waits for are
+        /// deleted first to make room; a job that still does not fit is refused and waits for Retry on the sender.
+        /// </summary>
+        public long MaxIncomingBytes { get; set; } = 1024L * 1024 * 1024;
+
+        /// <summary>A job is refused when it would leave less than this free on the disk of spool\incoming\ (0.5.8).</summary>
+        public long MinFreeDiskBytes { get; set; } = 256L * 1024 * 1024;
+
+        /// <summary>Received files no job waits for any more (failed prints, leftovers) are deleted after this (0.5.8: every hour).</summary>
+        public TimeSpan KeepUnusedFilesFor { get; set; } = TimeSpan.FromHours(24);
 
         /// <summary>The port actually bound (useful when 0 was requested).</summary>
         public int Port { get; private set; }
@@ -147,7 +169,7 @@ namespace PrintVect.Core.Host
                 }
 
                 _spool.Ensure();
-                int swept = _spool.SweepOlderThan(TimeSpan.FromHours(24));
+                int swept = _spool.DeleteUnusedOlderThan(KeepUnusedFilesFor, ActiveFiles());
 
                 var listener = new TcpListener(IPAddress.Any, port);
                 listener.Start(16);
@@ -157,6 +179,7 @@ namespace PrintVect.Core.Host
                 _dispatcher = new PrintDispatcher(_engine);
                 ApplyPauses(_dispatcher, new SharedPrinter[0], Volatile.Read(ref _shared));
                 StartedAt = DateTime.Now;
+                _sweep = new Timer(_ => SweepUnusedFiles(), null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
 
                 CancellationToken token = _stopping.Token;
                 Task acceptLoop = Task.Run(() => AcceptLoopAsync(listener, token));
@@ -172,6 +195,7 @@ namespace PrintVect.Core.Host
             TcpListener listener;
             CancellationTokenSource stopping;
             PrintDispatcher dispatcher;
+            Timer sweep;
             lock (_lifecycle)
             {
                 if (_listener == null)
@@ -181,10 +205,16 @@ namespace PrintVect.Core.Host
                 listener = _listener;
                 stopping = _stopping;
                 dispatcher = _dispatcher;
+                sweep = _sweep;
                 _listener = null;
                 _stopping = null;
                 _dispatcher = null;
+                _sweep = null;
                 StartedAt = null;
+            }
+            if (sweep != null)
+            {
+                sweep.Dispose();
             }
 
             Log.Info("Sharing OFF: closing the job listener on port " + Port + ".");
@@ -234,12 +264,22 @@ namespace PrintVect.Core.Host
                     continue;
                 }
 
+                string address = RemoteAddress(Describe(client));
+                string tooMany = Connections.TryEnter(address, DateTime.UtcNow);
+                if (tooMany != null)
+                {
+                    NoteRefusedConnection(address, tooMany);
+                    SafeClose(client);
+                    continue;
+                }
+
                 _connections.TryAdd(client, 0);
                 TcpClient accepted = client;
                 Task tracked = Task.Run(() => HandleConnectionAsync(accepted, ct)).ContinueWith(t =>
                 {
                     byte unused;
                     _connections.TryRemove(accepted, out unused);
+                    Connections.Leave(address);
                     if (t.IsFaulted)
                     {
                         Log.Error("A connection handler failed unexpectedly.", t.Exception == null ? null : t.Exception.GetBaseException());
@@ -247,6 +287,108 @@ namespace PrintVect.Core.Host
                 }, TaskScheduler.Default);
             }
             Log.Info("Job listener stopped.");
+        }
+
+        /// <summary>Logs a connection closed by ConnectionLimiter at most once a minute per address, with how many since.</summary>
+        private void NoteRefusedConnection(string address, string reason)
+        {
+            DateTime now = DateTime.UtcNow;
+            int skipped;
+            lock (_refusedConnections)
+            {
+                RefusedConnections note;
+                if (_refusedConnections.TryGetValue(address, out note) && now - note.LoggedAt < TimeSpan.FromMinutes(1))
+                {
+                    note.Since++;
+                    return;
+                }
+                skipped = note == null ? 0 : note.Since;
+                if (_refusedConnections.Count > 256) _refusedConnections.Clear();
+                _refusedConnections[address] = new RefusedConnections { LoggedAt = now };
+            }
+            Log.Warn("Closed a connection from " + address + " at once: " + reason + (skipped > 0 ? " (" + skipped + " more closed since the last note)." : "."));
+        }
+
+        private sealed class RefusedConnections
+        {
+            public DateTime LoggedAt;
+            public int Since;
+        }
+
+        /// <summary>The files of jobs still waiting or printing: never deleted to make room.</summary>
+        private ICollection<string> ActiveFiles()
+        {
+            return new HashSet<string>(_tracker.All().Where(r => !JobStates.IsFinal(r.State) && !string.IsNullOrEmpty(r.FilePath))
+                .Select(r => Path.GetFullPath(r.FilePath)), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private void SweepUnusedFiles()
+        {
+            try
+            {
+                _spool.DeleteUnusedOlderThan(KeepUnusedFilesFor, ActiveFiles());
+            }
+            catch (Exception ex)
+            {
+                Log.Error("The hourly clean-up of " + _spool.Directory + " failed; it runs again in an hour.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Keeps room for a job of <paramref name="size"/> bytes (0.5.8): null when it fits (then ReleaseSpace must follow),
+        /// else the plain reason it does not. Unused older files are deleted first to make room.
+        /// </summary>
+        private string ReserveSpace(string jobId, long size)
+        {
+            string host = Environment.MachineName;
+            lock (_spaceGate)
+            {
+                long used = _spool.TotalBytes();
+                long over = used + _reservedBytes + size - MaxIncomingBytes;
+                if (over > 0)
+                {
+                    used -= _spool.FreeUnused(over, ActiveFiles());
+                }
+                if (used + _reservedBytes + size > MaxIncomingBytes)
+                {
+                    return host + " already holds " + Megabytes(used + _reservedBytes) + " of documents waiting to print, the most it keeps. "
+                           + "This job waits on the PC that sent it: press Retry waiting once those have printed.";
+                }
+                long free = FreeDiskBytes(jobId);
+                if (free >= 0 && free - size < MinFreeDiskBytes)
+                {
+                    return "The disk of " + host + " is nearly full (" + Megabytes(free) + " free), so it takes no more documents. "
+                           + "Free some space on " + host + ", then press Retry waiting.";
+                }
+                _reservedBytes += size;
+                return null;
+            }
+        }
+
+        private void ReleaseSpace(long size)
+        {
+            lock (_spaceGate)
+            {
+                _reservedBytes -= size;
+            }
+        }
+
+        private long FreeDiskBytes(string jobId)
+        {
+            try
+            {
+                return new DriveInfo(Path.GetPathRoot(Path.GetFullPath(_spool.Directory))).AvailableFreeSpace;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(jobId, "The free space on the disk of " + _spool.Directory + " could not be read: " + ex.Message);
+                return -1;
+            }
+        }
+
+        private static string Megabytes(long bytes)
+        {
+            return (bytes / (1024 * 1024)).ToString("N0", CultureInfo.CurrentCulture) + " MB";
         }
 
         private async Task HandleConnectionAsync(TcpClient client, CancellationToken ct)
@@ -260,7 +402,8 @@ namespace PrintVect.Core.Host
             using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
             using (timeout.Token.Register(() => SafeClose(client)))
             {
-                timeout.CancelAfter(ProtocolConstants.TransferTimeout);
+                timeout.CancelAfter(HeaderTimeout);   // the request must come at once (0.5.8); the transfer then gets its 5 minutes
+                bool headerRead = false;
                 NetworkStream stream = null;
                 try
                 {
@@ -269,6 +412,8 @@ namespace PrintVect.Core.Host
                     Log.Info("Connection from " + remote + ".");
 
                     RequestHeader header = await Framing.ReadHeaderAsync(stream, timeout.Token).ConfigureAwait(false);
+                    headerRead = true;
+                    timeout.CancelAfter(ProtocolConstants.TransferTimeout);
                     jobId = header.JobId;
 
                     object reply;
@@ -322,8 +467,9 @@ namespace PrintVect.Core.Host
                 }
                 catch (Exception ex) when (timeout.IsCancellationRequested)
                 {
-                    Log.Warn(jobId, "Connection from " + remote + " timed out after " + ProtocolConstants.TransferTimeout.TotalMinutes
-                                    + " minutes (" + ex.GetType().Name + ").");
+                    Log.Warn(jobId, "Connection from " + remote + (headerRead
+                        ? " timed out after " + ProtocolConstants.TransferTimeout.TotalMinutes + " minutes"
+                        : " sent no request within " + HeaderTimeout.TotalSeconds + " s; closed") + " (" + ex.GetType().Name + ").");
                 }
                 catch (Exception ex)
                 {
@@ -472,6 +618,28 @@ namespace PrintVect.Core.Host
                 };
             }
 
+            string noRoom = ReserveSpace(jobId, header.Size);
+            if (noRoom != null)
+            {
+                Log.Warn(jobId, "Refused: " + noRoom);
+                await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
+                JobReply full = JobReply.Error(jobId, noRoom);
+                full.Retry = true;
+                return full;
+            }
+            try
+            {
+                return await ReceiveAndPrintAsync(header, jobId, printer, remote, stream, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                ReleaseSpace(header.Size);
+            }
+        }
+
+        private async Task<JobReply> ReceiveAndPrintAsync(RequestHeader header, string jobId, SharedPrinter printer, string remote, NetworkStream stream,
+            CancellationToken ct)
+        {
             string path = _spool.PathFor(jobId, header.Format);
             JobRecord record = _tracker.Add(new JobRecord
             {
@@ -527,9 +695,9 @@ namespace PrintVect.Core.Host
             XpsFileInfo content = XpsFormatSniffer.Inspect(path);
             if (!content.IsXpsPackage)
             {
-                string message = "The file is not an XPS document (" + content.Problem + "). It was kept at "
-                                 + path + " on " + Environment.MachineName + " for diagnosis.";
+                string message = "The file is not an XPS document (" + content.Problem + "); " + Environment.MachineName + " deleted it.";
                 Log.Warn(jobId, message);
+                _spool.DeleteQuietly(path, jobId);   // 0.5.8: junk is not kept (it filled the disk)
                 RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
                 return JobReply.Error(jobId, message);
             }
@@ -801,7 +969,7 @@ namespace PrintVect.Core.Host
                 }
                 else
                 {
-                    Log.Info(jobId, "File kept for diagnosis: " + path);
+                    Log.Info(jobId, "File kept for diagnosis (deleted after " + KeepUnusedFilesFor.TotalHours + " hours, or sooner to make room): " + path);
                 }
                 Log.Info(jobId, "Finished: " + outcome.State + ". " + outcome.Message);
                 RaiseFinished(snapshot);

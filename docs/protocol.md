@@ -137,6 +137,12 @@ printer name (case-insensitive), so a person can type a name into `pvct-send`.
   and `retry:true`, and makes an address that sent 5 wrong PINs wait. An empty PIN means open to the LAN.
 - Limits: max file 200 MB, connect timeout 5 s, transfer timeout 5 min,
   discovery timeout 2 s.
+- Host limits (0.5.8): the request header must arrive within 15 s of connecting; at most 32 connections are served at
+  once, 8 from one address, and 120 new ones a minute from one address (more are closed at once, logged once a minute).
+  Received documents may take at most 1 GB in `spool\incoming\`, and a job is refused when it would leave less than
+  256 MB free on that disk; older files no job waits for are deleted first to make room, and a refused job gets
+  `retry:true`. A file that is not XPS is deleted at once; files kept after a failed print are deleted after 24 hours
+  (checked every hour).
 - Manual host entry (IP or PC name) is always available, because UDP
   broadcast does not cross subnets or VLANs.
 - Every job step is logged with its `jobId` on both sides, so a failed job

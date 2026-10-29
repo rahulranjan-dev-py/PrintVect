@@ -69,13 +69,13 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   keep for Retry (lost job, PIN). A job id already printed or still queued gets its state back, never printed twice.
 - Sharing PIN (0.5.8, PinProof): job and hello carry nonce, time, pinProof = PBKDF2-SHA256(PIN, salt nonce/time/printer/jobId/size, 20000);
   time within 24 h; the old plain hash "pin" is refused; 5 wrong per address -> wait 15 min, doubling to 4 h (PinAttemptLimiter).
-  Empty PIN = open on the LAN. Limits: file 200 MB, connect 5 s, transfer 5 min, discovery 2 s. Manual IP/name entry always exists.
+  Empty PIN = open on the LAN. Limits: file 200 MB, connect 5 s, header 15 s, transfer 5 min, discovery 2 s; host (0.5.8, ConnectionLimiter): 32 connections, 8 per address, 120/min per address; incoming <= 1 GB and 256 MB disk free (unused files evicted first, else retry), non-XPS deleted, unused files gone after 24 h (hourly). Manual IP/name entry always exists.
 
 ## Workflow
 - One milestone at a time (M0..M6 in the brief, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
-  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window), 0.5.8 (security review: PIN proof, host identity).
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window), 0.5.8 (security review: PIN proof, host identity, Elevate link guard, host flood limits).
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework 4.8 targeting pack); `dotnet build PrintVect.sln -c Release` (.NET 8 SDK) too.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml (windows-latest) builds,
   tests, makes the setup program; release.yml publishes a release (Run workflow on main).

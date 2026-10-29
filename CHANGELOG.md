@@ -23,7 +23,13 @@ only when the PC there proves it holds that key; otherwise nothing is sent and t
 The administrator helper can no longer be tricked through the shared data folder: every user may write in
 `C:\ProgramData\PrintVect`, so another user could put a link (junction) there that leads to a Windows folder and wait
 for the helper to give "Users: Modify" rights or delete files through it. The helper now refuses to create, change or
-delete anything through such a link and says what to remove. **Tested:** awaiting test.
+delete anything through such a link and says what to remove.
+
+A PC that shares printers can no longer be flooded: it serves at most 32 connections at once (8 from one PC, and 120
+new ones a minute from one PC), closes a connection that sends nothing within 15 seconds, keeps at most 1 GB of
+documents waiting and stops taking more when its disk is nearly full (the job waits for Retry on the sending PC). A
+file that is not a print document is deleted at once, and files kept after a failed print are deleted after a day,
+checked every hour instead of only when sharing starts. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

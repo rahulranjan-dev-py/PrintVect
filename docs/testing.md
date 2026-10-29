@@ -687,6 +687,20 @@ the way and refuses.
 | 2 | Note the `<id>` from that line. Remove the printer again. Open Command Prompt (not as administrator) and type `mkdir C:\Users\Public\linktest` then `mklink /J C:\ProgramData\PrintVect\spool\<id> C:\Users\Public\linktest`. Add the printer again. | It is refused: "PrintVect did not touch C:\ProgramData\PrintVect\spool\<id>: it is a link to another place … Delete … then try again." `C:\Users\Public\linktest` (right-click, Properties, Security) has no new "Users" entry. |
 | 3 | Type `rmdir C:\ProgramData\PrintVect\spool\<id>` (removes the link only) and add the printer again. | Added as in step 1. |
 
+### 4. A host cannot be flooded
+
+There was no limit on connections, files that were not XPS stayed in `spool\incoming\` (up to 200 MB each), and old
+files were cleaned up only when sharing started. Now: 32 connections at once (8 per PC, 120 a minute per PC), 15 s
+to send the request, at most 1 GB waiting and 256 MB left free on the disk, junk deleted at once, and an hourly
+clean-up of files kept after a failed print (after 24 hours).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | Print from CLIENT as usual, several pages in a row. | Everything prints as before. |
+| 2 | On CLIENT, make a text file `junk.xps` (Notepad, type anything, save with that name) and send it from Command Prompt in the PrintVect folder: `pvct-send junk.xps HOST`. | Refused: "The file is not an XPS document (…); HOST deleted it." `C:\ProgramData\PrintVect\spool\incoming` on HOST holds no file for it. |
+| 3 | On CLIENT, open PowerShell and type `$c = 1..12 \| % { New-Object Net.Sockets.TcpClient('HOST', 9151) }` (HOST = its PC name). Wait 20 seconds, then print a page. | HOST's log: "Closed a connection from 192.168.… at once: 8 connections from … are open already." (once a minute at most), then for the 8 it served "sent no request within 15 s; closed". The page prints. |
+| 4 | Pause a printer on HOST (Share my printers), print 3 pages from CLIENT, wait a day with HOST running, then Resume. | The 3 jobs wait and then print: files of waiting jobs are never cleaned up. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
