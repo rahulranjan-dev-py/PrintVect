@@ -24,7 +24,7 @@ printers and many PCs at work. The PC that has a printer shares it in a few clic
 with one click and prints to it from any program, like a printer of its own. No print server, no cloud, no accounts:
 printing stays on your own network.
 
-[![Watch the 36-second PrintVect demo](docs/media/printvect-demo-poster.jpg)](docs/media/printvect-demo.mp4)
+https://github.com/user-attachments/assets/26ec270f-549f-427a-8997-ab9080b68bf9
 
 ## Why
 
