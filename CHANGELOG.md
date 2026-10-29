@@ -33,7 +33,11 @@ checked every hour instead of only when sharing starts.
 
 Updates are checked more strictly: a release without its checksum file is no longer installed (it used to install
 after a size check only), and the downloaded setup program, which sits in a folder every user may write to, is held
-so nobody can change it and checked again just before it starts. **Tested:** awaiting test.
+so nobody can change it and checked again just before it starts.
+
+New versions are published as test versions first: they reach only the PCs they are installed on by hand, and every
+other PC gets them once they are handed over (Actions, promote). The release text now says what changed, taken from
+this file. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

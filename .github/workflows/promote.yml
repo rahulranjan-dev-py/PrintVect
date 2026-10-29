@@ -1,0 +1,55 @@
+name: promote
+
+# Hands a tested version to every PC (0.5.8). release.yml publishes a new version as a TEST version (a
+# pre-release), which installed PCs do not take by themselves because GitHub's "latest release" is never a
+# pre-release. Once it has been tried on the test PCs: Actions > promote > Run workflow. This turns the
+# pre-release into a full release, marks it as the latest and rewrites its text from CHANGELOG.md (on the branch
+# the workflow runs from) without the test note. PCs then offer it within a day (docs/releasing.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to hand to every PC, for example 0.5.8 (empty: the one in Directory.Build.props)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Hand the tested version to every PC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Make it a full release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${REQUESTED:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::\"$version\" is not a version like 0.5.8."
+            exit 1
+          fi
+          tag="v$version"
+          if ! assets=$(gh release view "$tag" --json assets --jq '.assets[].name'); then
+            echo "::error::There is no release $tag. Publish it as a test version first (Actions, release, Run workflow)."
+            exit 1
+          fi
+          for name in "PrintVect-Setup-$version.exe" "PrintVect-Setup-$version.exe.sha256"; do
+            if ! grep -qxF "$name" <<<"$assets"; then
+              echo "::error::Release $tag lacks $name, so it cannot go to every PC. Run the release workflow for it again."
+              exit 1
+            fi
+          done
+          python3 tools/release_notes.py "$version" --out release-notes.md
+          gh release edit "$tag" --prerelease=false --latest --notes-file release-notes.md
+          echo "::notice::$tag is now the latest release: every PC that runs PrintVect offers it within a day."
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag"

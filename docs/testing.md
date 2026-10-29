@@ -713,6 +713,19 @@ it or its folder) and checked again just before it starts. Code signing remains 
 | 1 | When 0.5.8 is on all PCs and a later version is published: Settings, Check now, Update now. | The update installs as before. The PC's log: "the checksum … matches", then "checked again just before starting it: the SHA-256 still matches", then "Update: starting …". |
 | 2 | Nothing to do for a release without a checksum file: every release made by release.yml has one. If one ever lacks it, Update now says "version … has no checksum file, so PrintVect cannot check the download and does not install it". | |
 
+### 6. New versions go to test PCs first
+
+Every release went to every PC within a day, tested or not. Now release.yml publishes a test version (a GitHub
+pre-release), which installed PCs ignore because they ask GitHub for its "latest release", and promote.yml hands it to
+every PC. The release text is the version's section of CHANGELOG.md. The whole flow is in `docs/releasing.md`.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | After the pull request is merged: Actions, release, Run workflow, branch main, stage **test**. | Release v0.5.8 marked **Pre-release**, with the setup program, its .sha256, a "Test version" note and "What changed in 0.5.8" from CHANGELOG.md. |
+| 2 | On a PC with 0.5.7: Settings, Check now. | "up to date" (0.5.7 is still the latest release): the test version is not offered. |
+| 3 | On your test PCs: download PrintVect-Setup-0.5.8.exe from that release and run it. Do the steps of sections 1 to 5 above. | "Version 0.5.8" under the menu; settings and printers kept. |
+| 4 | When they work, tell me the result (I write it into CHANGELOG.md), then Actions, promote, Run workflow, branch main. | The release loses "Pre-release" and shows "Latest", without the test note. Other PCs offer 0.5.8 within a day (or at once with Check now). |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
