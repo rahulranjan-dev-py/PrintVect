@@ -2737,6 +2737,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The update was not started: {0}. Press Update now to download it again..
+        /// </summary>
+        internal static string UpdateNotStarted {
+            get {
+                return ResourceManager.GetString("UpdateNotStarted", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The setup program could not be started: {0}.
         /// </summary>
         internal static string UpdateStartFailed {

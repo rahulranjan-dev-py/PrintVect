@@ -135,7 +135,10 @@ Requirements:
 - Chrome or Edge may hold the download back; choose **Keep** in the downloads list (Ctrl+J).
 - On a Windows 11 PC with Smart App Control On (Windows Security, App & browser control) Windows refuses to run the
   unsigned setup program ("An Application Control policy has blocked this file"), including through Update now.
-- The `.sha256` file next to each setup program is its checksum; PrintVect checks it before installing an update.
+- The `.sha256` file next to each setup program is its checksum; PrintVect checks it before installing an update,
+  installs no release without one, and checks the downloaded file once more, held so nobody can change it, just
+  before it starts. The checksum comes from the same GitHub release, so it proves the file arrived intact, not who
+  made it: only code signing (see CODE_SIGNING.md) would.
 
 ## Using it
 

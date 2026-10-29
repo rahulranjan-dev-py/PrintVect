@@ -10,7 +10,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 - No NuGet in shipped code except Newtonsoft.Json. Test-only packages: MSTest. Ask before adding anything.
 - Printing and discovery are LAN only. The one internet call (owner's request, 2026-10-09) is the update check:
   Core/Update/UpdateChecker asks GitHub Releases of this repo over HTTPS (daily + Check now, off switch in Settings),
-  downloads PrintVect-Setup-<v>.exe, verifies size + .sha256, runs it /SILENT (UAC prompt; the setup ends the app
+  downloads PrintVect-Setup-<v>.exe, verifies size + .sha256 (no .sha256 = no update; held open and re-hashed just before it starts, 0.5.8), runs it /SILENT (UAC prompt; the setup ends the app
   and restarts it). No telemetry, no crash reporting, nothing else leaves the office.
 - Host role runs as a tray app in the logged-in user's session, never as a Windows Service
   (System.Printing does not work in Session 0).

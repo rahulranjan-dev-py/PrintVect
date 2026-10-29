@@ -30,4 +30,7 @@ These are known limits of the design, not vulnerabilities:
   folder it creates, gives rights on, deletes or writes its log and result in is a junction or symbolic link, and
   gives the spool folder its rights through a handle to the folder it checked (0.5.8).
 - The setup program and the program files are not code-signed yet (see [CODE_SIGNING.md](CODE_SIGNING.md)); the
-  updater checks each downloaded setup program's size and SHA-256 against the release before running it.
+  updater checks each downloaded setup program's size and SHA-256 against the release before running it. The checksum
+  file comes from the same GitHub release, so it catches a damaged download, not a release replaced by someone who
+  took over the repository. Since 0.5.8 a release without a checksum file is not installed, and the setup program is
+  held open (nobody can change, delete or rename it or its folder) and checked again just before it starts.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrintVect.Core;
+using PrintVect.Core.Diagnostics;
 using PrintVect.Core.Update;
 
 namespace PrintVect.Tests
@@ -392,8 +394,11 @@ namespace PrintVect.Tests
                 var seen = new List<DownloadProgress>();
                 var progress = new SynchronousProgress(seen.Add);
 
-                string path = await checker.DownloadAsync(result.Release, folder, progress, CancellationToken.None);
+                VerifiedSetup setup = await checker.DownloadAsync(result.Release, folder, progress, CancellationToken.None);
+                string path = setup.Path;
                 Assert.AreEqual(Path.Combine(folder, "PrintVect-Setup-9.9.9.exe"), path);
+                Assert.AreEqual(Sha256Hex.OfBytes(installer), setup.Sha256);
+                Assert.AreEqual(installer.Length, setup.Size);
                 CollectionAssert.AreEqual(installer, File.ReadAllBytes(path));
                 Assert.IsFalse(File.Exists(path + UpdateChecker.PartExtension));
                 Assert.IsFalse(File.Exists(Path.Combine(folder, "PrintVect-Setup-0.1.0.exe")), "older downloads are removed");
@@ -420,16 +425,49 @@ namespace PrintVect.Tests
                 StringAssert.Contains(damaged.Message, "checksum");
                 Assert.AreEqual(0, Directory.GetFiles(temp.Path).Length, "nothing is left behind");
 
-                ReleaseInfo wrongSize = ReleaseInfo.Parse(ReleaseInfoTests.ReleaseJson("v9.9.9", github.BaseUrl, 5, false));
+                ReleaseInfo wrongSize = ReleaseInfo.Parse(ReleaseInfoTests.ReleaseJson("v9.9.9", github.BaseUrl, 5, true));
                 UpdateVerificationException incomplete = await Assert.ThrowsExceptionAsync<UpdateVerificationException>(
                     () => checker.DownloadAsync(wrongSize, temp.Path, null, CancellationToken.None));
                 StringAssert.Contains(incomplete.Message, "incomplete");
                 Assert.AreEqual(0, Directory.GetFiles(temp.Path).Length);
 
-                // Without a checksum file the size is all that can be checked, and it matches here.
+                // 0.5.8: without a checksum file nothing is downloaded or installed (a size check alone proves nothing).
                 ReleaseInfo noHash = ReleaseInfo.Parse(ReleaseInfoTests.ReleaseJson("v9.9.9", github.BaseUrl, installer.Length, false));
-                string path = await checker.DownloadAsync(noHash, temp.Path, null, CancellationToken.None);
-                CollectionAssert.AreEqual(installer, File.ReadAllBytes(path));
+                UpdateVerificationException unchecked_ = await Assert.ThrowsExceptionAsync<UpdateVerificationException>(
+                    () => checker.DownloadAsync(noHash, temp.Path, null, CancellationToken.None));
+                StringAssert.Contains(unchecked_.Message, "no checksum file");
+                Assert.AreEqual(0, Directory.GetFiles(temp.Path).Length);
+            }
+        }
+
+        [TestMethod]
+        public async Task TheSetupIsCheckedAgainJustBeforeItRuns_AndHeldUnchangeable()
+        {
+            byte[] installer = SampleInstaller();
+            using (var github = new FakeGitHub())
+            using (var temp = new TempFolder())
+            {
+                github.Installer = installer;
+                github.HashText = Sha256Hex.OfBytes(installer) + "  PrintVect-Setup-9.9.9.exe\n";
+                var checker = new UpdateChecker(github.FeedUrl, Current);
+                ReleaseInfo release = ReleaseInfo.Parse(ReleaseInfoTests.ReleaseJson("v9.9.9", github.BaseUrl, installer.Length, true));
+
+                VerifiedSetup setup = await checker.DownloadAsync(release, temp.Path, null, CancellationToken.None);
+                using (SetupHold hold = UpdateInstaller.Hold(setup))
+                {
+                    Assert.AreEqual(setup.Path, hold.Path);
+                    if (WindowsInfo.IsWindows)
+                    {
+                        Assert.ThrowsException<IOException>(() => File.WriteAllBytes(setup.Path, new byte[] { 1 }), "nobody can change it while it is held");
+                        Assert.ThrowsException<IOException>(() => File.Delete(setup.Path));
+                        Assert.ThrowsException<IOException>(() => Directory.Move(temp.Path, temp.Path + "-moved"),
+                            "nor rename the folder to put another one in its place");
+                    }
+                }
+
+                File.WriteAllBytes(setup.Path, installer.Reverse().ToArray());   // another user swaps the file after the download
+                UpdateVerificationException changed = Assert.ThrowsException<UpdateVerificationException>(() => UpdateInstaller.Hold(setup));
+                StringAssert.Contains(changed.Message, "changed on this PC");
             }
         }
 

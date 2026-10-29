@@ -29,7 +29,11 @@ A PC that shares printers can no longer be flooded: it serves at most 32 connect
 new ones a minute from one PC), closes a connection that sends nothing within 15 seconds, keeps at most 1 GB of
 documents waiting and stops taking more when its disk is nearly full (the job waits for Retry on the sending PC). A
 file that is not a print document is deleted at once, and files kept after a failed print are deleted after a day,
-checked every hour instead of only when sharing starts. **Tested:** awaiting test.
+checked every hour instead of only when sharing starts.
+
+Updates are checked more strictly: a release without its checksum file is no longer installed (it used to install
+after a size check only), and the downloaded setup program, which sits in a folder every user may write to, is held
+so nobody can change it and checked again just before it starts. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

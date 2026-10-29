@@ -358,6 +358,9 @@ Details: {0}</value>
   <data name="UpdateDidNotRun" xml:space="preserve">
     <value>The update did not run (the setup program ended with code {0}). Press Update now again and answer Yes to the Windows permission question.</value>
   </data>
+  <data name="UpdateNotStarted" xml:space="preserve">
+    <value>The update was not started: {0}. Press Update now to download it again.</value>
+  </data>
   <data name="UpdateDownloadFailed" xml:space="preserve">
     <value>The update could not be downloaded: {0}. Press Update now to try again.</value>
   </data>

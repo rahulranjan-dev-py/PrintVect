@@ -21,5 +21,6 @@ does **Actions**, **release**, **Run workflow** once the workflow file is on the
 
 On each PC, PrintVect then shows a balloon and a yellow strip "A newer PrintVect (0.2.1) is ready to
 install". **Update now** downloads the setup program into `C:\ProgramData\PrintVect\updates\`, checks
-its size and SHA-256, and runs it silently; Windows asks the usual permission question once, PrintVect
+its size and SHA-256 (a release without its `.sha256` is not installed, 0.5.8), checks the file again just before it
+starts, and runs it silently; Windows asks the usual permission question once, PrintVect
 closes for a few seconds and opens again as the new version. Nothing is installed without that click.

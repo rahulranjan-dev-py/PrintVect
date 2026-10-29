@@ -701,6 +701,18 @@ clean-up of files kept after a failed print (after 24 hours).
 | 3 | On CLIENT, open PowerShell and type `$c = 1..12 \| % { New-Object Net.Sockets.TcpClient('HOST', 9151) }` (HOST = its PC name). Wait 20 seconds, then print a page. | HOST's log: "Closed a connection from 192.168.… at once: 8 connections from … are open already." (once a minute at most), then for the 8 it served "sent no request within 15 s; closed". The page prints. |
 | 4 | Pause a printer on HOST (Share my printers), print 3 pages from CLIENT, wait a day with HOST running, then Resume. | The 3 jobs wait and then print: files of waiting jobs are never cleaned up. |
 
+### 5. Updates are checked more strictly
+
+The checksum file was optional (without it the update installed after a size check only), and the setup program
+waited in `C:\ProgramData\PrintVect\updates`, where every user may write, between its check and its start. Now a
+release without a checksum file is not installed, and the setup program is held (nobody can change, delete or rename
+it or its folder) and checked again just before it starts. Code signing remains the real fix (CODE_SIGNING.md).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | When 0.5.8 is on all PCs and a later version is published: Settings, Check now, Update now. | The update installs as before. The PC's log: "the checksum … matches", then "checked again just before starting it: the SHA-256 still matches", then "Update: starting …". |
+| 2 | Nothing to do for a release without a checksum file: every release made by release.yml has one. If one ever lacks it, Update now says "version … has no checksum file, so PrintVect cannot check the download and does not install it". | |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
