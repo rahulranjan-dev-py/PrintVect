@@ -37,7 +37,11 @@ so nobody can change it and checked again just before it starts.
 
 New versions are published as test versions first: they reach only the PCs they are installed on by hand, and every
 other PC gets them once they are handed over (Actions, promote). The release text now says what changed, taken from
-this file. **Tested:** awaiting test.
+this file.
+
+The sharing PIN is no longer written in plain text in `config.json` (which every user of the PC can open): it is kept
+protected by Windows for that PC, and a PIN saved by an earlier version is converted at the first start. The 10.8 MB
+demo video left the repository's files; the README plays the copy uploaded to GitHub. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

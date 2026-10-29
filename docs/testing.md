@@ -726,6 +726,17 @@ every PC. The release text is the version's section of CHANGELOG.md. The whole f
 | 3 | On your test PCs: download PrintVect-Setup-0.5.8.exe from that release and run it. Do the steps of sections 1 to 5 above. | "Version 0.5.8" under the menu; settings and printers kept. |
 | 4 | When they work, tell me the result (I write it into CHANGELOG.md), then Actions, promote, Run workflow, branch main. | The release loses "Pre-release" and shows "Latest", without the test note. Other PCs offer 0.5.8 within a day (or at once with Check now). |
 
+### 7. Smaller points
+
+Anyone on the network could add made-up PCs to "PCs that use this PC" (fixed in section 1: with a PIN, a hello must
+prove it); the PIN stood in plain text in config.json, which every user of the PC can open; the 10.8 MB demo video
+was committed although the README plays the copy uploaded to GitHub.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On a PC that had a PIN before the update, open `C:\ProgramData\PrintVect\config.json` in Notepad. | No `"Pin": "…"` line; a long `"PinProtected"` value instead. The log of the first start: "the sharing PIN was kept in plain text; config.json now keeps it protected for this PC." Printing with the PIN works as before. |
+| 2 | Settings, Security, Change PIN; then look at config.json again. | Still no PIN in plain text; the other PCs need the new PIN as before. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

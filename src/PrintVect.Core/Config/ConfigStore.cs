@@ -68,11 +68,54 @@ namespace PrintVect.Core.Config
                 return new AppConfig();
             }
 
+            bool plainPin = ReadPin(config);
             foreach (string warning in Normalize(config))
             {
                 Log.Warn("Config: " + warning);
             }
+            if (plainPin)
+            {
+                try
+                {
+                    Save(config);
+                    Log.Info("Config: the sharing PIN was kept in plain text; config.json now keeps it protected for this PC.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Config: the sharing PIN could not be written protected yet; it is the next time the settings are saved.", ex);
+                }
+            }
             return config;
+        }
+
+        /// <summary>
+        /// Fills AppConfig.Pin from the file: from PinProtected, or from the plain "Pin" of a file written before 0.5.8
+        /// (then true: the file should be saved again so the plain PIN leaves it).
+        /// </summary>
+        private static bool ReadPin(AppConfig config)
+        {
+            if (!string.IsNullOrEmpty(config.LegacyPin))
+            {
+                config.Pin = config.LegacyPin;
+                config.LegacyPin = null;
+                return true;
+            }
+            config.LegacyPin = null;
+            if (string.IsNullOrEmpty(config.PinProtected))
+            {
+                config.Pin = "";
+                return false;
+            }
+            byte[] pin = MachineProtection.Unprotect(config.PinProtected);
+            if (pin == null)
+            {
+                Log.Warn("Config: the sharing PIN in config.json was protected on another PC (or is damaged) and cannot be read here, "
+                         + "so this PC has no PIN now. Set it again in Settings, Security.");
+                config.Pin = "";
+                return false;
+            }
+            config.Pin = Utf8NoBom.GetString(pin);
+            return false;
         }
 
         /// <summary>Writes the file. Writes to a temporary file first so a crash never leaves half a file.</summary>
@@ -83,6 +126,7 @@ namespace PrintVect.Core.Config
                 throw new ArgumentNullException(nameof(config));
             }
             Normalize(config);
+            config.PinProtected = string.IsNullOrEmpty(config.Pin) ? "" : MachineProtection.Protect(Utf8NoBom.GetBytes(config.Pin));
 
             string directory = System.IO.Path.GetDirectoryName(Path);
             if (!string.IsNullOrEmpty(directory))
@@ -151,6 +195,10 @@ namespace PrintVect.Core.Config
                 config.Pin = "";
             }
             config.Pin = config.Pin.Trim();
+            if (config.PinProtected == null)
+            {
+                config.PinProtected = "";
+            }
 
             if (string.IsNullOrWhiteSpace(config.Language))
             {

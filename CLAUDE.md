@@ -18,7 +18,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 - Protocol identifiers: discovery text `PVECT-DISCOVER 1`, TCP magic `PVCT`, `"app":"PrintVect"`.
 - All admin work lives in src/PrintVect.Elevate (requireAdministrator manifest, launched with
   ShellExecute "runas"). PrintVect.App is asInvoker and runs as a standard user.
-- Data in %ProgramData%\PrintVect\ : config.json, spool\, logs\ (daily files, keep 14 days), jobs-host.json and
+- Data in %ProgramData%\PrintVect\ : config.json (PIN and host key DPAPI-protected for the PC, 0.5.8), spool\, logs\ (daily files, keep 14 days), jobs-host.json and
   jobs-client.json (job history, last 200, saved a second after a change), updates\ (downloaded setup + its log).
 - All user-visible text lives in src/PrintVect.App/Strings.resx from day one (Hindi is Phase 2).
 - MIT licence (LICENSE in repo root).
