@@ -29,6 +29,7 @@ namespace PrintVect.Core.Host
         private readonly JobTracker _tracker;
         private readonly IncomingSpool _spool;
         private readonly ConcurrentDictionary<TcpClient, byte> _connections = new ConcurrentDictionary<TcpClient, byte>();
+        private readonly PinAttemptLimiter _pinTries = new PinAttemptLimiter();
         private readonly object _lifecycle = new object();
         private SharedPrinter[] _shared = new SharedPrinter[0];
         private string _pin = "";
@@ -283,7 +284,7 @@ namespace PrintVect.Core.Host
                                 reply = await HandleJobAsync(header, stream, remote, timeout.Token).ConfigureAwait(false);
                                 break;
                             case RequestTypes.Hello:
-                                reply = HandleHello(header, client);
+                                reply = HandleHello(header, remote);
                                 break;
                             default:
                                 Log.Warn(jobId, "Unknown request type \"" + header.Type + "\" from " + remote + ".");
@@ -426,13 +427,14 @@ namespace PrintVect.Core.Host
                 remote, header.Client, header.User, header.PrinterId, header.Doc, header.Format, header.Size));
 
             SharedPrinter printer;
-            string refusal = Validate(header, out printer);
+            bool pinRefused;
+            string refusal = Validate(header, RemoteAddress(remote), out printer, out pinRefused);
             if (refusal != null)
             {
                 Log.Warn(jobId, "Refused: " + refusal);
                 await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
                 JobReply refused = JobReply.Error(jobId, refusal);
-                refused.Retry = !PinHash.Matches(Pin, header.Pin);   // once the PINs match, the same job can go again
+                refused.Retry = pinRefused;   // once the PINs match, the same job can go again
                 return refused;
             }
             Presence.Seen(header.Client, RemoteAddress(remote), null, null, header.User);
@@ -616,12 +618,74 @@ namespace PrintVect.Core.Host
             return null;
         }
 
-        /// <summary>A client says it uses this host's printers; it is listed on the Share page with its Windows version.</summary>
-        private JobReply HandleHello(RequestHeader header, TcpClient client)
+        /// <summary>
+        /// A client says it uses this host's printers; it is listed on the Share page with its Windows version. With a
+        /// sharing PIN, only a PC that proves the PIN is listed (0.5.8), so nobody can fill the list with made-up PCs.
+        /// </summary>
+        private JobReply HandleHello(RequestHeader header, string remote)
         {
-            string name = string.IsNullOrWhiteSpace(header.Client) ? RemoteAddress(Describe(client)) : header.Client.Trim();
-            Presence.Seen(name, RemoteAddress(Describe(client)), header.Os, header.AppVersion, header.User);
+            string address = RemoteAddress(remote);
+            string name = string.IsNullOrWhiteSpace(header.Client) ? address : header.Client.Trim();
+            string refusal = CheckPin(header, address);
+            if (refusal != null)
+            {
+                Log.Warn("Hello from " + name + " (" + address + ") refused: " + refusal);
+                return JobReply.Error(null, refusal);
+            }
+            Presence.Seen(name, address, header.Os, header.AppVersion, header.User);
             return new JobReply { Ok = true, Message = Environment.MachineName + " knows that " + name + " uses its printers." };
+        }
+
+        /// <summary>
+        /// Null when the request may go on: this PC has no sharing PIN, or the request proves it (PinProof). Else the
+        /// plain reason. Wrong PINs are counted per address; after 5 the address waits (PinAttemptLimiter).
+        /// </summary>
+        private string CheckPin(RequestHeader header, string address)
+        {
+            string pin = Pin;
+            if (string.IsNullOrEmpty(pin))
+            {
+                return null;
+            }
+            string host = Environment.MachineName;
+            string sender = string.IsNullOrWhiteSpace(header.Client) ? address : header.Client.Trim();
+            string what = header.Type == RequestTypes.Hello ? "the hello from " + sender : "this job";
+            string again = "Set the same sharing PIN in PrintVect Settings on both PCs.";
+            DateTime now = DateTime.UtcNow;
+            TimeSpan wait = _pinTries.WaitFor(address, now);
+            if (wait > TimeSpan.Zero)
+            {
+                return "Too many wrong sharing PINs came from " + sender + ", so " + host + " checks its PIN again in " + Minutes(wait)
+                       + ". " + again;
+            }
+            switch (PinProof.Check(pin, header, now))
+            {
+                case PinCheck.Open:
+                case PinCheck.Accepted:
+                    _pinTries.Succeeded(address);
+                    return null;
+                case PinCheck.Outdated:
+                    return sender + " runs a PrintVect older than 0.5.8, which sends the sharing PIN in a way " + host
+                           + " no longer accepts. Update PrintVect on " + sender + " (Settings, Updates, Check now).";
+                case PinCheck.ClockOff:
+                    return "The clocks of " + sender + " (" + PinProof.TimeOf(header).ToString("g", CultureInfo.CurrentCulture) + ") and " + host
+                           + " (" + DateTime.Now.ToString("g", CultureInfo.CurrentCulture) + ") differ by more than a day, so " + host
+                           + " cannot check the sharing PIN. Set the right date and time on both PCs (Windows Settings, Time & language).";
+                case PinCheck.Wrong:
+                    int left = _pinTries.Failed(address, now);
+                    Log.Warn(header.JobId, "Wrong sharing PIN from " + sender + " (" + address + "); "
+                                           + (left > 0 ? left + " more wrong tr" + (left == 1 ? "y" : "ies") + " before it has to wait."
+                                                       : "it waits " + Minutes(_pinTries.WaitFor(address, now)) + " before its PIN is checked again."));
+                    return host + " asks for the sharing PIN, and " + what + " came with a different one. " + again;
+                default:
+                    return host + " asks for the sharing PIN, and " + what + " came without one. " + again;
+            }
+        }
+
+        private static string Minutes(TimeSpan wait)
+        {
+            int minutes = Math.Max(1, (int)Math.Ceiling(wait.TotalMinutes));
+            return minutes == 1 ? "1 minute" : minutes + " minutes";
         }
 
         /// <summary>"10.0.0.5:51234" gives "10.0.0.5".</summary>
@@ -632,15 +696,16 @@ namespace PrintVect.Core.Host
             return colon > 0 ? endpoint.Substring(0, colon) : endpoint;
         }
 
-        private string Validate(RequestHeader header, out SharedPrinter printer)
+        private string Validate(RequestHeader header, string address, out SharedPrinter printer, out bool pinRefused)
         {
             printer = null;
             string host = Environment.MachineName;
 
-            if (!PinHash.Matches(Pin, header.Pin))
+            string pinProblem = CheckPin(header, address);
+            pinRefused = pinProblem != null;
+            if (pinRefused)
             {
-                return host + " asks for the sharing PIN, and this job came with a different one or none. "
-                       + "Set the same sharing PIN in PrintVect Settings on both PCs.";
+                return pinProblem;
             }
             if (!JobFormats.IsKnown(header.Format))
             {

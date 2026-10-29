@@ -50,7 +50,7 @@ namespace PrintVect.Core.Client
 
         public ClientJobTracker Jobs { get; }
 
-        /// <summary>The office PIN sent with every job; empty when the hosts are open.</summary>
+        /// <summary>The sharing PIN every job proves (PinProof); empty when the hosts are open.</summary>
         public string Pin { get; set; } = "";
 
         /// <summary>Hours a sent file is kept in sent\ for diagnostics.</summary>

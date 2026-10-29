@@ -2467,7 +2467,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters. Leave it blank [rest of string was truncated].
+        ///   Looks up a localized string similar to Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters (8 or more are  [rest of string was truncated].
         /// </summary>
         internal static string SharingDialogPinHelp {
             get {

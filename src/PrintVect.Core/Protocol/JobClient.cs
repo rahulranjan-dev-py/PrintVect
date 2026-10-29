@@ -96,6 +96,10 @@ namespace PrintVect.Core.Protocol
 
         private async Task<string> ExchangeAsync(RequestHeader header, string bodyPath, IProgress<long> progress, CancellationToken ct)
         {
+            if (!string.IsNullOrEmpty(header.PinToSign))
+            {
+                PinProof.Sign(header, header.PinToSign, DateTime.UtcNow);   // fresh for every try: a new nonce and time
+            }
             using (var client = new TcpClient())
             using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
             using (timeout.Token.Register(() => SafeClose(client)))

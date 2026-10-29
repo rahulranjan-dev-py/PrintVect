@@ -104,7 +104,9 @@ report to copy.
 - Finding printers (UDP 9150) and print jobs (TCP 9151) stay on your local network. The setup program opens those
   ports in Windows Firewall for PrintVect only, on private and domain networks only, never on public ones.
 - Without a sharing PIN, any PC on the same network can print to the shared printers; set the same PIN on every
-  PC to limit that (Settings, Security). Print jobs are not encrypted on the network.
+  PC to limit that (Settings, Security). The PIN itself never crosses the network: each job carries a one-time
+  proof of it, and a PC that sends 5 wrong PINs has to wait. Longer PINs (8 or more characters) are harder to guess.
+  Print jobs are not encrypted on the network.
 - PrintVect runs as a normal user. Only its small helper, `PrintVect.Elevate.exe`, asks for administrator rights,
   for the few tasks that need them: adding or removing a printer, starting with Windows, making a network private.
 - The only internet connection is the update check: once a day PrintVect asks GitHub for this repository's latest
@@ -256,6 +258,8 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | "The update did not run (the setup program ended with code ...)" | The Windows permission question was answered No, or the setup failed: the reason is in `C:\ProgramData\PrintVect\updates\update-<version>.log`. Press **Update now** again. |
 | After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
 | A job waits with "asks for the sharing PIN" | The two PCs have different sharing PINs (or one has none). Set the same PIN in Settings on both, then press **Retry waiting** (Printers on other PCs) on the PC that printed. |
+| A job waits with "Too many wrong sharing PINs" | That PC sent 5 wrong PINs, so the PC with the printer ignores it for the minutes the message names (longer each time). Set the same PIN on both PCs, wait, then press **Retry waiting**. |
+| A job waits with "runs a PrintVect older than 0.5.8" | The PC with the printer has a sharing PIN and the PC that printed has an old PrintVect. Update it (Settings, Updates, Check now), then press **Retry waiting**. |
 | A job waits with "is paused there" | Someone pressed **Pause** on the PC that has the printer. Press **Resume** there (Share my printers). |
 | A job waits with "stopped answering after it received this job" | The PC with the printer was switched off or lost the network during the job. When it is back, check whether the page came out; if not, press **Retry waiting** (or right-click the job, **Retry**). A page that already printed is never printed twice. |
 | Update now says jobs are still being handled | A shared printer is paused with jobs waiting. Resume it (or wait until they printed), then press Update now again. |

@@ -70,7 +70,7 @@ namespace PrintVect.App.Client
             };
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
 
-            _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters);
+            _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters) { Pin = config.Pin };
 
             _discovery = new DiscoveryClient(config.DiscoveryPort);
             _discovery.HostsChanged += (s, e) => Post(OnHostsChanged);
@@ -231,10 +231,11 @@ namespace PrintVect.App.Client
             return saved;
         }
 
-        /// <summary>The office PIN changed in Settings: every job from now on carries it.</summary>
+        /// <summary>The sharing PIN changed in Settings: every job and hello from now on proves it.</summary>
         public void ApplyPin(string pin)
         {
             _service.Pin = pin ?? "";
+            _presence.Pin = pin ?? "";
         }
 
         public void ApplyKeepSentFilesHours(int hours)

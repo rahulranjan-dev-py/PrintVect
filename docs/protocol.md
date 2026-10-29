@@ -27,7 +27,7 @@ relay) and **631** are never allowed.
 | Job transfer      | TCP 9151, one job per connection          | `PVCT` (4 ASCII bytes), 4-byte little-endian header length, UTF-8 JSON header, then the raw file bytes. The host answers one JSON line, then closes. |
 | Status query      | TCP 9151                                  | Same framing with header `{"type":"status","jobId":"guid"}` and no body. Same reply format. |
 | Printer list      | TCP 9151                                  | Same framing with header `{"type":"list","v":1}` and no body. The host answers the discovery-reply JSON below plus `"ok":true`. Used by `pvct-send list` and by manual "Add by IP" (M3), which cannot rely on UDP broadcast. |
-| Hello (presence)  | TCP 9151                                  | Same framing with header `{"type":"hello","v":1,"client":"COUNTER3","user":"clerk","os":"Windows 10 Pro 22H2 (build 19045.4894)","appVersion":"0.4.0","printers":["…"]}` and no body (0.4.0, M6b-2). A client sends it 15 s after start, after adding a printer, and every 5 minutes to each host whose printers it has added. The host answers `{"ok":true,"message":"…"}` and lists the PC on its Share page; a job also marks its PC as seen. A host before 0.4.0 answers ok=false ("unknown request type"), which the client ignores. |
+| Hello (presence)  | TCP 9151                                  | Same framing with header `{"type":"hello","v":1,"client":"COUNTER3","user":"clerk","os":"Windows 10 Pro 22H2 (build 19045.4894)","appVersion":"0.4.0","printers":["…"]}` and no body (0.4.0, M6b-2). A client sends it 15 s after start, after adding a printer, and every 5 minutes to each host whose printers it has added. The host answers `{"ok":true,"message":"…"}` and lists the PC on its Share page; a job also marks its PC as seen. A host before 0.4.0 answers ok=false ("unknown request type"), which the client ignores. With a sharing PIN (0.5.8) the hello carries `nonce`, `time` and `pinProof` like a job; a host with a PIN lists only PCs that prove it, and a client whose hello is refused sends that host no more hellos until its PIN changes or it restarts. |
 
 ## Discovery reply
 
@@ -58,9 +58,21 @@ relay) and **631** are never allowed.
   "client": "COUNTER3",
   "user": "user1",
   "doc": "optional document title",
-  "pin": "sha256-hex of the shared PIN, or empty"
+  "nonce": "32 hex digits, new for every request (only with a sharing PIN)",
+  "time": 1793260800,
+  "pinProof": "64 hex digits (only with a sharing PIN)"
 }
 ```
+
+The sharing PIN never travels (0.5.8). With a PIN set, the sender makes a one-time proof just before it sends:
+`pinProof` = lowercase hex of PBKDF2-HMAC-SHA256 (20,000 rounds, 32 bytes) with the PIN in UTF-8 as the password and
+as salt the UTF-8 text `PrintVect PIN 1`, type, nonce, time, printerId, jobId and size, joined by line feeds (an
+absent field is empty). `time` is in seconds since 1970 (UTC); the host refuses a proof more than 24 hours away from
+its own clock, and one made for another job, printer or size does not match. A host with a PIN refuses a request
+without a proof with `retry:true`; a request with only the `pin` field of earlier versions (SHA-256 of the PIN) is
+refused with a message to update the sender. After 5 wrong proofs from one address the host refuses that address for
+15 minutes without checking, twice as long after each further 5 (at most 4 hours); a right PIN or a day without a
+wrong one starts afresh. A hello proves the PIN the same way (with `printerId`, `jobId` and `size` empty and 0).
 
 `copies` (optional, default 1, at most 99) asks the host to print the document that many times; the client
 fills it from the XPS print ticket inside the file (`JobCopiesAllDocuments`), which Word and Excel set when the
@@ -102,9 +114,9 @@ printer name (case-insensitive), so a person can type a name into `pvct-send`.
 
 ## Rules
 
-- Optional sharing PIN (the office PIN until 0.5.4), set in Settings on both sides (Set PIN…, 0.4.0). The header carries the
-  SHA-256 of the PIN; the host rejects a mismatch with a clear message and `retry:true`.
-  An empty PIN means open to the LAN.
+- Optional sharing PIN (the office PIN until 0.5.4), set in Settings on both sides (Set PIN…, 0.4.0). Each job and
+  hello carries a one-time proof of it (0.5.8; before: its SHA-256); the host rejects a mismatch with a clear message
+  and `retry:true`, and makes an address that sent 5 wrong PINs wait. An empty PIN means open to the LAN.
 - Limits: max file 200 MB, connect timeout 5 s, transfer timeout 5 min,
   discovery timeout 2 s.
 - Manual host entry (IP or PC name) is always available, because UDP
@@ -119,6 +131,6 @@ printer name (case-insensitive), so a person can type a name into `pvct-send`.
 | Framing + JSON classes (`Core/Protocol`) | M1      | done                        |
 | TCP job, status and list requests (host) | M1      | done                        |
 | Client sender (`JobClient`, pvct-send)   | M1      | done                        |
-| PIN check on the host                    | M1      | done; PIN screen in Settings since M6b-2 |
+| PIN check on the host                    | M1      | done; PIN screen in Settings since M6b-2; one-time proof and wrong-PIN wait since 0.5.8 |
 | UDP discovery                            | M3      | done                        |
 | Hello (presence), `retry`, paused status, resend not printed twice | M6b-2 | done |

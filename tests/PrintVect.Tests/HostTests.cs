@@ -244,6 +244,76 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public async Task SendJob_ThePlainPinHashOfOlderVersions_IsRefusedWithUpdateAdvice()
+        {
+            _host.Pin = "1234";
+            RequestHeader header = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null);
+            header.LegacyPinHash = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";   // SHA-256 of 1234, as 0.5.7 sent it
+
+            JobReply reply = await Client().SendJobAsync(header, WriteXps(5000), null, CancellationToken.None);
+
+            Assert.IsFalse(reply.Ok);
+            Assert.IsTrue(reply.Retry);
+            StringAssert.Contains(reply.Message, "0.5.8");
+            Assert.AreEqual(0, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task SendJob_AfterFiveWrongPins_EvenTheRightOneWaits()
+        {
+            _host.Pin = "1234";
+            string file = WriteXps(5000);
+            for (int i = 0; i < PinAttemptLimiter.TriesBeforeWait; i++)
+            {
+                JobReply wrong = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "000" + i), file, null, CancellationToken.None);
+                Assert.IsFalse(wrong.Ok);
+            }
+
+            JobReply right = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "1234"), file, null, CancellationToken.None);
+
+            Assert.IsFalse(right.Ok, "guessing on stops for a while");
+            Assert.IsTrue(right.Retry, "the job waits for Retry");
+            StringAssert.Contains(right.Message, "15 minutes");
+            Assert.AreEqual(0, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task SendJob_ARecordedProofDoesNotWorkForAnotherJob()
+        {
+            _host.Pin = "1234";
+            string file = WriteXps(5000);
+            RequestHeader recorded = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "1234");
+            JobReply first = await Client().SendJobAsync(recorded, file, null, CancellationToken.None);
+            Assert.IsTrue(first.Ok, first.Message);
+
+            RequestHeader forged = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null);
+            forged.Nonce = recorded.Nonce;
+            forged.Time = recorded.Time;
+            forged.Proof = recorded.Proof;   // a new job id: someone who saw the first job's header
+            JobReply second = await Client().SendJobAsync(forged, file, null, CancellationToken.None);
+
+            Assert.IsFalse(second.Ok);
+            Assert.AreEqual(1, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task Hello_WithAPinOnTheHost_ListsOnlyPcsThatProveIt()
+        {
+            _host.Pin = "1234";
+            RequestHeader stranger = RequestHeader.ForHello("Windows 11 Pro", "0.5.8", new[] { "abc123" });
+            stranger.Client = "MADE-UP-PC";
+            RequestHeader friend = RequestHeader.ForHello("Windows 11 Pro", "0.5.8", new[] { "abc123" }, "1234");
+            friend.Client = "COUNTER3";
+
+            JobReply refused = await Client().SendHelloAsync(stranger, CancellationToken.None);
+            JobReply welcomed = await Client().SendHelloAsync(friend, CancellationToken.None);
+
+            Assert.IsFalse(refused.Ok);
+            Assert.IsTrue(welcomed.Ok, welcomed.Message);
+            Assert.AreEqual("COUNTER3", _host.Presence.All().Single().Name);
+        }
+
+        [TestMethod]
         public async Task SendJob_UnknownPrinter_ListsTheSharedOnes()
         {
             string file = WriteXps(2000);

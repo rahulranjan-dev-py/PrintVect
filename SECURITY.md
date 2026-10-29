@@ -17,7 +17,10 @@ These are known limits of the design, not vulnerabilities:
 
 - PrintVect is meant for a trusted home or office network. Its ports (UDP 9150, TCP 9151) are opened in Windows Firewall on
   private and domain networks only.
-- Without a sharing PIN, any PC on the same network can print to the shared printers. With a PIN, every job must carry
-  the PIN's SHA-256 hash. Print jobs are not encrypted on the network.
+- Without a sharing PIN, any PC on the same network can print to the shared printers. With a PIN (0.5.8), every job and
+  hello carries a one-time proof of it (PBKDF2-SHA256 salted with that request), never the PIN or a plain hash of it,
+  and a PC that sends 5 wrong PINs must wait 15 minutes, twice as long each further time. Someone who records the
+  network traffic can still try to guess a short PIN offline, so use 8 or more characters where that matters. Print
+  jobs are not encrypted on the network.
 - The setup program and the program files are not code-signed yet (see [CODE_SIGNING.md](CODE_SIGNING.md)); the
   updater checks each downloaded setup program's size and SHA-256 against the release before running it.

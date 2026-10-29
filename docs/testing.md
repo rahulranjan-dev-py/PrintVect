@@ -636,6 +636,25 @@ while a file waits, and half a second of no change is enough (the file must stil
 | 4 | Print again, turn on **Don't ask again on this PC**, Print. Print once more. | The first job prints; the next one goes without the window. Settings, General: **Ask how many copies** is off. Turn it on: the window is back for the next job. |
 | 5 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | For the job of step 2: "Print job … is being written", then "New print job for …" about a second later or less (0.5.6: up to 4), then "Copies question: 2." |
 
+## 0.5.8: the sharing PIN never crosses the network
+
+From the owner's security review (2026-10-29): the PIN travelled as its plain SHA-256 hash, which worked as the
+password forever for anyone who saw it, and the host never slowed down wrong guesses. Now each job and hello carries a
+one-time proof of the PIN (made for that job, printer and size, valid for a day), and after 5 wrong PINs from one PC
+the host checks that PC's PIN again only after 15 minutes, then 30, 60, up to 4 hours. A right PIN starts afresh.
+Use two PCs that both have a sharing PIN: HOST has the printer, CLIENT prints.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.8. On **every** PC: Settings, Check now, Update now. | "Version 0.5.8 · up to date" under the menu. With a PIN, PCs on 0.5.7 and 0.5.8 cannot print to each other until both are updated. |
+| 1 | Same PIN on both. Print a page from Notepad on CLIENT. | It prints as before. HOST's log: "Job from …", then "File received". |
+| 2 | HOST: Share my printers, "PCs that use this PC". | CLIENT is listed (within 5 minutes of its start). |
+| 3 | CLIENT: Settings, Security, Change PIN to a different one. Print a page. | The job waits: "HOST asks for the sharing PIN, and this job came with a different one." HOST's log: "Wrong sharing PIN from CLIENT (192.168.…); 4 more wrong tries before it has to wait." |
+| 4 | On CLIENT press **Retry waiting** until the message changes (at most 4 more times). | "Too many wrong sharing PINs came from CLIENT, so HOST checks its PIN again in 15 minutes." HOST's log: "… it waits 15 minutes before its PIN is checked again." The hello CLIENT sends every 5 minutes also counts, so this may come sooner. |
+| 5 | CLIENT: set the right PIN again; press Retry waiting at once. | Still "Too many wrong sharing PINs … in 15 minutes" (or fewer): the wait holds even for the right PIN. To skip it: Exit PrintVect on HOST and start it again. |
+| 6 | After the wait (or the restart), press Retry waiting. | The job prints. CLIENT's log: "Presence: HOST refused the hello (…)" from step 3, and from now on hellos are answered again. |
+| 7 | (If a PC with 0.5.7 is still around) print from it to HOST. | The job waits: "… runs a PrintVect older than 0.5.8 … Update PrintVect on …". |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

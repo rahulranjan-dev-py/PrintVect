@@ -4,7 +4,16 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
-## 0.5.7
+## 0.5.8
+
+The sharing PIN is harder to steal and to guess. It never crosses the network any more, not even as the plain
+SHA-256 hash earlier versions sent, which anyone watching the network could reuse as the password forever. Each job
+carries a one-time proof of the PIN instead: it is made for that job only and works for nothing else. A PC that sends
+5 wrong PINs has to wait 15 minutes before the PC with the printer checks its PIN again, twice as long each further
+time (at most 4 hours). With a PIN, the list of PCs that print here only shows PCs that know the PIN. **Update every
+PC**: with a sharing PIN, a PC on 0.5.7 and a PC on 0.5.8 cannot print to each other. **Tested:** awaiting test.
+
+## 0.5.7 (2026-10-29)
 
 The copies window: it opens about 2 to 3 seconds sooner after a program prints (the PC now looks at the finished
 print file within half a second instead of waiting for its 2-second check), it is as tall as its content so the

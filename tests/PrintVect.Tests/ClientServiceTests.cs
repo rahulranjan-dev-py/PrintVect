@@ -30,11 +30,12 @@ namespace PrintVect.Tests
         }
 
         public readonly List<RequestHeader> Hellos = new List<RequestHeader>();
+        public Func<RequestHeader, JobReply> OnHello = h => new JobReply { Ok = true, Message = "hello" };
 
         public Task<JobReply> HelloAsync(RemotePrinter printer, RequestHeader header, CancellationToken ct)
         {
             lock (Hellos) Hellos.Add(header);
-            return Task.FromResult(new JobReply { Ok = true, Message = "hello" });
+            return Task.FromResult(OnHello(header));
         }
 
         public Task<JobReply> StatusAsync(RemotePrinter printer, string jobId, CancellationToken ct)
@@ -282,7 +283,7 @@ namespace PrintVect.Tests
                     Assert.AreEqual(JobFormats.Oxps, header.Format);
                     Assert.AreEqual(record.JobId, header.JobId);
                     Assert.AreEqual("Letter to RMS", header.Doc);
-                    Assert.AreEqual(PinHash.Compute("1234"), header.Pin);
+                    Assert.AreEqual("1234", header.PinToSign, "JobClient proves this PIN just before sending");
                     Assert.IsTrue(record.FilePath.Contains(Path.DirectorySeparatorChar + ClientPrinterNames.SentFolderName + Path.DirectorySeparatorChar), record.FilePath);
                     Assert.IsTrue(File.Exists(record.FilePath));
                     Assert.AreEqual(1, service.Jobs.CountToday(ClientJobStates.Printed));
@@ -547,6 +548,25 @@ namespace PrintVect.Tests
             Assert.AreEqual(Environment.MachineName, counter1.Client);
             Assert.IsFalse(string.IsNullOrEmpty(counter1.Os));
             Assert.IsFalse(string.IsNullOrEmpty(counter1.AppVersion));
+        }
+
+        [TestMethod]
+        public async Task PresenceProvesThePin_AndStopsSayingHelloWhereItWasRefused()
+        {
+            var sender = new FakeJobSender { OnHello = h => new JobReply { Ok = false, Message = "COUNTER1 asks for the sharing PIN" } };
+            RemotePrinter a = Printer();
+            using (var announcer = new PresenceAnnouncer(sender, () => new List<RemotePrinter> { a }) { Pin = "1234" })
+            {
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual("1234", sender.Hellos.Single().PinToSign);
+
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual(1, sender.Hellos.Count, "a wrong PIN must not keep counting as wrong tries on the host");
+
+                announcer.Pin = "5678";
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual(2, sender.Hellos.Count, "a new PIN is tried");
+            }
         }
 
         [TestMethod]
