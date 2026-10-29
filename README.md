@@ -24,7 +24,7 @@ printers and many PCs at work. The PC that has a printer shares it in a few clic
 with one click and prints to it from any program, like a printer of its own. No print server, no cloud, no accounts:
 printing stays on your own network.
 
-![PrintVect: the Printers on other PCs page, with two printers from other PCs added](docs/screenshots/printers-on-other-pcs.png)
+[![Watch the 36-second PrintVect demo](docs/media/printvect-demo-poster.jpg)](docs/media/printvect-demo.mp4)
 
 ## Why
 
@@ -79,6 +79,11 @@ flowchart LR
 - Free and open source under the MIT licence. Built with C# and .NET Framework 4.8 (WinForms).
 
 ## Screenshots
+
+**Printers on other PCs**: the printers other PCs share, added to this PC with one click; they then appear in every
+program's Print window.
+
+![The Printers on other PCs page, with two printers from other PCs added](docs/screenshots/printers-on-other-pcs.png)
 
 **Share my printers**: tick the printers other PCs may use; the yellow note appears while there is no sharing PIN.
 
