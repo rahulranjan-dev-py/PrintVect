@@ -18,7 +18,12 @@ PC**: with a sharing PIN, a PC on 0.5.7 and a PC on 0.5.8 cannot print to each o
 Another PC can no longer take over a printer by answering with the same PC name when the real one has moved or is
 switched off. Each PC that shares printers now has its own secret identity key, and every PC that adds one of its
 printers remembers it (printers added before learn it within a few minutes). A printer follows its PC to a new address
-only when the PC there proves it holds that key; otherwise nothing is sent and the job says why. **Tested:** awaiting test.
+only when the PC there proves it holds that key; otherwise nothing is sent and the job says why.
+
+The administrator helper can no longer be tricked through the shared data folder: every user may write in
+`C:\ProgramData\PrintVect`, so another user could put a link (junction) there that leads to a Windows folder and wait
+for the helper to give "Users: Modify" rights or delete files through it. The helper now refuses to create, change or
+delete anything through such a link and says what to remove. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

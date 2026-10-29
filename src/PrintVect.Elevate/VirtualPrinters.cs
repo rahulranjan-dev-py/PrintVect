@@ -335,21 +335,6 @@ namespace PrintVect.Elevate
             }
         }
 
-        /// <summary>
-        /// Lets every user of the PC rename and delete the files the spooler writes into the folder
-        /// (ProgramData gives Users only create rights; files there belong to whoever created them).
-        /// </summary>
-        public static void GrantUsersModify(string folder)
-        {
-            Directory.CreateDirectory(folder);
-            DirectorySecurity security = Directory.GetAccessControl(folder);
-            var users = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
-            security.AddAccessRule(new FileSystemAccessRule(users, FileSystemRights.Modify | FileSystemRights.Synchronize,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-            Directory.SetAccessControl(folder, security);
-            Log.Info("Users may now modify " + folder + " and the files in it.");
-        }
-
         private static string Describe(int error)
         {
             return new Win32Exception(error).Message + " (error " + error + ")";

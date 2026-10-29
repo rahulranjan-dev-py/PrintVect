@@ -44,6 +44,13 @@ namespace PrintVect.Core.Elevation
                                      + ". Copy the whole PrintVect folder again, or run the installer.");
             }
 
+            string link = SafeFolders.FirstLinkInDataFolders(paths);
+            if (link != null)
+            {
+                Log.Warn("Not starting " + ExeName + ": " + link + " is a junction or symbolic link.");
+                return Fail(command, new LinkFoundException(link).Message);
+            }
+
             string resultFile = Path.Combine(paths.SpoolDir, "elevate-" + Guid.NewGuid().ToString("N") + ".json");
             arguments.Options[ElevateCommands.OptionResult] = resultFile;
             string commandLine = arguments.ToCommandLine();

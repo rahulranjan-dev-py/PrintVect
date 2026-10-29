@@ -674,6 +674,19 @@ when the PC at the new address signs a random challenge with the key remembered 
 | 3 | Move HOST to another address (connect it to the phone hotspot as in 0.5.0, with CLIENT on the same hotspot). Print from CLIENT. | It prints. CLIENT's log: "HOST now answers at … (was …); sending there." |
 | 4 | (Optional, needs a spare PC with PrintVect) give the spare PC HOST's PC name, share a printer on it, switch HOST off. Print from CLIENT. | Nothing prints on the spare PC. The job waits: "A PC calling itself HOST answers at …, but it is not HOST, the PC this printer was added from … Nothing was sent there." Give the spare PC its own name back afterwards. |
 
+### 3. The administrator helper never follows a link in the data folder
+
+Every user may write in `C:\ProgramData\PrintVect`. Another user could replace a folder there (spool, logs, or the
+folder of a printer about to be added) with a junction to a Windows folder; PrintVect.Elevate, running as
+administrator, then gave "Users: Modify" on the Windows folder or deleted files in it. Now it checks every folder on
+the way and refuses.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On CLIENT: Printers on other PCs, remove a printer, add it again. | Works as before (one Windows permission question each time). The newest `PrintVect-Elevate-….log` says "Users may now modify C:\ProgramData\PrintVect\spool\<id> and the files in it." |
+| 2 | Note the `<id>` from that line. Remove the printer again. Open Command Prompt (not as administrator) and type `mkdir C:\Users\Public\linktest` then `mklink /J C:\ProgramData\PrintVect\spool\<id> C:\Users\Public\linktest`. Add the printer again. | It is refused: "PrintVect did not touch C:\ProgramData\PrintVect\spool\<id>: it is a link to another place … Delete … then try again." `C:\Users\Public\linktest` (right-click, Properties, Security) has no new "Users" entry. |
+| 3 | Type `rmdir C:\ProgramData\PrintVect\spool\<id>` (removes the link only) and add the printer again. | Added as in step 1. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.

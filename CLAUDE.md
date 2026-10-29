@@ -34,7 +34,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
                          PrintVect-test-page.xps is a ready-made one-page test file (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer, remove-all
                          (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter, DeletePrinter, Users:Modify ACL
-                         on spool\<id>; when no XPS writer driver is installed it installs Windows' own from the driver store
+                         on spool\<id> via a handle; SafeFolders refuses junctions/links in the data folder, 0.5.8; when no XPS writer driver is installed it installs Windows' own from the driver store
                          (InstallPrinterDriverFromPackage) or turns on the feature with DISM Printing-XPSServices-Features);
                          autostart /on yes|no (HKLM Run); network-private /networks <ids> (0.5.0). Result: exit code + JSON.
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability, updates (loopback HTTP).

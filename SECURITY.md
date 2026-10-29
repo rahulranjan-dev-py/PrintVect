@@ -26,5 +26,8 @@ These are known limits of the design, not vulnerabilities:
   address only when the PC there proves, by signing a random challenge with the host's identity key, that it is the
   PC the printer was added from. Someone who can intercept the network traffic itself (not just answer on it) is
   outside what PrintVect can stop.
+- Every user may write in `C:\ProgramData\PrintVect`. The administrator helper (`PrintVect.Elevate.exe`) checks that no
+  folder it creates, gives rights on, deletes or writes its log and result in is a junction or symbolic link, and
+  gives the spool folder its rights through a handle to the folder it checked (0.5.8).
 - The setup program and the program files are not code-signed yet (see [CODE_SIGNING.md](CODE_SIGNING.md)); the
   updater checks each downloaded setup program's size and SHA-256 against the release before running it.
