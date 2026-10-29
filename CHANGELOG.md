@@ -4,7 +4,15 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
-## 0.5.6
+## 0.5.7
+
+The copies window: it opens about 2 to 3 seconds sooner after a program prints (the PC now looks at the finished
+print file within half a second instead of waiting for its 2-second check), it is as tall as its content so the
+buttons no longer cover the text above them, the switch reads "Don't ask again on this PC" on one line with "Turn it
+back on in Settings, General." under it, and the button just says **Print**: the minute until it prints by itself is
+a line under the buttons, so it is not mistaken for the number of copies. **Tested:** awaiting test.
+
+## 0.5.6 (2026-10-28)
 
 The menu fits "Printers on other PCs" in full, also in bold as the open page: it now measures the page names on the
 PC and makes itself wide enough (at least 248 px). **Tested:** awaiting test.

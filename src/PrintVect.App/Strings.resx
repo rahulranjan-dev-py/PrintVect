@@ -431,10 +431,16 @@ Details: {0}</value>
     <value>Copies</value>
   </data>
   <data name="CopiesDontAsk" xml:space="preserve">
-    <value>Don't ask again on this PC (Settings turns it back on)</value>
+    <value>Don't ask again on this PC</value>
+  </data>
+  <data name="CopiesDontAskHint" xml:space="preserve">
+    <value>Turn it back on in Settings, General.</value>
+  </data>
+  <data name="CopiesAutoPrint" xml:space="preserve">
+    <value>Prints by itself in {0} s if nobody answers.</value>
   </data>
   <data name="CopiesPrint" xml:space="preserve">
-    <value>Print ({0})</value>
+    <value>Print</value>
   </data>
   <data name="CopiesCancel" xml:space="preserve">
     <value>Cancel</value>

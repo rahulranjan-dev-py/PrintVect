@@ -478,6 +478,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Prints by itself in {0} s if nobody answers..
+        /// </summary>
+        internal static string CopiesAutoPrint {
+            get {
+                return ResourceManager.GetString("CopiesAutoPrint", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
         internal static string CopiesCancel {
@@ -496,11 +505,20 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Don't ask again on this PC (Settings turns it back on).
+        ///   Looks up a localized string similar to Don't ask again on this PC.
         /// </summary>
         internal static string CopiesDontAsk {
             get {
                 return ResourceManager.GetString("CopiesDontAsk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Turn it back on in Settings, General..
+        /// </summary>
+        internal static string CopiesDontAskHint {
+            get {
+                return ResourceManager.GetString("CopiesDontAskHint", resourceCulture);
             }
         }
 
@@ -532,7 +550,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Print ({0}).
+        ///   Looks up a localized string similar to Print.
         /// </summary>
         internal static string CopiesPrint {
             get {

@@ -66,6 +66,9 @@ Light / Dark / System default (Windows' app mode, `AppsUseLightTheme`, followed 
   The menu is 248 px wide (was 232) so "Printers on other PCs" fits in semibold; the window's minimum width 936 (920).
 - 0.5.6: on Windows that name still ended in "…" when open (semibold draws wider there), so the menu now measures its
   page names with TextRenderer and grows past 248 px when needed; the minimum window width grows by the same amount.
+- 0.5.7: the copies window is as tall as its content. Its switch is one line, "Don't ask again on this PC", with the
+  way back ("Turn it back on in Settings, General.", 12 px faint) under the switch's text; the button reads Print and
+  the countdown is a 12 px line under the buttons ("Prints by itself in 55 s if nobody answers.").
 - Fonts: Noto Sans (Regular, Medium, SemiBold, Bold; static, cut to Latin) and JetBrains Mono (Regular, SemiBold).
   Page title 26 px, section title 16 px, card title 15 to 17 px, text 14 px, secondary 13 px, pills 12.5 px.
 - Light (the canvas): page `#F3F5F4`, menu `#E9EEEC`, cards `#FFFFFF` with border `#DAE2DE`, text `#17211E`, muted
