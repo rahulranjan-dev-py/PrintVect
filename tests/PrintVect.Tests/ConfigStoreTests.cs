@@ -27,6 +27,23 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void APlainPinFromBefore058_IsReadAndThenKeptProtected()
+        {
+            using (var temp = new TempFolder())
+            {
+                var store = new ConfigStore(temp.File("config.json"));
+                File.WriteAllText(store.Path, "{ \"JobPort\": 9151, \"Pin\": \"2468\" }");
+
+                AppConfig config = store.Load();
+
+                Assert.AreEqual("2468", config.Pin);
+                string json = File.ReadAllText(store.Path);
+                Assert.IsFalse(json.Contains("2468"), "saved again at once without the plain PIN: " + json);
+                Assert.AreEqual("2468", store.Load().Pin);
+            }
+        }
+
+        [TestMethod]
         public void SaveThenLoad_RoundTripsEveryField()
         {
             using (var temp = new TempFolder())
@@ -56,8 +73,11 @@ namespace PrintVect.Tests
                 };
 
                 store.Save(original);
+                string json = File.ReadAllText(store.Path);
                 AppConfig loaded = store.Load();
 
+                Assert.IsFalse(json.Contains("4321"), "the PIN is not in the file in plain text: " + json);
+                StringAssert.Contains(json, "PinProtected");
                 Assert.AreEqual(9250, loaded.DiscoveryPort);
                 Assert.AreEqual(9251, loaded.JobPort);
                 Assert.AreEqual("4321", loaded.Pin);

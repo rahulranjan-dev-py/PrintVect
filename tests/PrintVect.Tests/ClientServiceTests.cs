@@ -30,11 +30,12 @@ namespace PrintVect.Tests
         }
 
         public readonly List<RequestHeader> Hellos = new List<RequestHeader>();
+        public Func<RequestHeader, JobReply> OnHello = h => new JobReply { Ok = true, Message = "hello" };
 
         public Task<JobReply> HelloAsync(RemotePrinter printer, RequestHeader header, CancellationToken ct)
         {
             lock (Hellos) Hellos.Add(header);
-            return Task.FromResult(new JobReply { Ok = true, Message = "hello" });
+            return Task.FromResult(OnHello(header));
         }
 
         public Task<JobReply> StatusAsync(RemotePrinter printer, string jobId, CancellationToken ct)
@@ -282,7 +283,7 @@ namespace PrintVect.Tests
                     Assert.AreEqual(JobFormats.Oxps, header.Format);
                     Assert.AreEqual(record.JobId, header.JobId);
                     Assert.AreEqual("Letter to RMS", header.Doc);
-                    Assert.AreEqual(PinHash.Compute("1234"), header.Pin);
+                    Assert.AreEqual("1234", header.PinToSign, "JobClient proves this PIN just before sending");
                     Assert.IsTrue(record.FilePath.Contains(Path.DirectorySeparatorChar + ClientPrinterNames.SentFolderName + Path.DirectorySeparatorChar), record.FilePath);
                     Assert.IsTrue(File.Exists(record.FilePath));
                     Assert.AreEqual(1, service.Jobs.CountToday(ClientJobStates.Printed));
@@ -550,6 +551,25 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public async Task PresenceProvesThePin_AndStopsSayingHelloWhereItWasRefused()
+        {
+            var sender = new FakeJobSender { OnHello = h => new JobReply { Ok = false, Message = "COUNTER1 asks for the sharing PIN" } };
+            RemotePrinter a = Printer();
+            using (var announcer = new PresenceAnnouncer(sender, () => new List<RemotePrinter> { a }) { Pin = "1234" })
+            {
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual("1234", sender.Hellos.Single().PinToSign);
+
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual(1, sender.Hellos.Count, "a wrong PIN must not keep counting as wrong tries on the host");
+
+                announcer.Pin = "5678";
+                await announcer.AnnounceAsync(CancellationToken.None);
+                Assert.AreEqual(2, sender.Hellos.Count, "a new PIN is tried");
+            }
+        }
+
+        [TestMethod]
         public void TheCopiesAnswerIsSentToTheHost()
         {
             using (var temp = new TempFolder())
@@ -769,7 +789,7 @@ namespace PrintVect.Tests
                     {
                         Interlocked.Increment(ref searches);
                         p.HostIp = "10.0.0.2";
-                        return Task.FromResult(true);
+                        return Task.FromResult(HostSearchOutcome.Followed);
                     };
                     var paths = new AppPaths(temp.Path);
                     service.StartWatching(printer);
@@ -797,7 +817,7 @@ namespace PrintVect.Tests
                     service.FindHost = (p, ct) =>
                     {
                         Interlocked.Increment(ref searches);
-                        return Task.FromResult(false);
+                        return Task.FromResult(HostSearchOutcome.NotFound);
                     };
                     var paths = new AppPaths(temp.Path);
                     RemotePrinter printer = Printer();
@@ -809,6 +829,30 @@ namespace PrintVect.Tests
                     Assert.AreEqual(1, searches);
                     Assert.AreEqual(3, sender.Sent.Count);
                     Assert.AreEqual("127.0.0.1", printer.HostIp, "the address stays when the host was not found elsewhere");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void APcThatCannotProveItIsTheHostGetsNothing_AndTheJobSaysWhy()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender { OnSend = h => null };
+                using (ClientService service = Service(temp, sender, 0, 10, 10))
+                {
+                    service.FindHost = (p, ct) => Task.FromResult(HostSearchOutcome.Refused(
+                        "A PC calling itself COUNTER1 answers at 192.168.10.66, but it is not COUNTER1. Nothing was sent there."));
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, true, "Not for strangers");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State, "kept for Retry");
+                    StringAssert.Contains(record.Message, "it is not COUNTER1");
+                    Assert.AreEqual("127.0.0.1", printer.HostIp);
+                    Assert.IsTrue(sender.Sent.All(h => h != null) && sender.Sent.Count == 3, "only the host's own address was tried");
                 }
             }
         }

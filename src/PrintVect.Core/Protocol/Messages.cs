@@ -88,9 +88,31 @@ namespace PrintVect.Core.Protocol
         [JsonProperty("doc", NullValueHandling = NullValueHandling.Ignore)]
         public string Doc { get; set; }
 
-        /// <summary>SHA-256 hex of the shared PIN, or empty/absent when no PIN is used.</summary>
+        /// <summary>
+        /// Before 0.5.8: SHA-256 hex of the sharing PIN. No longer sent; a host that sees it tells the sender to update.
+        /// </summary>
         [JsonProperty("pin", NullValueHandling = NullValueHandling.Ignore)]
-        public string Pin { get; set; }
+        public string LegacyPinHash { get; set; }
+
+        /// <summary>0.5.8: a random value that makes the PIN proof of this request one of a kind.</summary>
+        [JsonProperty("nonce", NullValueHandling = NullValueHandling.Ignore)]
+        public string Nonce { get; set; }
+
+        /// <summary>0.5.8: when the PIN proof was made, in seconds since 1970 (UTC).</summary>
+        [JsonProperty("time", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public long Time { get; set; }
+
+        /// <summary>0.5.8: the one-time proof that the sender knows the sharing PIN (PinProof); absent without a PIN.</summary>
+        [JsonProperty("pinProof", NullValueHandling = NullValueHandling.Ignore)]
+        public string Proof { get; set; }
+
+        /// <summary>List only (0.5.8): a random value the host signs with its identity key (ListReply.HostSig).</summary>
+        [JsonProperty("challenge", NullValueHandling = NullValueHandling.Ignore)]
+        public string Challenge { get; set; }
+
+        /// <summary>The PIN that JobClient proves just before sending. Never written to the network.</summary>
+        [JsonIgnore]
+        public string PinToSign { get; set; }
 
         /// <summary>Copies the host should print; 1 when absent. Read from the XPS print ticket on the client (M3).</summary>
         [Newtonsoft.Json.JsonProperty("copies", DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
@@ -108,7 +130,7 @@ namespace PrintVect.Core.Protocol
         [JsonProperty("printers", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> Printers { get; set; }
 
-        public static RequestHeader ForHello(string os, string appVersion, IEnumerable<string> printerIds)
+        public static RequestHeader ForHello(string os, string appVersion, IEnumerable<string> printerIds, string pin = null)
         {
             return new RequestHeader
             {
@@ -117,13 +139,14 @@ namespace PrintVect.Core.Protocol
                 User = Environment.UserName,
                 Os = os,
                 AppVersion = appVersion,
-                Printers = printerIds == null ? new List<string>() : new List<string>(printerIds)
+                Printers = printerIds == null ? new List<string>() : new List<string>(printerIds),
+                PinToSign = pin
             };
         }
 
-        public static RequestHeader ForList()
+        public static RequestHeader ForList(string challenge = null)
         {
-            return new RequestHeader { Type = RequestTypes.List };
+            return new RequestHeader { Type = RequestTypes.List, Challenge = challenge };
         }
 
         public static RequestHeader ForStatus(string jobId)
@@ -144,7 +167,7 @@ namespace PrintVect.Core.Protocol
                 Client = Environment.MachineName,
                 User = Environment.UserName,
                 Doc = doc ?? "",
-                Pin = string.IsNullOrEmpty(pin) ? "" : PinHash.Compute(pin)
+                PinToSign = pin
             };
         }
     }
@@ -225,5 +248,13 @@ namespace PrintVect.Core.Protocol
 
         [JsonProperty("message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
+
+        /// <summary>0.5.8: the host's public identity key (HostKeys); a client remembers its fingerprint with each printer.</summary>
+        [JsonProperty("hostKey", NullValueHandling = NullValueHandling.Ignore)]
+        public string HostKey { get; set; }
+
+        /// <summary>0.5.8, list replies to a request with a challenge: the host's signature of challenge, name and address.</summary>
+        [JsonProperty("hostSig", NullValueHandling = NullValueHandling.Ignore)]
+        public string HostSig { get; set; }
     }
 }

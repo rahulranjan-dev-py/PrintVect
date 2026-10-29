@@ -50,7 +50,7 @@ namespace PrintVect.Core.Client
 
         public ClientJobTracker Jobs { get; }
 
-        /// <summary>The office PIN sent with every job; empty when the hosts are open.</summary>
+        /// <summary>The sharing PIN every job proves (PinProof); empty when the hosts are open.</summary>
         public string Pin { get; set; } = "";
 
         /// <summary>Hours a sent file is kept in sent\ for diagnostics.</summary>
@@ -80,11 +80,11 @@ namespace PrintVect.Core.Client
         public Func<ClientJobRecord, Task<int?>> AskCopies { get; set; }
 
         /// <summary>
-        /// Looks for a host that did not answer at its address (0.5.0): true when it was found somewhere else and the
-        /// printer now carries the new address. A PC on a phone hotspot gets a new address each time it connects.
-        /// Null: no search (tests, pvct-send).
+        /// Looks for a host that did not answer at its address (0.5.0): Moved when it was found somewhere else, proved
+        /// it is that host (0.5.8), and the printer now carries the new address; Refusal when a PC answered for it but
+        /// could not prove it. A PC on a phone hotspot gets a new address each time it connects. Null: no search.
         /// </summary>
-        public Func<RemotePrinter, CancellationToken, Task<bool>> FindHost { get; set; }
+        public Func<RemotePrinter, CancellationToken, Task<HostSearchOutcome>> FindHost { get; set; }
 
         /// <summary>Raised on a thread-pool thread when a job reaches a final state (printed, error, pending).</summary>
         public event EventHandler<ClientJobRecord> JobFinished;
@@ -477,6 +477,7 @@ namespace PrintVect.Core.Client
         {
             string jobId = record.JobId;
             string lastError = null;
+            string refusal = null;
             TimeSpan[] delays = RetryDelays == null || RetryDelays.Length == 0 ? new[] { TimeSpan.Zero } : RetryDelays;
             bool searched = false;
             bool foundAgain = false;
@@ -526,7 +527,9 @@ namespace PrintVect.Core.Client
                     searched = true;
                     try
                     {
-                        foundAgain = await SearchForHostAsync(printer, record, ct).ConfigureAwait(false);
+                        HostSearchOutcome outcome = await SearchForHostAsync(printer, record, ct).ConfigureAwait(false);
+                        foundAgain = outcome.Moved;
+                        refusal = outcome.Refusal;
                     }
                     catch (OperationCanceledException)
                     {
@@ -537,19 +540,20 @@ namespace PrintVect.Core.Client
             }
 
             Finish(record, ClientJobStates.Pending,
-                printer.HostName + " did not answer (" + delays.Length + " tries). " + lastError + " The document is kept on this PC: "
+                printer.HostName + " did not answer (" + delays.Length + " tries). " + lastError + (refusal == null ? "" : " " + refusal)
+                + " The document is kept on this PC: "
                 + "when " + printer.HostName + " is back, press Retry waiting.", ClientPrinterNames.PendingFolderName);
         }
 
-        /// <summary>One search of the office for a host that did not answer; false when it was not found elsewhere.</summary>
-        private async Task<bool> SearchForHostAsync(RemotePrinter printer, ClientJobRecord record, CancellationToken ct)
+        /// <summary>One search of the office for a host that did not answer (and, 0.5.8, whether a PC that answered for it is really it).</summary>
+        private async Task<HostSearchOutcome> SearchForHostAsync(RemotePrinter printer, ClientJobRecord record, CancellationToken ct)
         {
             Update(record, ClientJobStates.Sending, "Looking for " + printer.HostName + " on the network.");
             string before = printer.HostIp;
-            bool found;
+            HostSearchOutcome outcome;
             try
             {
-                found = await FindHost(printer, ct).ConfigureAwait(false);
+                outcome = await FindHost(printer, ct).ConfigureAwait(false) ?? HostSearchOutcome.NotFound;
             }
             catch (OperationCanceledException)
             {
@@ -558,17 +562,21 @@ namespace PrintVect.Core.Client
             catch (Exception ex)
             {
                 Log.Warn(record.JobId, "The search for " + printer.HostName + " failed: " + ex.Message);
-                return false;
+                return HostSearchOutcome.NotFound;
             }
-            if (found)
+            if (outcome.Moved)
             {
                 Log.Info(record.JobId, printer.HostName + " now answers at " + printer.HostIp + " (was " + before + "); sending there.");
+            }
+            else if (outcome.Refusal != null)
+            {
+                Log.Warn(record.JobId, "Not following " + printer.HostName + ": " + outcome.Refusal);
             }
             else
             {
                 Log.Info(record.JobId, printer.HostName + " was not found at another address.");
             }
-            return found;
+            return outcome;
         }
 
         private async Task HandleReplyAsync(RemotePrinter printer, ClientJobRecord record, JobReply reply, CancellationToken ct)

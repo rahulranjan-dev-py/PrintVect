@@ -33,6 +33,13 @@ namespace PrintVect.Elevate
             _paths = AppPaths.Default();
             try
             {
+                // Every user may write in the data folder: never follow a link planted there with administrator rights (0.5.8).
+                string link = SafeFolders.FirstLinkInDataFolders(_paths);
+                if (link != null)
+                {
+                    Console.Error.WriteLine(new LinkFoundException(link).Message);
+                    return ElevateExitCodes.Failed;
+                }
                 _paths.EnsureDirectories();
                 Log.Initialize(_paths.LogsDir, LogPrefix);
             }
@@ -145,7 +152,9 @@ namespace PrintVect.Elevate
                 return result;
             }
 
-            VirtualPrinters.GrantUsersModify(folder);
+            SafeFolders.GrantUsersModify(SafeFolders.TopOf(_paths), folder);   // refuses a junction or link on the way (0.5.8)
+            Log.Info("Users may now modify " + folder + " and the files in it.");
+            SafeFolders.RefuseLinks(SafeFolders.TopOf(_paths), port);
             VirtualPrinters.AddLocalPort(port);
 
             bool existed = VirtualPrinters.PrinterExists(name);
@@ -319,6 +328,7 @@ namespace PrintVect.Elevate
         {
             try
             {
+                SafeFolders.RefuseLinks(SafeFolders.TopOf(_paths), folder);   // never delete where a planted link leads (0.5.8)
                 if (Directory.Exists(folder))
                 {
                     Directory.Delete(folder, true);
@@ -415,7 +425,14 @@ namespace PrintVect.Elevate
             try
             {
                 string folder = Path.GetDirectoryName(resultFile);
-                if (!string.IsNullOrEmpty(folder))
+                string top = SafeFolders.TopOf(_paths);
+                bool inDataFolder = !string.IsNullOrEmpty(folder) && Path.GetFullPath(resultFile).StartsWith(top + "\\", StringComparison.OrdinalIgnoreCase);
+                if (inDataFolder)
+                {
+                    SafeFolders.CreateFolder(top, folder);
+                    SafeFolders.RefuseLinks(top, resultFile);
+                }
+                else if (!string.IsNullOrEmpty(folder))
                 {
                     Directory.CreateDirectory(folder);
                 }

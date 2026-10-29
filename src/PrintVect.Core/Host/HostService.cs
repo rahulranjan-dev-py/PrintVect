@@ -29,9 +29,15 @@ namespace PrintVect.Core.Host
         private readonly JobTracker _tracker;
         private readonly IncomingSpool _spool;
         private readonly ConcurrentDictionary<TcpClient, byte> _connections = new ConcurrentDictionary<TcpClient, byte>();
+        private readonly PinAttemptLimiter _pinTries = new PinAttemptLimiter();
+        private readonly Dictionary<string, RefusedConnections> _refusedConnections = new Dictionary<string, RefusedConnections>(StringComparer.OrdinalIgnoreCase);
+        private readonly object _spaceGate = new object();
+        private long _reservedBytes;
+        private Timer _sweep;
         private readonly object _lifecycle = new object();
         private SharedPrinter[] _shared = new SharedPrinter[0];
         private string _pin = "";
+        private HostIdentity _identity;
         private TcpListener _listener;
         private CancellationTokenSource _stopping;
         private PrintDispatcher _dispatcher;
@@ -62,6 +68,34 @@ namespace PrintVect.Core.Host
             get { return Volatile.Read(ref _pin); }
             set { Volatile.Write(ref _pin, value ?? ""); }
         }
+
+        /// <summary>
+        /// This PC's identity key (0.5.8): its public half goes out with list and discovery replies, and a list request
+        /// with a challenge gets it signed. Null until it is loaded (the replies then go without it).
+        /// </summary>
+        public HostIdentity Identity
+        {
+            get { return Volatile.Read(ref _identity); }
+            set { Volatile.Write(ref _identity, value); }
+        }
+
+        /// <summary>Limits on simultaneous and repeated connections to the job port (0.5.8).</summary>
+        public ConnectionLimiter Connections { get; } = new ConnectionLimiter();
+
+        /// <summary>A connection must send its request within this time, or it is closed (0.5.8).</summary>
+        public TimeSpan HeaderTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// The most that received documents may take in spool\incoming\ together (0.5.8). Older files no job waits for are
+        /// deleted first to make room; a job that still does not fit is refused and waits for Retry on the sender.
+        /// </summary>
+        public long MaxIncomingBytes { get; set; } = 1024L * 1024 * 1024;
+
+        /// <summary>A job is refused when it would leave less than this free on the disk of spool\incoming\ (0.5.8).</summary>
+        public long MinFreeDiskBytes { get; set; } = 256L * 1024 * 1024;
+
+        /// <summary>Received files no job waits for any more (failed prints, leftovers) are deleted after this (0.5.8: every hour).</summary>
+        public TimeSpan KeepUnusedFilesFor { get; set; } = TimeSpan.FromHours(24);
 
         /// <summary>The port actually bound (useful when 0 was requested).</summary>
         public int Port { get; private set; }
@@ -135,7 +169,7 @@ namespace PrintVect.Core.Host
                 }
 
                 _spool.Ensure();
-                int swept = _spool.SweepOlderThan(TimeSpan.FromHours(24));
+                int swept = _spool.DeleteUnusedOlderThan(KeepUnusedFilesFor, ActiveFiles());
 
                 var listener = new TcpListener(IPAddress.Any, port);
                 listener.Start(16);
@@ -145,6 +179,7 @@ namespace PrintVect.Core.Host
                 _dispatcher = new PrintDispatcher(_engine);
                 ApplyPauses(_dispatcher, new SharedPrinter[0], Volatile.Read(ref _shared));
                 StartedAt = DateTime.Now;
+                _sweep = new Timer(_ => SweepUnusedFiles(), null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
 
                 CancellationToken token = _stopping.Token;
                 Task acceptLoop = Task.Run(() => AcceptLoopAsync(listener, token));
@@ -160,6 +195,7 @@ namespace PrintVect.Core.Host
             TcpListener listener;
             CancellationTokenSource stopping;
             PrintDispatcher dispatcher;
+            Timer sweep;
             lock (_lifecycle)
             {
                 if (_listener == null)
@@ -169,10 +205,16 @@ namespace PrintVect.Core.Host
                 listener = _listener;
                 stopping = _stopping;
                 dispatcher = _dispatcher;
+                sweep = _sweep;
                 _listener = null;
                 _stopping = null;
                 _dispatcher = null;
+                _sweep = null;
                 StartedAt = null;
+            }
+            if (sweep != null)
+            {
+                sweep.Dispose();
             }
 
             Log.Info("Sharing OFF: closing the job listener on port " + Port + ".");
@@ -222,12 +264,22 @@ namespace PrintVect.Core.Host
                     continue;
                 }
 
+                string address = RemoteAddress(Describe(client));
+                string tooMany = Connections.TryEnter(address, DateTime.UtcNow);
+                if (tooMany != null)
+                {
+                    NoteRefusedConnection(address, tooMany);
+                    SafeClose(client);
+                    continue;
+                }
+
                 _connections.TryAdd(client, 0);
                 TcpClient accepted = client;
                 Task tracked = Task.Run(() => HandleConnectionAsync(accepted, ct)).ContinueWith(t =>
                 {
                     byte unused;
                     _connections.TryRemove(accepted, out unused);
+                    Connections.Leave(address);
                     if (t.IsFaulted)
                     {
                         Log.Error("A connection handler failed unexpectedly.", t.Exception == null ? null : t.Exception.GetBaseException());
@@ -235,6 +287,108 @@ namespace PrintVect.Core.Host
                 }, TaskScheduler.Default);
             }
             Log.Info("Job listener stopped.");
+        }
+
+        /// <summary>Logs a connection closed by ConnectionLimiter at most once a minute per address, with how many since.</summary>
+        private void NoteRefusedConnection(string address, string reason)
+        {
+            DateTime now = DateTime.UtcNow;
+            int skipped;
+            lock (_refusedConnections)
+            {
+                RefusedConnections note;
+                if (_refusedConnections.TryGetValue(address, out note) && now - note.LoggedAt < TimeSpan.FromMinutes(1))
+                {
+                    note.Since++;
+                    return;
+                }
+                skipped = note == null ? 0 : note.Since;
+                if (_refusedConnections.Count > 256) _refusedConnections.Clear();
+                _refusedConnections[address] = new RefusedConnections { LoggedAt = now };
+            }
+            Log.Warn("Closed a connection from " + address + " at once: " + reason + (skipped > 0 ? " (" + skipped + " more closed since the last note)." : "."));
+        }
+
+        private sealed class RefusedConnections
+        {
+            public DateTime LoggedAt;
+            public int Since;
+        }
+
+        /// <summary>The files of jobs still waiting or printing: never deleted to make room.</summary>
+        private ICollection<string> ActiveFiles()
+        {
+            return new HashSet<string>(_tracker.All().Where(r => !JobStates.IsFinal(r.State) && !string.IsNullOrEmpty(r.FilePath))
+                .Select(r => Path.GetFullPath(r.FilePath)), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private void SweepUnusedFiles()
+        {
+            try
+            {
+                _spool.DeleteUnusedOlderThan(KeepUnusedFilesFor, ActiveFiles());
+            }
+            catch (Exception ex)
+            {
+                Log.Error("The hourly clean-up of " + _spool.Directory + " failed; it runs again in an hour.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Keeps room for a job of <paramref name="size"/> bytes (0.5.8): null when it fits (then ReleaseSpace must follow),
+        /// else the plain reason it does not. Unused older files are deleted first to make room.
+        /// </summary>
+        private string ReserveSpace(string jobId, long size)
+        {
+            string host = Environment.MachineName;
+            lock (_spaceGate)
+            {
+                long used = _spool.TotalBytes();
+                long over = used + _reservedBytes + size - MaxIncomingBytes;
+                if (over > 0)
+                {
+                    used -= _spool.FreeUnused(over, ActiveFiles());
+                }
+                if (used + _reservedBytes + size > MaxIncomingBytes)
+                {
+                    return host + " already holds " + Megabytes(used + _reservedBytes) + " of documents waiting to print, the most it keeps. "
+                           + "This job waits on the PC that sent it: press Retry waiting once those have printed.";
+                }
+                long free = FreeDiskBytes(jobId);
+                if (free >= 0 && free - size < MinFreeDiskBytes)
+                {
+                    return "The disk of " + host + " is nearly full (" + Megabytes(free) + " free), so it takes no more documents. "
+                           + "Free some space on " + host + ", then press Retry waiting.";
+                }
+                _reservedBytes += size;
+                return null;
+            }
+        }
+
+        private void ReleaseSpace(long size)
+        {
+            lock (_spaceGate)
+            {
+                _reservedBytes -= size;
+            }
+        }
+
+        private long FreeDiskBytes(string jobId)
+        {
+            try
+            {
+                return new DriveInfo(Path.GetPathRoot(Path.GetFullPath(_spool.Directory))).AvailableFreeSpace;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(jobId, "The free space on the disk of " + _spool.Directory + " could not be read: " + ex.Message);
+                return -1;
+            }
+        }
+
+        private static string Megabytes(long bytes)
+        {
+            return (bytes / (1024 * 1024)).ToString("N0", CultureInfo.CurrentCulture) + " MB";
         }
 
         private async Task HandleConnectionAsync(TcpClient client, CancellationToken ct)
@@ -248,7 +402,8 @@ namespace PrintVect.Core.Host
             using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
             using (timeout.Token.Register(() => SafeClose(client)))
             {
-                timeout.CancelAfter(ProtocolConstants.TransferTimeout);
+                timeout.CancelAfter(HeaderTimeout);   // the request must come at once (0.5.8); the transfer then gets its 5 minutes
+                bool headerRead = false;
                 NetworkStream stream = null;
                 try
                 {
@@ -257,6 +412,8 @@ namespace PrintVect.Core.Host
                     Log.Info("Connection from " + remote + ".");
 
                     RequestHeader header = await Framing.ReadHeaderAsync(stream, timeout.Token).ConfigureAwait(false);
+                    headerRead = true;
+                    timeout.CancelAfter(ProtocolConstants.TransferTimeout);
                     jobId = header.JobId;
 
                     object reply;
@@ -274,7 +431,7 @@ namespace PrintVect.Core.Host
                         switch (header.Type)
                         {
                             case RequestTypes.List:
-                                reply = BuildListReply(localIp);
+                                reply = BuildListReply(localIp, header.Challenge);
                                 break;
                             case RequestTypes.Status:
                                 reply = HandleStatus(header);
@@ -283,7 +440,7 @@ namespace PrintVect.Core.Host
                                 reply = await HandleJobAsync(header, stream, remote, timeout.Token).ConfigureAwait(false);
                                 break;
                             case RequestTypes.Hello:
-                                reply = HandleHello(header, client);
+                                reply = HandleHello(header, remote);
                                 break;
                             default:
                                 Log.Warn(jobId, "Unknown request type \"" + header.Type + "\" from " + remote + ".");
@@ -310,8 +467,9 @@ namespace PrintVect.Core.Host
                 }
                 catch (Exception ex) when (timeout.IsCancellationRequested)
                 {
-                    Log.Warn(jobId, "Connection from " + remote + " timed out after " + ProtocolConstants.TransferTimeout.TotalMinutes
-                                    + " minutes (" + ex.GetType().Name + ").");
+                    Log.Warn(jobId, "Connection from " + remote + (headerRead
+                        ? " timed out after " + ProtocolConstants.TransferTimeout.TotalMinutes + " minutes"
+                        : " sent no request within " + HeaderTimeout.TotalSeconds + " s; closed") + " (" + ex.GetType().Name + ").");
                 }
                 catch (Exception ex)
                 {
@@ -329,7 +487,7 @@ namespace PrintVect.Core.Host
             return BuildListReply(local == null ? "" : local.ToString());
         }
 
-        private ListReply BuildListReply(string localIp)
+        private ListReply BuildListReply(string localIp, string challenge = null)
         {
             SharedPrinter[] shared = Volatile.Read(ref _shared);
             IList<LocalPrinterInfo> statuses;
@@ -343,7 +501,12 @@ namespace PrintVect.Core.Host
                 statuses = new List<LocalPrinterInfo>();
             }
 
-            var reply = new ListReply { Host = Environment.MachineName, Ip = localIp, Port = Port };
+            HostIdentity identity = Identity;
+            var reply = new ListReply { Host = Environment.MachineName, Ip = localIp, Port = Port, HostKey = identity == null ? null : identity.PublicKey };
+            if (identity != null && !string.IsNullOrEmpty(challenge))
+            {
+                reply.HostSig = identity.Sign(challenge, reply.Host, localIp);   // proves this PC answers on this address
+            }
             foreach (SharedPrinter printer in shared)
             {
                 LocalPrinterInfo local = statuses.FirstOrDefault(s => string.Equals(s.Name, printer.LocalName, StringComparison.OrdinalIgnoreCase));
@@ -426,13 +589,14 @@ namespace PrintVect.Core.Host
                 remote, header.Client, header.User, header.PrinterId, header.Doc, header.Format, header.Size));
 
             SharedPrinter printer;
-            string refusal = Validate(header, out printer);
+            bool pinRefused;
+            string refusal = Validate(header, RemoteAddress(remote), out printer, out pinRefused);
             if (refusal != null)
             {
                 Log.Warn(jobId, "Refused: " + refusal);
                 await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
                 JobReply refused = JobReply.Error(jobId, refusal);
-                refused.Retry = !PinHash.Matches(Pin, header.Pin);   // once the PINs match, the same job can go again
+                refused.Retry = pinRefused;   // once the PINs match, the same job can go again
                 return refused;
             }
             Presence.Seen(header.Client, RemoteAddress(remote), null, null, header.User);
@@ -454,6 +618,28 @@ namespace PrintVect.Core.Host
                 };
             }
 
+            string noRoom = ReserveSpace(jobId, header.Size);
+            if (noRoom != null)
+            {
+                Log.Warn(jobId, "Refused: " + noRoom);
+                await DrainBodyAsync(stream, header, jobId, ct).ConfigureAwait(false);
+                JobReply full = JobReply.Error(jobId, noRoom);
+                full.Retry = true;
+                return full;
+            }
+            try
+            {
+                return await ReceiveAndPrintAsync(header, jobId, printer, remote, stream, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                ReleaseSpace(header.Size);
+            }
+        }
+
+        private async Task<JobReply> ReceiveAndPrintAsync(RequestHeader header, string jobId, SharedPrinter printer, string remote, NetworkStream stream,
+            CancellationToken ct)
+        {
             string path = _spool.PathFor(jobId, header.Format);
             JobRecord record = _tracker.Add(new JobRecord
             {
@@ -509,9 +695,9 @@ namespace PrintVect.Core.Host
             XpsFileInfo content = XpsFormatSniffer.Inspect(path);
             if (!content.IsXpsPackage)
             {
-                string message = "The file is not an XPS document (" + content.Problem + "). It was kept at "
-                                 + path + " on " + Environment.MachineName + " for diagnosis.";
+                string message = "The file is not an XPS document (" + content.Problem + "); " + Environment.MachineName + " deleted it.";
                 Log.Warn(jobId, message);
+                _spool.DeleteQuietly(path, jobId);   // 0.5.8: junk is not kept (it filled the disk)
                 RaiseFinished(_tracker.Update(jobId, JobStates.Error, message));
                 return JobReply.Error(jobId, message);
             }
@@ -616,12 +802,74 @@ namespace PrintVect.Core.Host
             return null;
         }
 
-        /// <summary>A client says it uses this host's printers; it is listed on the Share page with its Windows version.</summary>
-        private JobReply HandleHello(RequestHeader header, TcpClient client)
+        /// <summary>
+        /// A client says it uses this host's printers; it is listed on the Share page with its Windows version. With a
+        /// sharing PIN, only a PC that proves the PIN is listed (0.5.8), so nobody can fill the list with made-up PCs.
+        /// </summary>
+        private JobReply HandleHello(RequestHeader header, string remote)
         {
-            string name = string.IsNullOrWhiteSpace(header.Client) ? RemoteAddress(Describe(client)) : header.Client.Trim();
-            Presence.Seen(name, RemoteAddress(Describe(client)), header.Os, header.AppVersion, header.User);
+            string address = RemoteAddress(remote);
+            string name = string.IsNullOrWhiteSpace(header.Client) ? address : header.Client.Trim();
+            string refusal = CheckPin(header, address);
+            if (refusal != null)
+            {
+                Log.Warn("Hello from " + name + " (" + address + ") refused: " + refusal);
+                return JobReply.Error(null, refusal);
+            }
+            Presence.Seen(name, address, header.Os, header.AppVersion, header.User);
             return new JobReply { Ok = true, Message = Environment.MachineName + " knows that " + name + " uses its printers." };
+        }
+
+        /// <summary>
+        /// Null when the request may go on: this PC has no sharing PIN, or the request proves it (PinProof). Else the
+        /// plain reason. Wrong PINs are counted per address; after 5 the address waits (PinAttemptLimiter).
+        /// </summary>
+        private string CheckPin(RequestHeader header, string address)
+        {
+            string pin = Pin;
+            if (string.IsNullOrEmpty(pin))
+            {
+                return null;
+            }
+            string host = Environment.MachineName;
+            string sender = string.IsNullOrWhiteSpace(header.Client) ? address : header.Client.Trim();
+            string what = header.Type == RequestTypes.Hello ? "the hello from " + sender : "this job";
+            string again = "Set the same sharing PIN in PrintVect Settings on both PCs.";
+            DateTime now = DateTime.UtcNow;
+            TimeSpan wait = _pinTries.WaitFor(address, now);
+            if (wait > TimeSpan.Zero)
+            {
+                return "Too many wrong sharing PINs came from " + sender + ", so " + host + " checks its PIN again in " + Minutes(wait)
+                       + ". " + again;
+            }
+            switch (PinProof.Check(pin, header, now))
+            {
+                case PinCheck.Open:
+                case PinCheck.Accepted:
+                    _pinTries.Succeeded(address);
+                    return null;
+                case PinCheck.Outdated:
+                    return sender + " runs a PrintVect older than 0.5.8, which sends the sharing PIN in a way " + host
+                           + " no longer accepts. Update PrintVect on " + sender + " (Settings, Updates, Check now).";
+                case PinCheck.ClockOff:
+                    return "The clocks of " + sender + " (" + PinProof.TimeOf(header).ToString("g", CultureInfo.CurrentCulture) + ") and " + host
+                           + " (" + DateTime.Now.ToString("g", CultureInfo.CurrentCulture) + ") differ by more than a day, so " + host
+                           + " cannot check the sharing PIN. Set the right date and time on both PCs (Windows Settings, Time & language).";
+                case PinCheck.Wrong:
+                    int left = _pinTries.Failed(address, now);
+                    Log.Warn(header.JobId, "Wrong sharing PIN from " + sender + " (" + address + "); "
+                                           + (left > 0 ? left + " more wrong tr" + (left == 1 ? "y" : "ies") + " before it has to wait."
+                                                       : "it waits " + Minutes(_pinTries.WaitFor(address, now)) + " before its PIN is checked again."));
+                    return host + " asks for the sharing PIN, and " + what + " came with a different one. " + again;
+                default:
+                    return host + " asks for the sharing PIN, and " + what + " came without one. " + again;
+            }
+        }
+
+        private static string Minutes(TimeSpan wait)
+        {
+            int minutes = Math.Max(1, (int)Math.Ceiling(wait.TotalMinutes));
+            return minutes == 1 ? "1 minute" : minutes + " minutes";
         }
 
         /// <summary>"10.0.0.5:51234" gives "10.0.0.5".</summary>
@@ -632,15 +880,16 @@ namespace PrintVect.Core.Host
             return colon > 0 ? endpoint.Substring(0, colon) : endpoint;
         }
 
-        private string Validate(RequestHeader header, out SharedPrinter printer)
+        private string Validate(RequestHeader header, string address, out SharedPrinter printer, out bool pinRefused)
         {
             printer = null;
             string host = Environment.MachineName;
 
-            if (!PinHash.Matches(Pin, header.Pin))
+            string pinProblem = CheckPin(header, address);
+            pinRefused = pinProblem != null;
+            if (pinRefused)
             {
-                return host + " asks for the sharing PIN, and this job came with a different one or none. "
-                       + "Set the same sharing PIN in PrintVect Settings on both PCs.";
+                return pinProblem;
             }
             if (!JobFormats.IsKnown(header.Format))
             {
@@ -720,7 +969,7 @@ namespace PrintVect.Core.Host
                 }
                 else
                 {
-                    Log.Info(jobId, "File kept for diagnosis: " + path);
+                    Log.Info(jobId, "File kept for diagnosis (deleted after " + KeepUnusedFilesFor.TotalHours + " hours, or sooner to make room): " + path);
                 }
                 Log.Info(jobId, "Finished: " + outcome.State + ". " + outcome.Message);
                 RaiseFinished(snapshot);

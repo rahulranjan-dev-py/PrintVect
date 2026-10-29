@@ -4,7 +4,46 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
-## 0.5.7
+## 0.5.8
+
+Security fixes from a review of the design.
+
+The sharing PIN is harder to steal and to guess. It never crosses the network any more, not even as the plain
+SHA-256 hash earlier versions sent, which anyone watching the network could reuse as the password forever. Each job
+carries a one-time proof of the PIN instead: it is made for that job only and works for nothing else. A PC that sends
+5 wrong PINs has to wait 15 minutes before the PC with the printer checks its PIN again, twice as long each further
+time (at most 4 hours). With a PIN, the list of PCs that print here only shows PCs that know the PIN. **Update every
+PC**: with a sharing PIN, a PC on 0.5.7 and a PC on 0.5.8 cannot print to each other.
+
+Another PC can no longer take over a printer by answering with the same PC name when the real one has moved or is
+switched off. Each PC that shares printers now has its own secret identity key, and every PC that adds one of its
+printers remembers it (printers added before learn it within a few minutes). A printer follows its PC to a new address
+only when the PC there proves it holds that key; otherwise nothing is sent and the job says why.
+
+The administrator helper can no longer be tricked through the shared data folder: every user may write in
+`C:\ProgramData\PrintVect`, so another user could put a link (junction) there that leads to a Windows folder and wait
+for the helper to give "Users: Modify" rights or delete files through it. The helper now refuses to create, change or
+delete anything through such a link and says what to remove.
+
+A PC that shares printers can no longer be flooded: it serves at most 32 connections at once (8 from one PC, and 120
+new ones a minute from one PC), closes a connection that sends nothing within 15 seconds, keeps at most 1 GB of
+documents waiting and stops taking more when its disk is nearly full (the job waits for Retry on the sending PC). A
+file that is not a print document is deleted at once, and files kept after a failed print are deleted after a day,
+checked every hour instead of only when sharing starts.
+
+Updates are checked more strictly: a release without its checksum file is no longer installed (it used to install
+after a size check only), and the downloaded setup program, which sits in a folder every user may write to, is held
+so nobody can change it and checked again just before it starts.
+
+New versions are published as test versions first: they reach only the PCs they are installed on by hand, and every
+other PC gets them once they are handed over (Actions, promote). The release text now says what changed, taken from
+this file.
+
+The sharing PIN is no longer written in plain text in `config.json` (which every user of the PC can open): it is kept
+protected by Windows for that PC, and a PIN saved by an earlier version is converted at the first start. The 10.8 MB
+demo video left the repository's files; the README plays the copy uploaded to GitHub. **Tested:** awaiting test.
+
+## 0.5.7 (2026-10-29)
 
 The copies window: it opens about 2 to 3 seconds sooner after a program prints (the PC now looks at the finished
 print file within half a second instead of waiting for its 2-second check), it is as tall as its content so the

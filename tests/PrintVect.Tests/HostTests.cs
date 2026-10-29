@@ -244,6 +244,76 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public async Task SendJob_ThePlainPinHashOfOlderVersions_IsRefusedWithUpdateAdvice()
+        {
+            _host.Pin = "1234";
+            RequestHeader header = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null);
+            header.LegacyPinHash = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";   // SHA-256 of 1234, as 0.5.7 sent it
+
+            JobReply reply = await Client().SendJobAsync(header, WriteXps(5000), null, CancellationToken.None);
+
+            Assert.IsFalse(reply.Ok);
+            Assert.IsTrue(reply.Retry);
+            StringAssert.Contains(reply.Message, "0.5.8");
+            Assert.AreEqual(0, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task SendJob_AfterFiveWrongPins_EvenTheRightOneWaits()
+        {
+            _host.Pin = "1234";
+            string file = WriteXps(5000);
+            for (int i = 0; i < PinAttemptLimiter.TriesBeforeWait; i++)
+            {
+                JobReply wrong = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "000" + i), file, null, CancellationToken.None);
+                Assert.IsFalse(wrong.Ok);
+            }
+
+            JobReply right = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "1234"), file, null, CancellationToken.None);
+
+            Assert.IsFalse(right.Ok, "guessing on stops for a while");
+            Assert.IsTrue(right.Retry, "the job waits for Retry");
+            StringAssert.Contains(right.Message, "15 minutes");
+            Assert.AreEqual(0, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task SendJob_ARecordedProofDoesNotWorkForAnotherJob()
+        {
+            _host.Pin = "1234";
+            string file = WriteXps(5000);
+            RequestHeader recorded = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", "1234");
+            JobReply first = await Client().SendJobAsync(recorded, file, null, CancellationToken.None);
+            Assert.IsTrue(first.Ok, first.Message);
+
+            RequestHeader forged = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null);
+            forged.Nonce = recorded.Nonce;
+            forged.Time = recorded.Time;
+            forged.Proof = recorded.Proof;   // a new job id: someone who saw the first job's header
+            JobReply second = await Client().SendJobAsync(forged, file, null, CancellationToken.None);
+
+            Assert.IsFalse(second.Ok);
+            Assert.AreEqual(1, _engine.Requests.Count);
+        }
+
+        [TestMethod]
+        public async Task Hello_WithAPinOnTheHost_ListsOnlyPcsThatProveIt()
+        {
+            _host.Pin = "1234";
+            RequestHeader stranger = RequestHeader.ForHello("Windows 11 Pro", "0.5.8", new[] { "abc123" });
+            stranger.Client = "MADE-UP-PC";
+            RequestHeader friend = RequestHeader.ForHello("Windows 11 Pro", "0.5.8", new[] { "abc123" }, "1234");
+            friend.Client = "COUNTER3";
+
+            JobReply refused = await Client().SendHelloAsync(stranger, CancellationToken.None);
+            JobReply welcomed = await Client().SendHelloAsync(friend, CancellationToken.None);
+
+            Assert.IsFalse(refused.Ok);
+            Assert.IsTrue(welcomed.Ok, welcomed.Message);
+            Assert.AreEqual("COUNTER3", _host.Presence.All().Single().Name);
+        }
+
+        [TestMethod]
         public async Task SendJob_UnknownPrinter_ListsTheSharedOnes()
         {
             string file = WriteXps(2000);
@@ -270,7 +340,7 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
-        public async Task SendJob_NotAnXpsFile_IsRefusedAndKept()
+        public async Task SendJob_NotAnXpsFile_IsRefusedAndDeleted()
         {
             string file = _temp.File("junk.xps");
             File.WriteAllText(file, "this is not a zip file at all");
@@ -279,8 +349,83 @@ namespace PrintVect.Tests
 
             Assert.IsFalse(reply.Ok);
             StringAssert.Contains(reply.Message, "not an XPS document");
-            Assert.AreEqual(1, Directory.GetFiles(_host.IncomingDirectory).Length, "kept for diagnosis");
+            StringAssert.Contains(reply.Message, "deleted");
+            Assert.AreEqual(0, Directory.GetFiles(_host.IncomingDirectory).Length, "junk must not fill the disk");
             Assert.AreEqual(0, _engine.Requests.Count);
+        }
+
+        /// <summary>True when the host closed the connection (read returns 0 or the connection was reset) within the time.</summary>
+        private static async Task<bool> ClosedByHostWithin(TcpClient raw, TimeSpan within)
+        {
+            NetworkStream stream = raw.GetStream();
+            var buffer = new byte[16];
+            Task<int> read = stream.ReadAsync(buffer, 0, buffer.Length);
+            if (await Task.WhenAny(read, Task.Delay(within)) != read)
+            {
+                return false;
+            }
+            try
+            {
+                return await read == 0;
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+        }
+
+        [TestMethod]
+        public async Task AConnectionThatSendsNothing_IsClosedAfterTheHeaderTimeout()
+        {
+            _host.HeaderTimeout = TimeSpan.FromMilliseconds(300);
+            using (var raw = new TcpClient())
+            {
+                await raw.ConnectAsync("127.0.0.1", _host.Port);
+                Assert.IsTrue(await ClosedByHostWithin(raw, TimeSpan.FromSeconds(5)), "a silent connection must not hold the host for 5 minutes");
+            }
+        }
+
+        [TestMethod]
+        public async Task TooManyConnectionsFromOnePc_AreClosedAtOnce()
+        {
+            _host.Connections.MaxPerAddress = 2;
+            using (var first = new TcpClient())
+            using (var second = new TcpClient())
+            using (var third = new TcpClient())
+            {
+                await first.ConnectAsync("127.0.0.1", _host.Port);
+                await second.ConnectAsync("127.0.0.1", _host.Port);
+                for (int i = 0; i < 50 && _host.Connections.OpenCount < 2; i++) await Task.Delay(20);
+                await third.ConnectAsync("127.0.0.1", _host.Port);
+
+                Assert.IsTrue(await ClosedByHostWithin(third, TimeSpan.FromSeconds(5)), "the third connection is closed at once");
+            }
+            for (int i = 0; i < 100 && _host.Connections.OpenCount > 0; i++) await Task.Delay(20);
+
+            ListReply list = await Client().ListPrintersAsync(CancellationToken.None);
+            Assert.IsTrue(list.Ok, "once they are closed, the PC is served again");
+        }
+
+        [TestMethod]
+        public async Task TheIncomingFolderHasACap_OlderUnusedFilesMakeRoomFirst()
+        {
+            _host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser", Paused = true } });
+            _host.MaxIncomingBytes = 250 * 1024;
+            string stray = Path.Combine(_host.IncomingDirectory, Guid.NewGuid().ToString("D") + ".xps");   // left by a failed print
+            File.WriteAllBytes(stray, new byte[100 * 1024]);
+            File.SetLastWriteTime(stray, DateTime.Now.AddHours(-2));
+
+            JobReply a = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "A", null), WriteXps(100 * 1024), null, CancellationToken.None);
+            JobReply b = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "b.xps", "xps", 0, "B", null), WriteXps(100 * 1024), null, CancellationToken.None);
+            JobReply c = await Client().SendJobAsync(RequestHeader.ForJob("abc123", "c.xps", "xps", 0, "C", null), WriteXps(100 * 1024), null, CancellationToken.None);
+
+            Assert.IsTrue(a.Ok, a.Message);
+            Assert.IsTrue(b.Ok, b.Message);
+            Assert.IsFalse(File.Exists(stray), "the unused file made room for B");
+            Assert.IsFalse(c.Ok, "A and B wait for the paused printer and are never deleted");
+            Assert.IsTrue(c.Retry, "C waits for Retry on the sender");
+            StringAssert.Contains(c.Message, "already holds");
+            Assert.AreEqual(2, Directory.GetFiles(_host.IncomingDirectory).Length);
         }
 
         [TestMethod]

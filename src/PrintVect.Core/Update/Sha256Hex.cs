@@ -21,6 +21,16 @@ namespace PrintVect.Core.Update
             }
         }
 
+        /// <summary>Of a stream already open, read from its start (the stream stays open).</summary>
+        public static string OfStream(Stream stream)
+        {
+            stream.Position = 0;
+            using (var sha = SHA256.Create())
+            {
+                return ToHex(sha.ComputeHash(stream));
+            }
+        }
+
         public static string OfBytes(byte[] data)
         {
             using (var sha = SHA256.Create())

@@ -54,6 +54,21 @@ namespace PrintVect.Core.Update
         public UpdateVerificationException(string message) : base(message) { }
     }
 
+    /// <summary>A downloaded setup program and what was verified about it, to be checked again just before it runs.</summary>
+    public sealed class VerifiedSetup
+    {
+        public VerifiedSetup(string path, string sha256, long size)
+        {
+            Path = path;
+            Sha256 = sha256;
+            Size = size;
+        }
+
+        public string Path { get; }
+        public string Sha256 { get; }
+        public long Size { get; }
+    }
+
     /// <summary>
     /// The one place PrintVect talks to the internet (CLAUDE.md): it asks GitHub for this
     /// repository's latest release, compares its version with the running program, and can download
@@ -145,15 +160,22 @@ namespace PrintVect.Core.Update
         }
 
         /// <summary>
-        /// Downloads the release's setup program into <paramref name="folder"/>, checks its size
-        /// and (when the release carries one) its SHA-256, and returns the verified file's path.
-        /// Older files in the folder are removed first. Throws on any failure; nothing half-done is left behind.
+        /// Downloads the release's setup program into <paramref name="folder"/>, checks its size and its SHA-256
+        /// against the release's checksum file, and returns the verified file. A release without a checksum file is
+        /// refused (0.5.8; it used to install after a size check only). Older files in the folder are removed first.
+        /// Throws on any failure; nothing half-done is left behind.
         /// </summary>
-        public async Task<string> DownloadAsync(ReleaseInfo release, string folder, IProgress<DownloadProgress> progress, CancellationToken ct)
+        public async Task<VerifiedSetup> DownloadAsync(ReleaseInfo release, string folder, IProgress<DownloadProgress> progress, CancellationToken ct)
         {
             if (release == null || release.Installer == null)
             {
                 throw new ArgumentException("The release has no setup program.", nameof(release));
+            }
+            if (release.InstallerHash == null)
+            {
+                Log.Warn("Update: release " + release.Tag + " has no checksum file (" + release.Installer.Name + ReleaseInfo.HashExtension + "); not downloaded.");
+                throw new UpdateVerificationException("version " + release.Tag + " on github.com has no checksum file, so PrintVect cannot check "
+                                                      + "the download and does not install it");
             }
             Directory.CreateDirectory(folder);
             string target = Path.Combine(folder, SafeFileName(release.Installer.Name));
@@ -165,23 +187,20 @@ namespace PrintVect.Core.Update
             {
                 using (HttpClient client = CreateClient(DownloadTimeout))
                 {
-                    string expectedHash = null;
-                    if (release.InstallerHash != null)
+                    string expectedHash;
+                    using (HttpResponseMessage hashResponse = await client.GetAsync(release.InstallerHash.Url, ct).ConfigureAwait(false))
                     {
-                        using (HttpResponseMessage hashResponse = await client.GetAsync(release.InstallerHash.Url, ct).ConfigureAwait(false))
+                        if (!hashResponse.IsSuccessStatusCode)
                         {
-                            if (!hashResponse.IsSuccessStatusCode)
-                            {
-                                throw new HttpRequestException("github.com answered " + (int)hashResponse.StatusCode + " "
-                                                               + hashResponse.ReasonPhrase + " for the checksum file");
-                            }
-                            string text = await hashResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            expectedHash = Sha256Hex.ParseHashText(text);
+                            throw new HttpRequestException("github.com answered " + (int)hashResponse.StatusCode + " "
+                                                           + hashResponse.ReasonPhrase + " for the checksum file");
                         }
-                        if (expectedHash == null)
-                        {
-                            throw new UpdateVerificationException("the checksum file " + release.InstallerHash.Name + " on github.com holds no SHA-256");
-                        }
+                        string text = await hashResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        expectedHash = Sha256Hex.ParseHashText(text);
+                    }
+                    if (expectedHash == null)
+                    {
+                        throw new UpdateVerificationException("the checksum file " + release.InstallerHash.Name + " on github.com holds no SHA-256");
                     }
 
                     using (HttpResponseMessage response = await client.GetAsync(release.Installer.Url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false))
@@ -214,28 +233,21 @@ namespace PrintVect.Core.Update
                     {
                         throw new UpdateVerificationException("the downloaded file is incomplete (" + actual + " of " + release.Installer.Size + " bytes)");
                     }
-                    if (expectedHash != null)
+                    string actualHash = Sha256Hex.OfFile(part);
+                    if (!Sha256Hex.Equal(actualHash, expectedHash))
                     {
-                        string actualHash = Sha256Hex.OfFile(part);
-                        if (!Sha256Hex.Equal(actualHash, expectedHash))
-                        {
-                            Log.Error("Update: checksum mismatch for " + part + ": expected " + expectedHash + ", got " + actualHash + ".");
-                            throw new UpdateVerificationException("the downloaded file is damaged (its checksum differs from the one on github.com)");
-                        }
-                        Log.Info("Update: " + actual + " bytes downloaded; the checksum " + actualHash + " matches.");
+                        Log.Error("Update: checksum mismatch for " + part + ": expected " + expectedHash + ", got " + actualHash + ".");
+                        throw new UpdateVerificationException("the downloaded file is damaged (its checksum differs from the one on github.com)");
                     }
-                    else
-                    {
-                        Log.Warn("Update: release " + release.Tag + " has no checksum file; only the size (" + actual + " bytes) was checked.");
-                    }
-                }
+                    Log.Info("Update: " + actual + " bytes downloaded; the checksum " + actualHash + " matches.");
 
-                if (File.Exists(target))
-                {
-                    File.Delete(target);
+                    if (File.Exists(target))
+                    {
+                        File.Delete(target);
+                    }
+                    File.Move(part, target);
+                    return new VerifiedSetup(target, actualHash, actual);
                 }
-                File.Move(part, target);
-                return target;
             }
             catch
             {

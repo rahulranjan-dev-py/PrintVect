@@ -11,7 +11,28 @@ namespace PrintVect.Core.Update
     /// and only then does its "Start PrintVect now" step run as the signed-in user again instead
     /// of as the administrator. /SILENT shows just the progress bar. The setup ends the running
     /// PrintVect itself (taskkill in its PrepareToInstall step) and starts the new one when done.
+    /// Every user may write in the updates folder, so the verified file is held open (Hold) from its last check until
+    /// the setup has started (0.5.8): nobody can change, replace or rename it, or a folder above it, in between.
     /// </summary>
+    /// <summary>The verified setup program held open (UpdateInstaller.Hold); disposing lets go of it.</summary>
+    public sealed class SetupHold : IDisposable
+    {
+        private readonly FileStream _stream;
+
+        internal SetupHold(string path, FileStream stream)
+        {
+            Path = path;
+            _stream = stream;
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            _stream.Dispose();
+        }
+    }
+
     public static class UpdateInstaller
     {
         public const string LogPrefix = "update-";
@@ -44,12 +65,43 @@ namespace PrintVect.Core.Update
             return AppVersions.Parse(middle);
         }
 
-        public static Process Start(string installerPath)
+        /// <summary>
+        /// Opens the verified setup program so that no one can write, delete or rename it while the hold lasts, and
+        /// checks its size and SHA-256 again through that very handle. Throws UpdateVerificationException when it
+        /// changed after the download was checked.
+        /// </summary>
+        public static SetupHold Hold(VerifiedSetup setup)
         {
-            if (!File.Exists(installerPath))
+            if (setup == null) throw new ArgumentNullException(nameof(setup));
+            if (!File.Exists(setup.Path))
             {
-                throw new FileNotFoundException("The setup program is missing.", installerPath);
+                throw new FileNotFoundException("The setup program is missing.", setup.Path);
             }
+            var stream = new FileStream(setup.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            try
+            {
+                string hash = Sha256Hex.OfStream(stream);
+                if (stream.Length != setup.Size || !Sha256Hex.Equal(hash, setup.Sha256))
+                {
+                    Log.Error("Update: " + setup.Path + " changed after it was checked (" + stream.Length + " bytes, SHA-256 " + hash
+                              + "; checked: " + setup.Size + " bytes, " + setup.Sha256 + "). It is not started.");
+                    throw new UpdateVerificationException("the downloaded setup program was changed on this PC after it was checked");
+                }
+                Log.Info("Update: " + setup.Path + " checked again just before starting it: the SHA-256 still matches.");
+                return new SetupHold(setup.Path, stream);
+            }
+            catch
+            {
+                stream.Dispose();
+                throw;
+            }
+        }
+
+        /// <summary>Starts the held setup program; keep the hold until it ends (or this program is ended by it).</summary>
+        public static Process Start(SetupHold hold)
+        {
+            if (hold == null) throw new ArgumentNullException(nameof(hold));
+            string installerPath = hold.Path;
             var info = new ProcessStartInfo(installerPath, BuildArguments(LogPathFor(installerPath)))
             {
                 UseShellExecute = true,

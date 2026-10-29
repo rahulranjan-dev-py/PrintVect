@@ -10,7 +10,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 - No NuGet in shipped code except Newtonsoft.Json. Test-only packages: MSTest. Ask before adding anything.
 - Printing and discovery are LAN only. The one internet call (owner's request, 2026-10-09) is the update check:
   Core/Update/UpdateChecker asks GitHub Releases of this repo over HTTPS (daily + Check now, off switch in Settings),
-  downloads PrintVect-Setup-<v>.exe, verifies size + .sha256, runs it /SILENT (UAC prompt; the setup ends the app
+  downloads PrintVect-Setup-<v>.exe, verifies size + .sha256 (no .sha256 = no update; held open and re-hashed just before it starts, 0.5.8), runs it /SILENT (UAC prompt; the setup ends the app
   and restarts it). No telemetry, no crash reporting, nothing else leaves the office.
 - Host role runs as a tray app in the logged-in user's session, never as a Windows Service
   (System.Printing does not work in Session 0).
@@ -18,7 +18,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
 - Protocol identifiers: discovery text `PVECT-DISCOVER 1`, TCP magic `PVCT`, `"app":"PrintVect"`.
 - All admin work lives in src/PrintVect.Elevate (requireAdministrator manifest, launched with
   ShellExecute "runas"). PrintVect.App is asInvoker and runs as a standard user.
-- Data in %ProgramData%\PrintVect\ : config.json, spool\, logs\ (daily files, keep 14 days), jobs-host.json and
+- Data in %ProgramData%\PrintVect\ : config.json (PIN and host key DPAPI-protected for the PC, 0.5.8), spool\, logs\ (daily files, keep 14 days), jobs-host.json and
   jobs-client.json (job history, last 200, saved a second after a change), updates\ (downloaded setup + its log).
 - All user-visible text lives in src/PrintVect.App/Strings.resx from day one (Hindi is Phase 2).
 - MIT licence (LICENSE in repo root).
@@ -34,7 +34,7 @@ docs/brief.md. Wire protocol: docs/protocol.md. Manual tests: docs/testing.md.
                          PrintVect-test-page.xps is a ready-made one-page test file (tools/make_test_page.py rebuilds it).
 - src/PrintVect.Elevate  tiny console exe, requireAdministrator. Commands add-printer, remove-printer, remove-all
                          (XcvData AddPort/DeletePort on the Local Port monitor, AddPrinter, DeletePrinter, Users:Modify ACL
-                         on spool\<id>; when no XPS writer driver is installed it installs Windows' own from the driver store
+                         on spool\<id> via a handle; SafeFolders refuses junctions/links in the data folder, 0.5.8; when no XPS writer driver is installed it installs Windows' own from the driver store
                          (InstallPrinterDriverFromPackage) or turns on the feature with DISM Printing-XPSServices-Features);
                          autostart /on yes|no (HKLM Run); network-private /networks <ids> (0.5.0). Result: exit code + JSON.
 - tests/PrintVect.Tests  MSTest, net48. Unit-tests framing, discovery JSON, config, file-stability, updates (loopback HTTP).
@@ -51,8 +51,9 @@ because it writes .xps; v4 writes .oxps; Local Port -> spool\<id>\job.xps) -> Sp
 polling, re-checks within 0.5 s; taken when exclusively openable and size stable 0.5 s) -> rename to job-<guid>.xps/.oxps
 (XpsFormatSniffer looks inside: namespace openxps.org = oxps; it also reads the docProps title; the v4 writer stores
 none, so the document name comes from EnumJobs on the virtual printer while the port writes) -> ClientService sends
-(3 tries, each IP then PC name; after the first failure one 3 s discovery search follows a host that moved (0.5.0);
-then pending\ and Retry resends under the same job id; sent\ kept 1 h, failed\ last 20) and polls status.
+(3 tries, each IP then PC name; after the first failure one 3 s discovery search follows a host that moved (0.5.0); a new address or the name's
+address is used only once it signs a challenge with the host key remembered for the printer (0.5.8, HostIdentity, MovedHostCheck); then pending\
+and Retry resends under the same job id; sent\ kept 1 h, failed\ last 20) and polls status.
 Host: receive into spool\incoming\ -> verify size, sniff the real format -> HostPrintEngine -> reply JSON -> watch the
 job (up to 60 s before replying). One job at a time per printer, arrival order, on that printer's worker thread (never
 the UI thread). Printer statuses and printing sit behind IPrinterStatusSource / IPrintEngine so HostService is
@@ -63,23 +64,22 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
   page is open, and once when a job cannot reach its host; hosts reply by UDP unicast with a JSON printer list.
 - Job: TCP 9151, one job per connection: `PVCT` + 4-byte LE header length + UTF-8 JSON header + file bytes. Host
   answers one JSON line ({ok, jobId, state, message}) and closes. Status: header {"type":"status","jobId"}, no body.
-- List: header {"type":"list"}, reply = discovery JSON + ok. Hello (M6b-2): {"type":"hello",client,os,appVersion,
+- List: header {"type":"list"}, reply = discovery JSON (with hostKey; hostSig when the request has a challenge, 0.5.8) + ok. Hello (M6b-2): {"type":"hello",client,os,appVersion,
   printers} every 5 min to each host used -> its "PCs that use this PC". Refusals: drained, ok=false; "retry":true =
   keep for Retry (lost job, PIN). A job id already printed or still queued gets its state back, never printed twice.
-- Sharing PIN: header carries its SHA-256 hex; empty = open on the LAN. Limits: file 200 MB, connect 5 s, transfer 5 min,
-  discovery 2 s. Manual IP/name entry always exists.
+- Sharing PIN (0.5.8, PinProof): job and hello carry nonce, time, pinProof = PBKDF2-SHA256(PIN, salt nonce/time/printer/jobId/size, 20000);
+  time within 24 h; the old plain hash "pin" is refused; 5 wrong per address -> wait 15 min, doubling to 4 h (PinAttemptLimiter).
+  Empty PIN = open on the LAN. Limits: file 200 MB, connect 5 s, header 15 s, transfer 5 min, discovery 2 s; host (0.5.8, ConnectionLimiter): 32 connections, 8 per address, 120/min per address; incoming <= 1 GB and 256 MB disk free (unused files evicted first, else retry), non-XPS deleted, unused files gone after 24 h (hourly). Manual IP/name entry always exists.
 
 ## Workflow
 - One milestone at a time (M0..M6 in the brief, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
-  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window).
-- Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework
-  4.8 targeting pack). `dotnet build PrintVect.sln -c Release` also works with the .NET 8 SDK.
-- Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml
-  (windows-latest) builds, tests, makes the setup program; release.yml publishes a release (Run workflow on main).
-- Claude Code cannot see a printer or run Windows print APIs: design every feature so the owner can verify it from a
-  log file or Diagnostics, and log every job step with its jobId on both sides.
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window), 0.5.8 (security review: PIN proof, host identity, Elevate link guard, host flood limits, strict updates, test releases).
+- Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework 4.8 targeting pack); `dotnet build PrintVect.sln -c Release` (.NET 8 SDK) too.
+- Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml (windows-latest) builds, tests, makes the setup program;
+  release.yml publishes a TEST version (pre-release, never "latest", so PCs skip it; text = CHANGELOG section via tools/release_notes.py); promote.yml makes it the latest release for every PC (0.5.8).
+- Claude Code cannot see a printer or run Windows print APIs: design every feature so the owner can verify it from a log file or Diagnostics, and log every job step with its jobId on both sides.
 - Commit after each milestone: `M2: client virtual printer and spool watcher`.
 - Files under %ProgramData% belong to the user who created them: the installer grants Users modify rights on
   %ProgramData%\PrintVect, and the logger still falls back to PrintVect-<user>-<date>.log if a file is not writable.

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrintVect.Core.Host;
 using PrintVect.Core.Protocol;
 
 namespace PrintVect.Tests
@@ -47,7 +48,8 @@ namespace PrintVect.Tests
             Assert.AreEqual("COUNTER3", decoded.Client);
             Assert.AreEqual("user1", decoded.User);
             Assert.AreEqual("Letter to HQ", decoded.Doc);
-            Assert.AreEqual(PinHash.Compute("1234"), decoded.Pin);
+            Assert.IsNull(decoded.PinToSign, "the PIN itself never travels");
+            Assert.IsNull(decoded.LegacyPinHash, "nor its plain hash (before 0.5.8)");
             Assert.AreEqual(stream.Length, stream.Position, "nothing may be left unread");
         }
 
@@ -198,31 +200,118 @@ namespace PrintVect.Tests
     }
 
     [TestClass]
-    public class PinHashTests
+    public class PinProofTests
+    {
+        private static RequestHeader SignedJob(string pin, DateTime utcNow)
+        {
+            RequestHeader header = RequestHeader.ForJob("abc123", "a.xps", "xps", 5000, "Letter", null);
+            PinProof.Sign(header, pin, utcNow);
+            return header;
+        }
+
+        [TestMethod]
+        public void TheRightPinIsAccepted_AndNeitherThePinNorItsHashTravels()
+        {
+            DateTime now = DateTime.UtcNow;
+            RequestHeader header = SignedJob("1234", now);
+
+            Assert.AreEqual(PinCheck.Accepted, PinProof.Check("1234", header, now));
+            string json = Encoding.UTF8.GetString(Framing.EncodeHeader(header));
+            Assert.IsFalse(json.Contains("1234"), json);
+            Assert.IsFalse(json.Contains("03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"), "the plain SHA-256 of 1234: " + json);
+            StringAssert.Contains(json, "\"pinProof\":");
+        }
+
+        [TestMethod]
+        public void EveryRequestGetsItsOwnProof()
+        {
+            DateTime now = DateTime.UtcNow;
+            Assert.AreNotEqual(SignedJob("1234", now).Proof, SignedJob("1234", now).Proof);
+        }
+
+        [TestMethod]
+        public void AWrongPinOrAChangedJobIsRefused()
+        {
+            DateTime now = DateTime.UtcNow;
+            Assert.AreEqual(PinCheck.Wrong, PinProof.Check("4321", SignedJob("1234", now), now));
+
+            RequestHeader replayed = SignedJob("1234", now);
+            replayed.JobId = Guid.NewGuid().ToString("D");   // a recorded proof reused for another job
+            Assert.AreEqual(PinCheck.Wrong, PinProof.Check("1234", replayed, now));
+
+            RequestHeader bigger = SignedJob("1234", now);
+            bigger.Size = 6000;
+            Assert.AreEqual(PinCheck.Wrong, PinProof.Check("1234", bigger, now));
+
+            RequestHeader otherPrinter = SignedJob("1234", now);
+            otherPrinter.PrinterId = "def456";
+            Assert.AreEqual(PinCheck.Wrong, PinProof.Check("1234", otherPrinter, now));
+        }
+
+        [TestMethod]
+        public void AnOpenHostAcceptsAnything_AndAPinHostTellsMissingFromOutdated()
+        {
+            DateTime now = DateTime.UtcNow;
+            RequestHeader none = SignedJob(null, now);
+            Assert.AreEqual(PinCheck.Open, PinProof.Check("", none, now));
+            Assert.AreEqual(PinCheck.Open, PinProof.Check(null, SignedJob("1234", now), now));
+            Assert.AreEqual(PinCheck.Missing, PinProof.Check("1234", none, now));
+
+            none.LegacyPinHash = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";   // what 0.5.7 sent
+            Assert.AreEqual(PinCheck.Outdated, PinProof.Check("1234", none, now), "the old plain hash is never accepted");
+        }
+
+        [TestMethod]
+        public void AProofFromMoreThanADayAwayIsRefused()
+        {
+            DateTime now = DateTime.UtcNow;
+            Assert.AreEqual(PinCheck.Accepted, PinProof.Check("1234", SignedJob("1234", now.AddHours(-23)), now));
+            Assert.AreEqual(PinCheck.ClockOff, PinProof.Check("1234", SignedJob("1234", now.AddHours(-25)), now));
+            Assert.AreEqual(PinCheck.ClockOff, PinProof.Check("1234", SignedJob("1234", now.AddHours(25)), now));
+        }
+    }
+
+    [TestClass]
+    public class PinAttemptLimiterTests
     {
         [TestMethod]
-        public void Compute_IsLowercaseSha256Hex()
+        public void FiveWrongTriesMakeTheAddressWait_LongerEachTime()
         {
-            Assert.AreEqual("03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", PinHash.Compute("1234"));
-            Assert.AreEqual(64, PinHash.Compute("").Length);
+            var limiter = new PinAttemptLimiter();
+            DateTime now = new DateTime(2026, 10, 29, 9, 0, 0, DateTimeKind.Utc);
+            for (int i = 1; i < PinAttemptLimiter.TriesBeforeWait; i++)
+            {
+                Assert.AreEqual(PinAttemptLimiter.TriesBeforeWait - i, limiter.Failed("192.168.10.23", now));
+                Assert.AreEqual(TimeSpan.Zero, limiter.WaitFor("192.168.10.23", now));
+            }
+            Assert.AreEqual(0, limiter.Failed("192.168.10.23", now));
+            Assert.AreEqual(PinAttemptLimiter.FirstWait, limiter.WaitFor("192.168.10.23", now));
+            Assert.AreEqual(TimeSpan.Zero, limiter.WaitFor("192.168.10.24", now), "another PC is not affected");
+
+            now += PinAttemptLimiter.FirstWait;
+            Assert.AreEqual(TimeSpan.Zero, limiter.WaitFor("192.168.10.23", now));
+            for (int i = 0; i < PinAttemptLimiter.TriesBeforeWait; i++) limiter.Failed("192.168.10.23", now);
+            Assert.AreEqual(TimeSpan.FromMinutes(30), limiter.WaitFor("192.168.10.23", now), "twice as long the second time");
+
+            for (int round = 0; round < 10; round++)
+            {
+                now += limiter.WaitFor("192.168.10.23", now);
+                for (int i = 0; i < PinAttemptLimiter.TriesBeforeWait; i++) limiter.Failed("192.168.10.23", now);
+            }
+            Assert.AreEqual(PinAttemptLimiter.LongestWait, limiter.WaitFor("192.168.10.23", now), "never longer than 4 hours");
         }
 
         [TestMethod]
-        public void Matches_OpenHostAcceptsAnything()
+        public void ARightPinOrAQuietDayStartsAfresh()
         {
-            Assert.IsTrue(PinHash.Matches("", null));
-            Assert.IsTrue(PinHash.Matches(null, "whatever"));
-        }
+            var limiter = new PinAttemptLimiter();
+            DateTime now = new DateTime(2026, 10, 29, 9, 0, 0, DateTimeKind.Utc);
+            limiter.Failed("192.168.10.23", now);
+            limiter.Failed("192.168.10.23", now);
+            limiter.Succeeded("192.168.10.23");
+            Assert.AreEqual(PinAttemptLimiter.TriesBeforeWait - 1, limiter.Failed("192.168.10.23", now));
 
-        [TestMethod]
-        public void Matches_RequiresTheRightDigest()
-        {
-            Assert.IsTrue(PinHash.Matches("1234", PinHash.Compute("1234")));
-            Assert.IsTrue(PinHash.Matches("1234", PinHash.Compute("1234").ToUpperInvariant()));
-            Assert.IsFalse(PinHash.Matches("1234", PinHash.Compute("4321")));
-            Assert.IsFalse(PinHash.Matches("1234", ""));
-            Assert.IsFalse(PinHash.Matches("1234", null));
-            Assert.IsFalse(PinHash.Matches("1234", "1234"), "the clear PIN is never accepted");
+            Assert.AreEqual(PinAttemptLimiter.TriesBeforeWait - 1, limiter.Failed("192.168.10.23", now + PinAttemptLimiter.ForgetAfter + TimeSpan.FromMinutes(1)));
         }
     }
 }

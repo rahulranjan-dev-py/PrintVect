@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using PrintVect.Core.Config;
 using PrintVect.Core.Logging;
 
@@ -45,36 +47,71 @@ namespace PrintVect.Core.Host
             }
         }
 
-        /// <summary>Removes leftovers from earlier runs. Returns how many files were deleted.</summary>
-        public int SweepOlderThan(TimeSpan age)
+        /// <summary>The size of every file in the folder together.</summary>
+        public long TotalBytes()
         {
-            if (!System.IO.Directory.Exists(Directory))
-            {
-                return 0;
-            }
+            return Files().Sum(f => f.Length);
+        }
 
-            int deleted = 0;
+        /// <summary>
+        /// Removes received files no job waits for any more (kept after a failed print, or left by an earlier run)
+        /// that are older than <paramref name="age"/>. Returns how many were deleted.
+        /// </summary>
+        public int DeleteUnusedOlderThan(TimeSpan age, ICollection<string> inUse)
+        {
             DateTime cutoff = DateTime.Now - age;
-            foreach (string file in System.IO.Directory.GetFiles(Directory))
+            int deleted = 0;
+            foreach (FileInfo file in Unused(inUse).Where(f => f.LastWriteTime < cutoff))
             {
-                try
-                {
-                    if (File.GetLastWriteTime(file) < cutoff)
-                    {
-                        File.Delete(file);
-                        deleted++;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Warn("Could not delete old spool file " + file + ": " + ex.Message);
-                }
+                if (TryDelete(file)) deleted++;
             }
             if (deleted > 0)
             {
                 Log.Info("Deleted " + deleted + " received file(s) older than " + age.TotalHours + " hours from " + Directory);
             }
             return deleted;
+        }
+
+        /// <summary>Deletes unused files, oldest first, until <paramref name="bytes"/> are free. Returns the bytes freed.</summary>
+        public long FreeUnused(long bytes, ICollection<string> inUse)
+        {
+            long freed = 0;
+            foreach (FileInfo file in Unused(inUse).OrderBy(f => f.LastWriteTimeUtc))
+            {
+                if (freed >= bytes) break;
+                long length = file.Length;
+                if (TryDelete(file)) freed += length;
+            }
+            if (freed > 0)
+            {
+                Log.Info("Deleted " + freed + " bytes of older received files to make room in " + Directory);
+            }
+            return freed;
+        }
+
+        private IEnumerable<FileInfo> Files()
+        {
+            var folder = new DirectoryInfo(Directory);
+            return folder.Exists ? folder.GetFiles() : new FileInfo[0];
+        }
+
+        private IEnumerable<FileInfo> Unused(ICollection<string> inUse)
+        {
+            return Files().Where(f => inUse == null || !inUse.Contains(f.FullName)).ToList();
+        }
+
+        private static bool TryDelete(FileInfo file)
+        {
+            try
+            {
+                file.Delete();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("Could not delete the received file " + file.FullName + ": " + ex.Message);
+                return false;
+            }
         }
     }
 }

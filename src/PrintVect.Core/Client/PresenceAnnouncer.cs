@@ -13,7 +13,9 @@ namespace PrintVect.Core.Client
     /// <summary>
     /// The light presence signal (M6b-2): every few minutes, this PC says hello to each host whose printers it has
     /// added, so that host can list the PCs that use it with their Windows and PrintVect versions. A host that does
-    /// not answer is simply tried again next time; the log notes only changes, not every quiet round.
+    /// not answer is simply tried again next time; the log notes only changes, not every quiet round. A host that
+    /// refuses the hello (a different sharing PIN, 0.5.8) gets no more hellos until this PC's PIN changes, so a wrong
+    /// PIN does not keep counting as wrong tries there and make that host wait before it takes this PC's jobs.
     /// </summary>
     public sealed class PresenceAnnouncer : IDisposable
     {
@@ -23,10 +25,12 @@ namespace PrintVect.Core.Client
         private readonly IJobSender _sender;
         private readonly Func<IList<RemotePrinter>> _printers;
         private readonly Dictionary<string, bool> _lastAnswered = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _refused = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly CancellationTokenSource _stopping = new CancellationTokenSource();
         private readonly Timer _timer;
         private int _running;
         private string _windows;
+        private string _pin = "";
 
         public PresenceAnnouncer(IJobSender sender, Func<IList<RemotePrinter>> printers)
         {
@@ -38,6 +42,23 @@ namespace PrintVect.Core.Client
         }
 
         public TimeSpan Interval { get; set; } = DefaultInterval;
+
+        /// <summary>Raised on a thread-pool thread with one printer of a host that answered a hello (0.5.8: its key can be learned).</summary>
+        public event EventHandler<RemotePrinter> HostAnswered;
+
+        /// <summary>The sharing PIN each hello proves; a change lets refused hosts hear from this PC again.</summary>
+        public string Pin
+        {
+            get { return Volatile.Read(ref _pin); }
+            set
+            {
+                Volatile.Write(ref _pin, value ?? "");
+                lock (_refused)
+                {
+                    _refused.Clear();
+                }
+            }
+        }
 
         public void Start(TimeSpan firstDelay)
         {
@@ -88,7 +109,11 @@ namespace PrintVect.Core.Client
                          .GroupBy(p => string.IsNullOrWhiteSpace(p.HostName) ? p.HostIp ?? "" : p.HostName, StringComparer.OrdinalIgnoreCase))
             {
                 ct.ThrowIfCancellationRequested();
-                RequestHeader header = RequestHeader.ForHello(_windows, AppInfo.Version, host.Select(p => p.PrinterId));
+                lock (_refused)
+                {
+                    if (_refused.Contains(host.Key)) continue;
+                }
+                RequestHeader header = RequestHeader.ForHello(_windows, AppInfo.Version, host.Select(p => p.PrinterId), Pin);
                 bool answered;
                 string detail;
                 try
@@ -96,6 +121,20 @@ namespace PrintVect.Core.Client
                     JobReply reply = await _sender.HelloAsync(host.First(), header, ct).ConfigureAwait(false);
                     answered = reply != null && reply.Ok;
                     detail = reply == null ? "no answer" : reply.Message;
+                    if (reply != null && !reply.Ok)
+                    {
+                        lock (_refused)
+                        {
+                            _refused.Add(host.Key);
+                        }
+                        Log.Info("Presence: " + host.Key + " refused the hello (" + reply.Message + "); no more hellos to it until the sharing PIN "
+                                 + "changes on this PC or PrintVect starts again.");
+                        continue;
+                    }
+                    if (answered)
+                    {
+                        RaiseHostAnswered(host.First());
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -108,6 +147,14 @@ namespace PrintVect.Core.Client
                 }
                 NoteChange(host.Key, answered, detail);
             }
+        }
+
+        private void RaiseHostAnswered(RemotePrinter printer)
+        {
+            EventHandler<RemotePrinter> handler = HostAnswered;
+            if (handler == null) return;
+            try { handler(this, printer); }
+            catch (Exception ex) { Log.Error("Presence: a listener for " + printer.HostName + "'s answer failed.", ex); }
         }
 
         private void NoteChange(string host, bool answered, string detail)

@@ -20,7 +20,8 @@ namespace PrintVect.App.Client
     /// Glue between the Office printers page and the Core client service: finds hosts (UDP discovery while the
     /// page is open, or a typed name), adds and removes virtual printers through PrintVect.Elevate.exe, keeps
     /// config.json and the job history in step, follows a host that changed its address (also by searching for it
-    /// when a job cannot reach it, 0.5.0), and re-raises events on the UI thread.
+    /// when a job cannot reach it, 0.5.0) once it proves its identity key (0.5.8, MovedHostCheck), and re-raises events
+    /// on the UI thread.
     /// </summary>
     internal sealed class ClientController : IDisposable
     {
@@ -37,6 +38,8 @@ namespace PrintVect.App.Client
         private readonly DiscoveryClient _discovery;
         private readonly JobHistoryStore<ClientJobRecord> _history;
         private readonly PresenceAnnouncer _presence;
+        private readonly HashSet<string> _checking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _refusedMoves = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public ClientController(AppPaths paths, ConfigStore store, AppConfig config, SynchronizationContext ui)
         {
@@ -70,7 +73,8 @@ namespace PrintVect.App.Client
             };
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
 
-            _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters);
+            _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters) { Pin = config.Pin };
+            _presence.HostAnswered += (s, printer) => Post(() => LearnHostKey(printer));
 
             _discovery = new DiscoveryClient(config.DiscoveryPort);
             _discovery.HostsChanged += (s, e) => Post(OnHostsChanged);
@@ -177,37 +181,125 @@ namespace PrintVect.App.Client
         }
 
         /// <summary>
-        /// A job could not reach its host (0.5.0): ask the office once and listen for a few seconds. When the host answers
-        /// from another address (a phone hotspot hands out a new one each time), the printer takes it at once and
-        /// config.json is saved on the UI thread. Runs on the sending thread.
+        /// A job could not reach its host (0.5.0): ask the office once and listen for a few seconds. When a PC answers
+        /// for the host from another address (a phone hotspot hands out a new one each time) and proves it is that
+        /// host (0.5.8), the printer takes the address at once and config.json is saved on the UI thread. A PC that
+        /// claims the host's name or printers without its identity key gets nothing. Runs on the sending thread.
         /// </summary>
-        private async Task<bool> FindHostAgainAsync(RemotePrinter printer, CancellationToken ct)
+        private async Task<HostSearchOutcome> FindHostAgainAsync(RemotePrinter printer, CancellationToken ct)
         {
             string before = printer.HostIp;
-            int portBefore = printer.Port;
             Log.Info("Looking for " + printer.HostName + " on the network (it did not answer at " + before + ").");
             await _discovery.SearchAsync(FindHostListen, ct).ConfigureAwait(false);
-            DiscoveredHost host = _discovery.Hosts.FirstOrDefault(h => !string.IsNullOrEmpty(h.Ip)
-                && (h.Printers.Any(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase))
-                    || string.Equals(h.Host, printer.HostName, StringComparison.OrdinalIgnoreCase)));
-            if (host == null)
+            List<DiscoveredHost> claims = _discovery.Hosts.Where(h => !string.IsNullOrEmpty(h.Ip) && ClaimsToBe(h, printer)).ToList();
+            if (claims.Count == 0)
             {
-                return false;
+                return HostSearchOutcome.NotFound;
             }
-            bool moved = !string.Equals(host.Ip, before, StringComparison.OrdinalIgnoreCase) || (host.Port > 0 && host.Port != portBefore);
-            if (!moved)
+            string refusal = null;
+            foreach (DiscoveredHost host in claims)
+            {
+                int port = host.Port > 0 ? host.Port : printer.Port;
+                foreach (string address in AddressesOf(host).Where(a => !string.Equals(a, before, StringComparison.OrdinalIgnoreCase) || port != printer.Port))
+                {
+                    MovedHostVerdict verdict = await MovedHostCheck.CheckAsync(printer, address, port, ct).ConfigureAwait(false);
+                    if (verdict.Problem != null)
+                    {
+                        Log.Warn("Not following " + printer.HostName + " to " + address + ": " + verdict.Problem);
+                        refusal = verdict.Problem;
+                        continue;
+                    }
+                    printer.HostIp = address;
+                    printer.Port = port;
+                    if (string.IsNullOrEmpty(printer.HostKeyId) && verdict.KeyId != null)
+                    {
+                        printer.HostKeyId = verdict.KeyId;
+                    }
+                    Post(() =>
+                    {
+                        TrySave();
+                        Raise(PrintersChanged);
+                    });
+                    return HostSearchOutcome.Followed;
+                }
+            }
+            if (refusal == null)
             {
                 Log.Info(printer.HostName + " answers the search at the same address " + before + ".");
-                return false;
+                return HostSearchOutcome.NotFound;
             }
-            printer.HostIp = host.Ip;
-            if (host.Port > 0) printer.Port = host.Port;
-            Post(() =>
+            return HostSearchOutcome.Refused(refusal + " Nothing was sent there. If " + printer.HostName
+                                             + " was set up again, remove its printer on this PC and add it again.");
+        }
+
+        /// <summary>A host that answered discovery says it is the printer's host: same printer id or same PC name. Anyone can say so.</summary>
+        private static bool ClaimsToBe(DiscoveredHost host, RemotePrinter printer)
+        {
+            return host.Printers.Any(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase))
+                   || string.Equals(host.Host, printer.HostName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>The address in use first, then every other address that answered with the same PC name lately.</summary>
+        private static IEnumerable<string> AddressesOf(DiscoveredHost host)
+        {
+            yield return host.Ip;
+            foreach (string other in host.Addresses.OrderByDescending(a => a.Value).Select(a => a.Key))
             {
-                TrySave();
-                Raise(PrintersChanged);
+                if (!string.Equals(other, host.Ip, StringComparison.OrdinalIgnoreCase)) yield return other;
+            }
+        }
+
+        /// <summary>
+        /// On the UI thread: the host of <paramref name="answered"/> took a hello. Printers of that host added before
+        /// 0.5.8 have no identity key remembered yet; ask the host to prove one at the printer's own address and keep it.
+        /// </summary>
+        private void LearnHostKey(RemotePrinter answered)
+        {
+            List<RemotePrinter> unknown = _config.RemotePrinters
+                .Where(p => string.IsNullOrEmpty(p.HostKeyId) && string.Equals(p.HostIp, answered.HostIp, StringComparison.OrdinalIgnoreCase)
+                            && p.Port == answered.Port)
+                .ToList();
+            string key = "learn|" + answered.HostIp + ":" + answered.Port;
+            if (unknown.Count == 0 || !_checking.Add(key))
+            {
+                return;
+            }
+            RemotePrinter first = unknown[0];
+            Task.Run(async () =>
+            {
+                MovedHostVerdict verdict;
+                try
+                {
+                    verdict = await MovedHostCheck.CheckAsync(first, first.HostIp, first.Port, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    verdict = new MovedHostVerdict { Problem = ex.Message };
+                }
+                Post(() =>
+                {
+                    _checking.Remove(key);
+                    if (verdict.Problem != null)
+                    {
+                        if (_refusedMoves.Add(key))
+                        {
+                            Log.Warn("The identity key of " + first.HostName + " could not be learned: " + verdict.Problem);
+                        }
+                        return;
+                    }
+                    if (verdict.KeyId == null)
+                    {
+                        return;   // a host before 0.5.8: nothing to learn yet
+                    }
+                    foreach (RemotePrinter printer in unknown.Where(p => string.IsNullOrEmpty(p.HostKeyId)))
+                    {
+                        printer.HostKeyId = verdict.KeyId;
+                    }
+                    Log.Info("Remembered the identity key of " + first.HostName + " (" + verdict.KeyId.Substring(0, 16) + "…) for "
+                             + unknown.Count + " printer(s); jobs follow it to a new address only when it proves this key.");
+                    TrySave();
+                });
             });
-            return true;
         }
 
         /// <summary>Whether a job printed on this PC first asks how many copies (Settings, and "Don't ask again").</summary>
@@ -231,10 +323,11 @@ namespace PrintVect.App.Client
             return saved;
         }
 
-        /// <summary>The office PIN changed in Settings: every job from now on carries it.</summary>
+        /// <summary>The sharing PIN changed in Settings: every job and hello from now on proves it.</summary>
         public void ApplyPin(string pin)
         {
             _service.Pin = pin ?? "";
+            _presence.Pin = pin ?? "";
         }
 
         public void ApplyKeepSentFilesHours(int hours)
@@ -319,37 +412,71 @@ namespace PrintVect.App.Client
             return reply;
         }
 
-        /// <summary>On the UI thread: a host appeared, changed or left. Follows hosts whose address changed (DHCP).</summary>
+        /// <summary>
+        /// On the UI thread: a host appeared, changed or left. A printer follows its host to a new address (DHCP) only
+        /// after the PC there proves it is that host (0.5.8); the check runs in the background.
+        /// </summary>
         private void OnHostsChanged()
         {
-            bool printersChanged = false;
             foreach (DiscoveredHost host in _discovery.Hosts)
             {
                 if (string.IsNullOrEmpty(host.Ip)) continue;
                 foreach (RemotePrinter printer in _config.RemotePrinters)
                 {
-                    bool sameHost = host.Printers.Any(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase))
-                                    || string.Equals(host.Host, printer.HostName, StringComparison.OrdinalIgnoreCase);
-                    if (!sameHost) continue;
-                    bool moved = !string.Equals(printer.HostIp, host.Ip, StringComparison.OrdinalIgnoreCase)
-                                 || (host.Port > 0 && printer.Port != host.Port);
-                    if (!moved) continue;
-                    Log.Info("Host " + host.Host + " for \"" + printer.LocalPrinterName + "\" now answers at " + host.Ip + ":" + host.Port
-                             + " (was " + printer.HostIp + ":" + printer.Port + "); updating config.json.");
-                    printer.HostIp = host.Ip;
-                    if (host.Port > 0) printer.Port = host.Port;
-                    if (!string.IsNullOrWhiteSpace(host.Host)) printer.HostName = host.Host;
-                    printersChanged = true;
-                    try { _service.StartWatching(printer); }
-                    catch (Exception ex) { Log.Warn("Watcher of \"" + printer.LocalPrinterName + "\" could not take the new address: " + ex.Message); }
+                    int port = host.Port > 0 ? host.Port : printer.Port;
+                    bool moved = !string.Equals(printer.HostIp, host.Ip, StringComparison.OrdinalIgnoreCase) || printer.Port != port;
+                    if (moved && ClaimsToBe(host, printer))
+                    {
+                        FollowIfProven(printer, host.Ip, port, host.Host);
+                    }
                 }
             }
-            if (printersChanged)
-            {
-                TrySave();
-                Raise(PrintersChanged);
-            }
             Raise(FoundChanged);
+        }
+
+        /// <summary>Checks in the background whether the PC at the new address is the printer's host, then follows it on the UI thread.</summary>
+        private void FollowIfProven(RemotePrinter printer, string address, int port, string hostName)
+        {
+            string key = printer.PrinterId + "|" + address + ":" + port;
+            if (!_checking.Add(key))
+            {
+                return;
+            }
+            Task.Run(async () =>
+            {
+                MovedHostVerdict verdict;
+                try
+                {
+                    verdict = await MovedHostCheck.CheckAsync(printer, address, port, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    verdict = new MovedHostVerdict { Problem = ex.Message };
+                }
+                Post(() =>
+                {
+                    _checking.Remove(key);
+                    if (verdict.Problem != null)
+                    {
+                        if (_refusedMoves.Add(key))
+                        {
+                            Log.Warn("Not following " + printer.HostName + " for \"" + printer.LocalPrinterName + "\" to " + address + ": " + verdict.Problem
+                                     + " If " + printer.HostName + " was set up again, remove this printer and add it again.");
+                        }
+                        return;
+                    }
+                    Log.Info("Host " + hostName + " for \"" + printer.LocalPrinterName + "\" now answers at " + address + ":" + port
+                             + " (was " + printer.HostIp + ":" + printer.Port + ") and proved its identity; updating config.json.");
+                    printer.HostIp = address;
+                    printer.Port = port;
+                    if (!string.IsNullOrWhiteSpace(hostName)) printer.HostName = hostName.Trim();
+                    if (string.IsNullOrEmpty(printer.HostKeyId) && verdict.KeyId != null) printer.HostKeyId = verdict.KeyId;
+                    try { _service.StartWatching(printer); }
+                    catch (Exception ex) { Log.Warn("Watcher of \"" + printer.LocalPrinterName + "\" could not take the new address: " + ex.Message); }
+                    TrySave();
+                    Raise(PrintersChanged);
+                });
+            });
         }
 
         /// <summary>Creates the virtual printer (UAC prompt) and remembers it. The result's Message is for the user.</summary>
@@ -378,6 +505,9 @@ namespace PrintVect.App.Client
             arguments.Options[ElevateCommands.OptionFolder] = folder;
             arguments.Options[ElevateCommands.OptionPort] = port;
 
+            int jobPort = host.Port > 0 ? host.Port : _config.JobPort;
+            string keyId = await ProvenKeyAsync(new RemotePrinter { PrinterId = printer.Id, HostName = hostName }, hostIp, jobPort).ConfigureAwait(true);
+
             Log.Info("Adding printer \"" + friendly + "\" of " + hostName + " (" + hostIp + ") as \"" + localName + "\", id " + printer.Id + ".");
             ElevateResult result = await ElevateLauncher.RunAsync(_paths, arguments).ConfigureAwait(true);
             if (!result.Ok)
@@ -390,9 +520,10 @@ namespace PrintVect.App.Client
                 PrinterId = printer.Id,
                 HostName = hostName,
                 HostIp = hostIp,
-                Port = host.Port > 0 ? host.Port : _config.JobPort,
+                Port = jobPort,
                 LocalPrinterName = localName,
-                FriendlyName = friendly
+                FriendlyName = friendly,
+                HostKeyId = keyId
             };
             _config.RemotePrinters.Add(remote);
             if (!TrySave())
@@ -412,6 +543,28 @@ namespace PrintVect.App.Client
             _presence.AnnounceNow();   // the host lists this PC straight away
             Raise(PrintersChanged);
             return result;
+        }
+
+        /// <summary>
+        /// The identity key the host proves at the address the printer is added with (0.5.8), or null (a host before
+        /// 0.5.8, or no proof: the key is then learned after its first hello).
+        /// </summary>
+        private static async Task<string> ProvenKeyAsync(RemotePrinter printer, string address, int port)
+        {
+            try
+            {
+                MovedHostVerdict verdict = await MovedHostCheck.CheckAsync(printer, address, port, CancellationToken.None).ConfigureAwait(false);
+                if (verdict.Problem != null)
+                {
+                    Log.Warn("The identity key of " + printer.HostName + " was not taken: " + verdict.Problem);
+                }
+                return verdict.Problem == null ? verdict.KeyId : null;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("The identity key of " + printer.HostName + " could not be checked: " + ex.Message);
+                return null;
+            }
         }
 
         /// <summary>Deletes the virtual printer, its port and folder (UAC prompt) and forgets it.</summary>

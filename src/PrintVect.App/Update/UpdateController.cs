@@ -170,7 +170,7 @@ namespace PrintVect.App.Update
             Phase = UpdatePhase.Downloading;
             RaiseChanged();
 
-            string path;
+            VerifiedSetup setup;
             try
             {
                 var progress = new Progress<DownloadProgress>(p =>
@@ -178,7 +178,7 @@ namespace PrintVect.App.Update
                     Progress = p;
                     RaiseChanged();
                 });
-                path = await _checker.DownloadAsync(release, _paths.UpdatesDir, progress, _stopping.Token);
+                setup = await _checker.DownloadAsync(release, _paths.UpdatesDir, progress, _stopping.Token);
             }
             catch (OperationCanceledException)
             {
@@ -210,14 +210,17 @@ namespace PrintVect.App.Update
             Phase = UpdatePhase.Installing;
             RaiseChanged();
             Process process;
+            SetupHold hold = null;
             try
             {
-                process = UpdateInstaller.Start(path);
+                hold = UpdateInstaller.Hold(setup);   // checked again, and nobody can change it until the setup has run (0.5.8)
+                process = UpdateInstaller.Start(hold);
             }
             catch (Exception ex)
             {
+                if (hold != null) hold.Dispose();
                 Log.Error("Update: the setup program could not be started.", ex);
-                LastInstallError = StartFailure(ex);
+                LastInstallError = ex is UpdateVerificationException ? string.Format(Strings.UpdateNotStarted, ex.Message) : StartFailure(ex);
                 Phase = UpdatePhase.Idle;
                 RaiseChanged();
                 return LastInstallError;
@@ -225,9 +228,9 @@ namespace PrintVect.App.Update
             if (process == null)
             {
                 Log.Warn("Update: Windows started the setup program but gave no handle to wait for; this program keeps running until the setup ends it.");
-                return null;
+                return null;   // the hold stays until this program ends
             }
-            WatchSetup(process, path);
+            WatchSetup(process, hold);
             return null;
         }
 
@@ -369,8 +372,9 @@ namespace PrintVect.App.Update
             }
         }
 
-        private async void WatchSetup(Process process, string path)
+        private async void WatchSetup(Process process, SetupHold hold)
         {
+            string path = hold.Path;
             int code;
             try
             {
@@ -388,6 +392,7 @@ namespace PrintVect.App.Update
             finally
             {
                 process.Dispose();
+                hold.Dispose();
             }
             if (_disposed)
             {

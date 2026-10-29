@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace PrintVect.Core.Config
 {
@@ -27,8 +28,27 @@ namespace PrintVect.Core.Config
         /// <summary>TCP port on which a host receives print jobs.</summary>
         public int JobPort { get; set; } = DefaultJobPort;
 
-        /// <summary>Optional shared PIN. Empty means open to everyone on the office network.</summary>
+        /// <summary>
+        /// Optional sharing PIN, in memory only. Empty means open to every PC on the network. config.json keeps it
+        /// protected (PinProtected, 0.5.8); ConfigStore turns one into the other.
+        /// </summary>
+        [JsonIgnore]
         public string Pin { get; set; } = "";
+
+        /// <summary>
+        /// The sharing PIN as config.json keeps it (0.5.8): protected with Windows DPAPI for this PC (MachineProtection),
+        /// so it does not show in the file or in a copy of it. Empty: no PIN.
+        /// </summary>
+        public string PinProtected { get; set; } = "";
+
+        /// <summary>Before 0.5.8 config.json kept the PIN in plain text under "Pin": read once, never written again.</summary>
+        [JsonProperty("Pin")]
+        public string LegacyPin { get; set; }
+
+        public bool ShouldSerializeLegacyPin()
+        {
+            return false;
+        }
 
         /// <summary>Whether this PC currently offers its printers to the office (host role).</summary>
         public bool SharingEnabled { get; set; }
@@ -56,6 +76,12 @@ namespace PrintVect.Core.Config
         /// PrintVect uses the internet; printing never does). Off means "Check now" only.
         /// </summary>
         public bool CheckForUpdates { get; set; } = true;
+
+        /// <summary>
+        /// This PC's identity key as a host (0.5.8), protected so that only this PC can read it (MachineProtection).
+        /// Other PCs check it before they follow this PC to a new address. Made on first start; never shared.
+        /// </summary>
+        public string HostKey { get; set; } = "";
 
         /// <summary>The version that ran last time, so the first start after an update can say so.</summary>
         public string LastRunVersion { get; set; } = "";
@@ -94,5 +120,11 @@ namespace PrintVect.Core.Config
         /// <summary>Name of the virtual printer on this PC, e.g. "PrintVect - Counter 1 Laser @COUNTER1".</summary>
         public string LocalPrinterName { get; set; }
         public string FriendlyName { get; set; }
+
+        /// <summary>
+        /// Fingerprint of the host's identity key (0.5.8), remembered when the printer is added, or at the host's first
+        /// answer for printers added before. Jobs follow the host to a new address only when it proves this key.
+        /// </summary>
+        public string HostKeyId { get; set; }
     }
 }

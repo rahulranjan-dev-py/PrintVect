@@ -45,6 +45,7 @@ namespace PrintVect.App.Host
             _service.Jobs.Changed += (s, record) => _history.QueueSave();
             _discovery = new DiscoveryResponder(address => _service.BuildListReplyFor(address));
             _service.Pin = config.Pin;
+            LoadIdentity();
             DropPrintVectPrinters();
             _service.UpdateSharedPrinters(config.SharedPrinters);
             _service.JobReceived += (s, record) => Post(() => Raise(JobReceived, record));
@@ -349,6 +350,36 @@ namespace PrintVect.App.Host
             return lines;
         }
 
+        /// <summary>
+        /// This PC's identity key (0.5.8), read or made in the background (making one takes a moment); replies go out
+        /// without it until it is ready. A new key is kept in config.json on the UI thread.
+        /// </summary>
+        private void LoadIdentity()
+        {
+            string saved = _config.HostKey;
+            Task.Run(() =>
+            {
+                try
+                {
+                    string newKey;
+                    HostIdentity identity = HostIdentity.LoadOrCreate(saved, out newKey);
+                    Post(() =>
+                    {
+                        if (newKey != null)
+                        {
+                            _config.HostKey = newKey;
+                            TrySave();
+                        }
+                        _service.Identity = identity;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("This PC's identity key could not be read or made; other PCs cannot follow it to a new address.", ex);
+                }
+            });
+        }
+
         private bool TrySave()
         {
             try
@@ -392,6 +423,8 @@ namespace PrintVect.App.Host
             _discovery.Dispose();
             _service.Dispose();
             _history.Dispose();
+            HostIdentity identity = _service.Identity;
+            if (identity != null) identity.Dispose();
         }
     }
 }

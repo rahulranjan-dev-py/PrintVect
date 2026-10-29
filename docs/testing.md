@@ -636,6 +636,107 @@ while a file waits, and half a second of no change is enough (the file must stil
 | 4 | Print again, turn on **Don't ask again on this PC**, Print. Print once more. | The first job prints; the next one goes without the window. Settings, General: **Ask how many copies** is off. Turn it on: the window is back for the next job. |
 | 5 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | For the job of step 2: "Print job … is being written", then "New print job for …" about a second later or less (0.5.6: up to 4), then "Copies question: 2." |
 
+## 0.5.8: security fixes from the review
+
+The owner's security review of 2026-10-29 listed six problems; they are fixed one by one in this version, and each has
+its own steps below. Tell me to publish v0.5.8 once all are done, then on **every** PC: Settings, Check now, Update now.
+
+### 1. The sharing PIN never crosses the network
+
+The PIN travelled as its plain SHA-256 hash, which worked as the
+password forever for anyone who saw it, and the host never slowed down wrong guesses. Now each job and hello carries a
+one-time proof of the PIN (made for that job, printer and size, valid for a day), and after 5 wrong PINs from one PC
+the host checks that PC's PIN again only after 15 minutes, then 30, 60, up to 4 hours. A right PIN starts afresh.
+Use two PCs that both have a sharing PIN: HOST has the printer, CLIENT prints.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Tell me to publish v0.5.8. On **every** PC: Settings, Check now, Update now. | "Version 0.5.8 · up to date" under the menu. With a PIN, PCs on 0.5.7 and 0.5.8 cannot print to each other until both are updated. |
+| 1 | Same PIN on both. Print a page from Notepad on CLIENT. | It prints as before. HOST's log: "Job from …", then "File received". |
+| 2 | HOST: Share my printers, "PCs that use this PC". | CLIENT is listed (within 5 minutes of its start). |
+| 3 | CLIENT: Settings, Security, Change PIN to a different one. Print a page. | The job waits: "HOST asks for the sharing PIN, and this job came with a different one." HOST's log: "Wrong sharing PIN from CLIENT (192.168.…); 4 more wrong tries before it has to wait." |
+| 4 | On CLIENT press **Retry waiting** until the message changes (at most 4 more times). | "Too many wrong sharing PINs came from CLIENT, so HOST checks its PIN again in 15 minutes." HOST's log: "… it waits 15 minutes before its PIN is checked again." The hello CLIENT sends every 5 minutes also counts, so this may come sooner. |
+| 5 | CLIENT: set the right PIN again; press Retry waiting at once. | Still "Too many wrong sharing PINs … in 15 minutes" (or fewer): the wait holds even for the right PIN. To skip it: Exit PrintVect on HOST and start it again. |
+| 6 | After the wait (or the restart), press Retry waiting. | The job prints. CLIENT's log: "Presence: HOST refused the hello (…)" from step 3, and from now on hellos are answered again. |
+| 7 | (If a PC with 0.5.7 is still around) print from it to HOST. | The job waits: "… runs a PrintVect older than 0.5.8 … Update PrintVect on …". |
+
+### 2. Only the real host is followed to a new address
+
+When a job could not reach its host, PrintVect followed any PC that answered with the host's PC name or printer ids,
+which travel openly, and sent the document (and the PIN check) there. Now each host has a secret identity key, made
+on its first start of 0.5.8 and kept in its config.json protected for that PC, and a printer follows its host only
+when the PC at the new address signs a random challenge with the key remembered for that printer.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | After the update, open HOST's newest log. | Once, near the start: "Made this PC's identity key (fingerprint …)". |
+| 2 | On CLIENT (its printers were added before 0.5.8), wait 5 minutes after PrintVect starts; open its newest log. Then Settings, Diagnostics, Copy report. | "Remembered the identity key of HOST (…) for 1 printer(s)". The report: "added printers whose host's key is remembered: 1 of 1". A printer added from now on remembers the key at once. |
+| 3 | Move HOST to another address (connect it to the phone hotspot as in 0.5.0, with CLIENT on the same hotspot). Print from CLIENT. | It prints. CLIENT's log: "HOST now answers at … (was …); sending there." |
+| 4 | (Optional, needs a spare PC with PrintVect) give the spare PC HOST's PC name, share a printer on it, switch HOST off. Print from CLIENT. | Nothing prints on the spare PC. The job waits: "A PC calling itself HOST answers at …, but it is not HOST, the PC this printer was added from … Nothing was sent there." Give the spare PC its own name back afterwards. |
+
+### 3. The administrator helper never follows a link in the data folder
+
+Every user may write in `C:\ProgramData\PrintVect`. Another user could replace a folder there (spool, logs, or the
+folder of a printer about to be added) with a junction to a Windows folder; PrintVect.Elevate, running as
+administrator, then gave "Users: Modify" on the Windows folder or deleted files in it. Now it checks every folder on
+the way and refuses.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On CLIENT: Printers on other PCs, remove a printer, add it again. | Works as before (one Windows permission question each time). The newest `PrintVect-Elevate-….log` says "Users may now modify C:\ProgramData\PrintVect\spool\<id> and the files in it." |
+| 2 | Note the `<id>` from that line. Remove the printer again. Open Command Prompt (not as administrator) and type `mkdir C:\Users\Public\linktest` then `mklink /J C:\ProgramData\PrintVect\spool\<id> C:\Users\Public\linktest`. Add the printer again. | It is refused: "PrintVect did not touch C:\ProgramData\PrintVect\spool\<id>: it is a link to another place … Delete … then try again." `C:\Users\Public\linktest` (right-click, Properties, Security) has no new "Users" entry. |
+| 3 | Type `rmdir C:\ProgramData\PrintVect\spool\<id>` (removes the link only) and add the printer again. | Added as in step 1. |
+
+### 4. A host cannot be flooded
+
+There was no limit on connections, files that were not XPS stayed in `spool\incoming\` (up to 200 MB each), and old
+files were cleaned up only when sharing started. Now: 32 connections at once (8 per PC, 120 a minute per PC), 15 s
+to send the request, at most 1 GB waiting and 256 MB left free on the disk, junk deleted at once, and an hourly
+clean-up of files kept after a failed print (after 24 hours).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | Print from CLIENT as usual, several pages in a row. | Everything prints as before. |
+| 2 | On CLIENT, make a text file `junk.xps` (Notepad, type anything, save with that name) and send it from Command Prompt in the PrintVect folder: `pvct-send junk.xps HOST`. | Refused: "The file is not an XPS document (…); HOST deleted it." `C:\ProgramData\PrintVect\spool\incoming` on HOST holds no file for it. |
+| 3 | On CLIENT, open PowerShell and type `$c = 1..12 \| % { New-Object Net.Sockets.TcpClient('HOST', 9151) }` (HOST = its PC name). Wait 20 seconds, then print a page. | HOST's log: "Closed a connection from 192.168.… at once: 8 connections from … are open already." (once a minute at most), then for the 8 it served "sent no request within 15 s; closed". The page prints. |
+| 4 | Pause a printer on HOST (Share my printers), print 3 pages from CLIENT, wait a day with HOST running, then Resume. | The 3 jobs wait and then print: files of waiting jobs are never cleaned up. |
+
+### 5. Updates are checked more strictly
+
+The checksum file was optional (without it the update installed after a size check only), and the setup program
+waited in `C:\ProgramData\PrintVect\updates`, where every user may write, between its check and its start. Now a
+release without a checksum file is not installed, and the setup program is held (nobody can change, delete or rename
+it or its folder) and checked again just before it starts. Code signing remains the real fix (CODE_SIGNING.md).
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | When 0.5.8 is on all PCs and a later version is published: Settings, Check now, Update now. | The update installs as before. The PC's log: "the checksum … matches", then "checked again just before starting it: the SHA-256 still matches", then "Update: starting …". |
+| 2 | Nothing to do for a release without a checksum file: every release made by release.yml has one. If one ever lacks it, Update now says "version … has no checksum file, so PrintVect cannot check the download and does not install it". | |
+
+### 6. New versions go to test PCs first
+
+Every release went to every PC within a day, tested or not. Now release.yml publishes a test version (a GitHub
+pre-release), which installed PCs ignore because they ask GitHub for its "latest release", and promote.yml hands it to
+every PC. The release text is the version's section of CHANGELOG.md. The whole flow is in `docs/releasing.md`.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | After the pull request is merged: Actions, release, Run workflow, branch main, stage **test**. | Release v0.5.8 marked **Pre-release**, with the setup program, its .sha256, a "Test version" note and "What changed in 0.5.8" from CHANGELOG.md. |
+| 2 | On a PC with 0.5.7: Settings, Check now. | "up to date" (0.5.7 is still the latest release): the test version is not offered. |
+| 3 | On your test PCs: download PrintVect-Setup-0.5.8.exe from that release and run it. Do the steps of sections 1 to 5 above. | "Version 0.5.8" under the menu; settings and printers kept. |
+| 4 | When they work, tell me the result (I write it into CHANGELOG.md), then Actions, promote, Run workflow, branch main. | The release loses "Pre-release" and shows "Latest", without the test note. Other PCs offer 0.5.8 within a day (or at once with Check now). |
+
+### 7. Smaller points
+
+Anyone on the network could add made-up PCs to "PCs that use this PC" (fixed in section 1: with a PIN, a hello must
+prove it); the PIN stood in plain text in config.json, which every user of the PC can open; the 10.8 MB demo video
+was committed although the README plays the copy uploaded to GitHub.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | On a PC that had a PIN before the update, open `C:\ProgramData\PrintVect\config.json` in Notepad. | No `"Pin": "…"` line; a long `"PinProtected"` value instead. The log of the first start: "the sharing PIN was kept in plain text; config.json now keeps it protected for this PC." Printing with the PIN works as before. |
+| 2 | Settings, Security, Change PIN; then look at config.json again. | Still no PIN in plain text; the other PCs need the new PIN as before. |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
