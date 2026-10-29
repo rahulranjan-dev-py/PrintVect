@@ -6,12 +6,19 @@ version was tried on the office's PCs (Windows 10 and 11).
 
 ## 0.5.8
 
+Security fixes from a review of the design.
+
 The sharing PIN is harder to steal and to guess. It never crosses the network any more, not even as the plain
 SHA-256 hash earlier versions sent, which anyone watching the network could reuse as the password forever. Each job
 carries a one-time proof of the PIN instead: it is made for that job only and works for nothing else. A PC that sends
 5 wrong PINs has to wait 15 minutes before the PC with the printer checks its PIN again, twice as long each further
 time (at most 4 hours). With a PIN, the list of PCs that print here only shows PCs that know the PIN. **Update every
-PC**: with a sharing PIN, a PC on 0.5.7 and a PC on 0.5.8 cannot print to each other. **Tested:** awaiting test.
+PC**: with a sharing PIN, a PC on 0.5.7 and a PC on 0.5.8 cannot print to each other.
+
+Another PC can no longer take over a printer by answering with the same PC name when the real one has moved or is
+switched off. Each PC that shares printers now has its own secret identity key, and every PC that adds one of its
+printers remembers it (printers added before learn it within a few minutes). A printer follows its PC to a new address
+only when the PC there proves it holds that key; otherwise nothing is sent and the job says why. **Tested:** awaiting test.
 
 ## 0.5.7 (2026-10-29)
 

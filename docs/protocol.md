@@ -40,9 +40,27 @@ relay) and **631** are never allowed.
   "port": 9151,
   "printers": [
     { "id": "…", "name": "HP LaserJet 1020", "friendly": "Counter 1 Laser", "status": "ready" }
-  ]
+  ],
+  "hostKey": "base64 RSA public key (0.5.8)"
 }
 ```
+
+### Host identity (0.5.8)
+
+A PC name and printer ids travel openly, so any PC could claim them. Each host therefore makes an RSA-2048 identity
+key on first start (kept in its `config.json`, protected with Windows DPAPI for that PC) and sends the public half as
+`hostKey` (an RSA CSP blob in base64) in discovery and list replies. A list request may carry `"challenge"` (32 hex
+digits); the reply then has `"hostSig"`: base64 RSA-SHA256 (PKCS#1 v1.5) signature of the UTF-8 text
+`PrintVect host 1`, the challenge, the host name in capitals and the address the request reached (as the host's
+socket sees it), joined by line feeds.
+
+A client remembers the key's fingerprint (SHA-256 of the blob, hex) with each printer: when the printer is added,
+proven with a challenge at the address it is added with, or, for printers added before 0.5.8, after the host's next
+answered hello, proven the same way at the printer's own address. Before a printer follows its host to a new
+address (discovery, or the search after a job could not reach it), the PC there must sign a fresh challenge for that
+address with the remembered key; one that claims the host's name or printers without it gets no jobs, and the job
+says why. A printer with no key yet remembers the first one proven to it; a host before 0.5.8 (no key) is followed
+as before. The signed address stops a PC from passing on the real host's answer from elsewhere.
 
 ## Job header
 

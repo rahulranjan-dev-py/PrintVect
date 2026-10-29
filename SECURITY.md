@@ -22,5 +22,9 @@ These are known limits of the design, not vulnerabilities:
   and a PC that sends 5 wrong PINs must wait 15 minutes, twice as long each further time. Someone who records the
   network traffic can still try to guess a short PIN offline, so use 8 or more characters where that matters. Print
   jobs are not encrypted on the network.
+- A PC name and printer ids can be claimed by any PC on the network. Since 0.5.8 a printer follows its host to a new
+  address only when the PC there proves, by signing a random challenge with the host's identity key, that it is the
+  PC the printer was added from. Someone who can intercept the network traffic itself (not just answer on it) is
+  outside what PrintVect can stop.
 - The setup program and the program files are not code-signed yet (see [CODE_SIGNING.md](CODE_SIGNING.md)); the
   updater checks each downloaded setup program's size and SHA-256 against the release before running it.

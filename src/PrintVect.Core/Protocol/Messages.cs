@@ -106,6 +106,10 @@ namespace PrintVect.Core.Protocol
         [JsonProperty("pinProof", NullValueHandling = NullValueHandling.Ignore)]
         public string Proof { get; set; }
 
+        /// <summary>List only (0.5.8): a random value the host signs with its identity key (ListReply.HostSig).</summary>
+        [JsonProperty("challenge", NullValueHandling = NullValueHandling.Ignore)]
+        public string Challenge { get; set; }
+
         /// <summary>The PIN that JobClient proves just before sending. Never written to the network.</summary>
         [JsonIgnore]
         public string PinToSign { get; set; }
@@ -140,9 +144,9 @@ namespace PrintVect.Core.Protocol
             };
         }
 
-        public static RequestHeader ForList()
+        public static RequestHeader ForList(string challenge = null)
         {
-            return new RequestHeader { Type = RequestTypes.List };
+            return new RequestHeader { Type = RequestTypes.List, Challenge = challenge };
         }
 
         public static RequestHeader ForStatus(string jobId)
@@ -244,5 +248,13 @@ namespace PrintVect.Core.Protocol
 
         [JsonProperty("message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
+
+        /// <summary>0.5.8: the host's public identity key (HostKeys); a client remembers its fingerprint with each printer.</summary>
+        [JsonProperty("hostKey", NullValueHandling = NullValueHandling.Ignore)]
+        public string HostKey { get; set; }
+
+        /// <summary>0.5.8, list replies to a request with a challenge: the host's signature of challenge, name and address.</summary>
+        [JsonProperty("hostSig", NullValueHandling = NullValueHandling.Ignore)]
+        public string HostSig { get; set; }
     }
 }

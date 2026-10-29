@@ -57,6 +57,12 @@ namespace PrintVect.Core.Config
         /// </summary>
         public bool CheckForUpdates { get; set; } = true;
 
+        /// <summary>
+        /// This PC's identity key as a host (0.5.8), protected so that only this PC can read it (MachineProtection).
+        /// Other PCs check it before they follow this PC to a new address. Made on first start; never shared.
+        /// </summary>
+        public string HostKey { get; set; } = "";
+
         /// <summary>The version that ran last time, so the first start after an update can say so.</summary>
         public string LastRunVersion { get; set; } = "";
 
@@ -94,5 +100,11 @@ namespace PrintVect.Core.Config
         /// <summary>Name of the virtual printer on this PC, e.g. "PrintVect - Counter 1 Laser @COUNTER1".</summary>
         public string LocalPrinterName { get; set; }
         public string FriendlyName { get; set; }
+
+        /// <summary>
+        /// Fingerprint of the host's identity key (0.5.8), remembered when the printer is added, or at the host's first
+        /// answer for printers added before. Jobs follow the host to a new address only when it proves this key.
+        /// </summary>
+        public string HostKeyId { get; set; }
     }
 }

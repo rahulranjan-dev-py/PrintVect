@@ -33,6 +33,7 @@ namespace PrintVect.Core.Host
         private readonly object _lifecycle = new object();
         private SharedPrinter[] _shared = new SharedPrinter[0];
         private string _pin = "";
+        private HostIdentity _identity;
         private TcpListener _listener;
         private CancellationTokenSource _stopping;
         private PrintDispatcher _dispatcher;
@@ -62,6 +63,16 @@ namespace PrintVect.Core.Host
         {
             get { return Volatile.Read(ref _pin); }
             set { Volatile.Write(ref _pin, value ?? ""); }
+        }
+
+        /// <summary>
+        /// This PC's identity key (0.5.8): its public half goes out with list and discovery replies, and a list request
+        /// with a challenge gets it signed. Null until it is loaded (the replies then go without it).
+        /// </summary>
+        public HostIdentity Identity
+        {
+            get { return Volatile.Read(ref _identity); }
+            set { Volatile.Write(ref _identity, value); }
         }
 
         /// <summary>The port actually bound (useful when 0 was requested).</summary>
@@ -275,7 +286,7 @@ namespace PrintVect.Core.Host
                         switch (header.Type)
                         {
                             case RequestTypes.List:
-                                reply = BuildListReply(localIp);
+                                reply = BuildListReply(localIp, header.Challenge);
                                 break;
                             case RequestTypes.Status:
                                 reply = HandleStatus(header);
@@ -330,7 +341,7 @@ namespace PrintVect.Core.Host
             return BuildListReply(local == null ? "" : local.ToString());
         }
 
-        private ListReply BuildListReply(string localIp)
+        private ListReply BuildListReply(string localIp, string challenge = null)
         {
             SharedPrinter[] shared = Volatile.Read(ref _shared);
             IList<LocalPrinterInfo> statuses;
@@ -344,7 +355,12 @@ namespace PrintVect.Core.Host
                 statuses = new List<LocalPrinterInfo>();
             }
 
-            var reply = new ListReply { Host = Environment.MachineName, Ip = localIp, Port = Port };
+            HostIdentity identity = Identity;
+            var reply = new ListReply { Host = Environment.MachineName, Ip = localIp, Port = Port, HostKey = identity == null ? null : identity.PublicKey };
+            if (identity != null && !string.IsNullOrEmpty(challenge))
+            {
+                reply.HostSig = identity.Sign(challenge, reply.Host, localIp);   // proves this PC answers on this address
+            }
             foreach (SharedPrinter printer in shared)
             {
                 LocalPrinterInfo local = statuses.FirstOrDefault(s => string.Equals(s.Name, printer.LocalName, StringComparison.OrdinalIgnoreCase));

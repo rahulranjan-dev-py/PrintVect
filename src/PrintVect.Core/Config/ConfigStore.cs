@@ -162,6 +162,11 @@ namespace PrintVect.Core.Config
                 config.LastRunVersion = "";
             }
 
+            if (config.HostKey == null)
+            {
+                config.HostKey = "";
+            }
+
             string theme = (config.Theme ?? "").Trim().ToLowerInvariant();
             if (theme != AppConfig.ThemeSystem && theme != AppConfig.ThemeLight && theme != AppConfig.ThemeDark)
             {

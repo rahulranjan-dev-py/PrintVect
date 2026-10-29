@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using PrintVect.Core.Config;
 using PrintVect.Core.Logging;
@@ -125,6 +126,9 @@ namespace PrintVect.Core.Diagnostics
             lines.Add("Sharing: " + (config.SharingEnabled ? "ON" : "OFF")
                       + ", shared printers: " + config.SharedPrinters.Count
                       + ", remote printers added: " + config.RemotePrinters.Count);
+            lines.Add("Identity key of this PC: " + (string.IsNullOrEmpty(config.HostKey) ? "not made yet" : "kept (protected for this PC)")
+                      + "; added printers whose host's key is remembered: " + config.RemotePrinters.Count(p => !string.IsNullOrEmpty(p.HostKeyId))
+                      + " of " + config.RemotePrinters.Count);
             lines.Add("Start with Windows: " + (config.StartWithWindows ? "yes" : "no")
                       + ", keep sent files: " + config.KeepSentFilesHours + " h, language: " + config.Language
                       + ", daily update check: " + (config.CheckForUpdates ? "on" : "off") + ", colours: " + config.Theme);

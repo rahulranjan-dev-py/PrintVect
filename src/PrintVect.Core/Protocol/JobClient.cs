@@ -41,9 +41,10 @@ namespace PrintVect.Core.Protocol
         public TimeSpan ConnectTimeout { get; set; } = ProtocolConstants.ConnectTimeout;
         public TimeSpan TransferTimeout { get; set; } = ProtocolConstants.TransferTimeout;
 
-        public async Task<ListReply> ListPrintersAsync(CancellationToken ct)
+        /// <param name="challenge">0.5.8: asks the host to sign this with its identity key (HostKeys); null for a plain list.</param>
+        public async Task<ListReply> ListPrintersAsync(CancellationToken ct, string challenge = null)
         {
-            string line = await ExchangeAsync(RequestHeader.ForList(), null, null, ct).ConfigureAwait(false);
+            string line = await ExchangeAsync(RequestHeader.ForList(challenge), null, null, ct).ConfigureAwait(false);
             return Framing.ParseReply<ListReply>(line);
         }
 

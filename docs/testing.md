@@ -636,9 +636,14 @@ while a file waits, and half a second of no change is enough (the file must stil
 | 4 | Print again, turn on **Don't ask again on this PC**, Print. Print once more. | The first job prints; the next one goes without the window. Settings, General: **Ask how many copies** is off. Turn it on: the window is back for the next job. |
 | 5 | Open the newest log in `C:\ProgramData\PrintVect\logs\`. | For the job of step 2: "Print job … is being written", then "New print job for …" about a second later or less (0.5.6: up to 4), then "Copies question: 2." |
 
-## 0.5.8: the sharing PIN never crosses the network
+## 0.5.8: security fixes from the review
 
-From the owner's security review (2026-10-29): the PIN travelled as its plain SHA-256 hash, which worked as the
+The owner's security review of 2026-10-29 listed six problems; they are fixed one by one in this version, and each has
+its own steps below. Tell me to publish v0.5.8 once all are done, then on **every** PC: Settings, Check now, Update now.
+
+### 1. The sharing PIN never crosses the network
+
+The PIN travelled as its plain SHA-256 hash, which worked as the
 password forever for anyone who saw it, and the host never slowed down wrong guesses. Now each job and hello carries a
 one-time proof of the PIN (made for that job, printer and size, valid for a day), and after 5 wrong PINs from one PC
 the host checks that PC's PIN again only after 15 minutes, then 30, 60, up to 4 hours. A right PIN starts afresh.
@@ -654,6 +659,20 @@ Use two PCs that both have a sharing PIN: HOST has the printer, CLIENT prints.
 | 5 | CLIENT: set the right PIN again; press Retry waiting at once. | Still "Too many wrong sharing PINs … in 15 minutes" (or fewer): the wait holds even for the right PIN. To skip it: Exit PrintVect on HOST and start it again. |
 | 6 | After the wait (or the restart), press Retry waiting. | The job prints. CLIENT's log: "Presence: HOST refused the hello (…)" from step 3, and from now on hellos are answered again. |
 | 7 | (If a PC with 0.5.7 is still around) print from it to HOST. | The job waits: "… runs a PrintVect older than 0.5.8 … Update PrintVect on …". |
+
+### 2. Only the real host is followed to a new address
+
+When a job could not reach its host, PrintVect followed any PC that answered with the host's PC name or printer ids,
+which travel openly, and sent the document (and the PIN check) there. Now each host has a secret identity key, made
+on its first start of 0.5.8 and kept in its config.json protected for that PC, and a printer follows its host only
+when the PC at the new address signs a random challenge with the key remembered for that printer.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 1 | After the update, open HOST's newest log. | Once, near the start: "Made this PC's identity key (fingerprint …)". |
+| 2 | On CLIENT (its printers were added before 0.5.8), wait 5 minutes after PrintVect starts; open its newest log. Then Settings, Diagnostics, Copy report. | "Remembered the identity key of HOST (…) for 1 printer(s)". The report: "added printers whose host's key is remembered: 1 of 1". A printer added from now on remembers the key at once. |
+| 3 | Move HOST to another address (connect it to the phone hotspot as in 0.5.0, with CLIENT on the same hotspot). Print from CLIENT. | It prints. CLIENT's log: "HOST now answers at … (was …); sending there." |
+| 4 | (Optional, needs a spare PC with PrintVect) give the spare PC HOST's PC name, share a printer on it, switch HOST off. Print from CLIENT. | Nothing prints on the spare PC. The job waits: "A PC calling itself HOST answers at …, but it is not HOST, the PC this printer was added from … Nothing was sent there." Give the spare PC its own name back afterwards. |
 
 ## Later
 

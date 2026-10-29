@@ -789,7 +789,7 @@ namespace PrintVect.Tests
                     {
                         Interlocked.Increment(ref searches);
                         p.HostIp = "10.0.0.2";
-                        return Task.FromResult(true);
+                        return Task.FromResult(HostSearchOutcome.Followed);
                     };
                     var paths = new AppPaths(temp.Path);
                     service.StartWatching(printer);
@@ -817,7 +817,7 @@ namespace PrintVect.Tests
                     service.FindHost = (p, ct) =>
                     {
                         Interlocked.Increment(ref searches);
-                        return Task.FromResult(false);
+                        return Task.FromResult(HostSearchOutcome.NotFound);
                     };
                     var paths = new AppPaths(temp.Path);
                     RemotePrinter printer = Printer();
@@ -829,6 +829,30 @@ namespace PrintVect.Tests
                     Assert.AreEqual(1, searches);
                     Assert.AreEqual(3, sender.Sent.Count);
                     Assert.AreEqual("127.0.0.1", printer.HostIp, "the address stays when the host was not found elsewhere");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void APcThatCannotProveItIsTheHostGetsNothing_AndTheJobSaysWhy()
+        {
+            using (var temp = new TempFolder())
+            {
+                var sender = new FakeJobSender { OnSend = h => null };
+                using (ClientService service = Service(temp, sender, 0, 10, 10))
+                {
+                    service.FindHost = (p, ct) => Task.FromResult(HostSearchOutcome.Refused(
+                        "A PC calling itself COUNTER1 answers at 192.168.10.66, but it is not COUNTER1. Nothing was sent there."));
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, true, "Not for strangers");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State, "kept for Retry");
+                    StringAssert.Contains(record.Message, "it is not COUNTER1");
+                    Assert.AreEqual("127.0.0.1", printer.HostIp);
+                    Assert.IsTrue(sender.Sent.All(h => h != null) && sender.Sent.Count == 3, "only the host's own address was tried");
                 }
             }
         }

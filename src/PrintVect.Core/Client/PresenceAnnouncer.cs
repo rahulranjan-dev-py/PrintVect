@@ -43,6 +43,9 @@ namespace PrintVect.Core.Client
 
         public TimeSpan Interval { get; set; } = DefaultInterval;
 
+        /// <summary>Raised on a thread-pool thread with one printer of a host that answered a hello (0.5.8: its key can be learned).</summary>
+        public event EventHandler<RemotePrinter> HostAnswered;
+
         /// <summary>The sharing PIN each hello proves; a change lets refused hosts hear from this PC again.</summary>
         public string Pin
         {
@@ -128,6 +131,10 @@ namespace PrintVect.Core.Client
                                  + "changes on this PC or PrintVect starts again.");
                         continue;
                     }
+                    if (answered)
+                    {
+                        RaiseHostAnswered(host.First());
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -140,6 +147,14 @@ namespace PrintVect.Core.Client
                 }
                 NoteChange(host.Key, answered, detail);
             }
+        }
+
+        private void RaiseHostAnswered(RemotePrinter printer)
+        {
+            EventHandler<RemotePrinter> handler = HostAnswered;
+            if (handler == null) return;
+            try { handler(this, printer); }
+            catch (Exception ex) { Log.Error("Presence: a listener for " + printer.HostName + "'s answer failed.", ex); }
         }
 
         private void NoteChange(string host, bool answered, string detail)
