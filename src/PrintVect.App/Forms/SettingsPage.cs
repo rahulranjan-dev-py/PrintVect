@@ -238,8 +238,12 @@ namespace PrintVect.App.Forms
             try
             {
                 bool hasPin = !string.IsNullOrEmpty(_config.Pin);
-                _pinPill.Set(hasPin ? Strings.SettingsPinSetPill : Strings.SettingsPinNotSetPill, hasPin ? PillKind.Success : PillKind.Warning);
-                _pinText.Text = hasPin ? Strings.SettingsPinOn : Strings.SettingsPinOff;
+                bool shortPin = PinDialog.IsShort(_config.Pin);
+                _pinPill.Set(!hasPin ? Strings.SettingsPinNotSetPill : shortPin ? Strings.SettingsPinShortPill : Strings.SettingsPinSetPill,
+                    hasPin && !shortPin ? PillKind.Success : PillKind.Warning);
+                _pinText.Text = !hasPin ? Strings.SettingsPinOff
+                    : shortPin ? Strings.SettingsPinOn + " " + string.Format(CultureInfo.CurrentCulture, Strings.SettingsPinShort, _config.Pin.Length, PinDialog.MinLength)
+                    : Strings.SettingsPinOn;
                 _pinSet.Text = hasPin ? Strings.SettingsPinChange : Strings.SettingsPinSet;
                 _pinSet.Kind = hasPin ? ButtonKind.Secondary : ButtonKind.Primary;
                 _pinSet.Font = hasPin ? ThemeFonts.TextMedium : ThemeFonts.TextSemi;
@@ -664,7 +668,9 @@ namespace PrintVect.App.Forms
 
             items.Add(string.IsNullOrEmpty(_config.Pin)
                 ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinOff, sharing ? Strings.CheckPinOffSharing : Strings.CheckPinOffText)
-                : Tuple.Create(CheckLevel.Ok, Strings.CheckPinOn, Strings.CheckPinOnText));
+                : PinDialog.IsShort(_config.Pin)
+                    ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinShort, string.Format(CultureInfo.CurrentCulture, Strings.SettingsPinShort, _config.Pin.Length, PinDialog.MinLength))
+                    : Tuple.Create(CheckLevel.Ok, Strings.CheckPinOn, Strings.CheckPinOnText));
 
             int remote = _client.Printers.Count;
             items.Add(sharing

@@ -48,6 +48,38 @@ namespace PrintVect.Tests
     }
 
     [TestClass]
+    public class NonceMemoryTests
+    {
+        private static readonly DateTime Now = new DateTime(2026, 10, 30, 9, 0, 0, DateTimeKind.Utc);
+
+        [TestMethod]
+        public void ANonceIsAcceptedOnceUntilItsProofExpires()
+        {
+            var memory = new NonceMemory();
+            Assert.IsTrue(memory.TryRemember("n1", Now.AddHours(24), Now));
+            Assert.IsTrue(memory.WasUsed("n1", Now.AddHours(1)));
+            Assert.IsFalse(memory.TryRemember("n1", Now.AddHours(24), Now.AddHours(23)));
+            Assert.IsTrue(memory.TryRemember("n2", Now.AddHours(24), Now));
+            Assert.IsFalse(memory.WasUsed("n1", Now.AddHours(25)), "after its proof expired it no longer needs keeping");
+        }
+
+        [TestMethod]
+        public void AFullMemoryDropsTheSoonestToExpire()
+        {
+            var memory = new NonceMemory { MaxEntries = 3 };
+            memory.TryRemember("soon", Now.AddHours(1), Now);
+            memory.TryRemember("later", Now.AddHours(20), Now);
+            memory.TryRemember("latest", Now.AddHours(23), Now);
+            memory.TryRemember("new", Now.AddHours(24), Now);
+
+            Assert.AreEqual(3, memory.Count);
+            Assert.IsFalse(memory.WasUsed("soon", Now));
+            Assert.IsTrue(memory.WasUsed("latest", Now));
+            Assert.IsTrue(memory.WasUsed("new", Now));
+        }
+    }
+
+    [TestClass]
     public class IncomingSpoolTests
     {
         [TestMethod]

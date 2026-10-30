@@ -30,6 +30,7 @@ namespace PrintVect.Core.Host
         private readonly IncomingSpool _spool;
         private readonly ConcurrentDictionary<TcpClient, byte> _connections = new ConcurrentDictionary<TcpClient, byte>();
         private readonly PinAttemptLimiter _pinTries = new PinAttemptLimiter();
+        private readonly NonceMemory _nonces = new NonceMemory();
         private readonly Dictionary<string, RefusedConnections> _refusedConnections = new Dictionary<string, RefusedConnections>(StringComparer.OrdinalIgnoreCase);
         private readonly object _spaceGate = new object();
         private long _reservedBytes;
@@ -842,10 +843,24 @@ namespace PrintVect.Core.Host
                 return "Too many wrong sharing PINs came from " + sender + ", so " + host + " checks its PIN again in " + Minutes(wait)
                        + ". " + again;
             }
+            string repeated = host + " refused this: its one-time PIN proof was already used, so it is a copy of an earlier request "
+                              + "(0.5.9). " + again;
+            if (!string.IsNullOrEmpty(header.Nonce) && _nonces.WasUsed(header.Nonce, now))
+            {
+                _pinTries.Failed(address, now);
+                Log.Warn(header.JobId, "A PIN proof came again from " + sender + " (" + address + "): a copy of an earlier request, refused.");
+                return repeated;
+            }
             switch (PinProof.Check(pin, header, now))
             {
                 case PinCheck.Open:
                 case PinCheck.Accepted:
+                    if (!_nonces.TryRemember(header.Nonce, PinProof.ExpiresUtc(header), now))
+                    {
+                        _pinTries.Failed(address, now);
+                        Log.Warn(header.JobId, "A PIN proof came twice at once from " + sender + " (" + address + "); the second is refused.");
+                        return repeated;
+                    }
                     _pinTries.Succeeded(address);
                     return null;
                 case PinCheck.Outdated:

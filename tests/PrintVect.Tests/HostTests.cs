@@ -278,6 +278,33 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public async Task SendJob_AnExactCopyOfAnAcceptedRequest_IsRefused()
+        {
+            _host.Pin = "12345678";
+            string file = WriteXps(5000);
+            RequestHeader original = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "Once", "12345678");
+            JobReply first = await Client().SendJobAsync(original, file, null, CancellationToken.None);
+            Assert.IsTrue(first.Ok, first.Message);
+
+            RequestHeader copy = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "Once", null);
+            copy.JobId = original.JobId;
+            copy.Nonce = original.Nonce;
+            copy.Time = original.Time;
+            copy.Proof = original.Proof;   // recorded on the network and sent again as it was
+            JobReply again = await Client().SendJobAsync(copy, file, null, CancellationToken.None);
+
+            Assert.IsFalse(again.Ok);
+            StringAssert.Contains(again.Message, "already used");
+            Assert.AreEqual(1, _engine.Requests.Count);
+
+            RequestHeader honestRetry = RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "Once", "12345678");
+            honestRetry.JobId = original.JobId;   // Retry on the sender: same job, new nonce
+            JobReply retried = await Client().SendJobAsync(honestRetry, file, null, CancellationToken.None);
+            Assert.IsTrue(retried.Ok, retried.Message);
+            Assert.AreEqual(1, _engine.Requests.Count, "known job id: answered with its state, not printed twice");
+        }
+
+        [TestMethod]
         public async Task SendJob_ARecordedProofDoesNotWorkForAnotherJob()
         {
             _host.Pin = "1234";

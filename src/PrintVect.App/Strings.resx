@@ -455,7 +455,16 @@ Details: {0}</value>
     <value>Sharing PIN</value>
   </data>
   <data name="SettingsPinOn" xml:space="preserve">
-    <value>Set. Other PCs need the same PIN to print here, and this PC sends it with every job.</value>
+    <value>Set. Other PCs need the same PIN to print here, and this PC proves it with every job.</value>
+  </data>
+  <data name="SettingsPinShort" xml:space="preserve">
+    <value>This PIN has {0} characters; new PINs need at least {1}, because a short one can be guessed. It keeps working: Change PIN… sets a longer one (on every PC).</value>
+  </data>
+  <data name="SettingsPinShortPill" xml:space="preserve">
+    <value>Short</value>
+  </data>
+  <data name="CheckPinShort" xml:space="preserve">
+    <value>Sharing PIN is short</value>
   </data>
   <data name="SettingsPinOff" xml:space="preserve">
     <value>Without a PIN, any PC on the network can print to this PC's shared printers.</value>
@@ -496,7 +505,7 @@ Any PC on the network can then print here, and PCs that still ask for a PIN will
     <value>Change the sharing PIN</value>
   </data>
   <data name="PinExplain" xml:space="preserve">
-    <value>Every PC that prints through PrintVect must have the same PIN: a PC that shares printers refuses jobs with a different one. Use 4 to 12 characters; 8 or more are much harder to guess.</value>
+    <value>Every PC that prints through PrintVect must have the same PIN: a PC that shares printers refuses jobs with a different one. Use 8 to 12 characters; letters and digits together are hardest to guess.</value>
   </data>
   <data name="PinNew" xml:space="preserve">
     <value>New PIN</value>
@@ -1034,7 +1043,7 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
     <value>Type the PIN again</value>
   </data>
   <data name="SharingDialogPinHelp" xml:space="preserve">
-    <value>Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters (8 or more are much harder to guess). Leave it blank to share without a PIN.</value>
+    <value>Every PC that prints here needs the same PIN in its Settings. Use 8 to 12 characters. Leave it blank to share without a PIN.</value>
   </data>
   <data name="SharingDialogPinSet" xml:space="preserve">
     <value>This PC already has a sharing PIN. Other PCs need the same PIN in their Settings to print here.</value>

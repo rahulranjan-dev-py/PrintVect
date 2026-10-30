@@ -4,6 +4,16 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
+## 0.5.9
+
+Three more security fixes. Before a job leaves, the PC at the printer's saved address must prove it is the PC the
+printer was added from (with its identity key, checked again every 5 minutes): before, that was checked only when the
+address changed, so another PC that was given the old address could receive documents. New sharing PINs need at least
+8 characters; a shorter PIN set before keeps working, and Settings shows a note ("Short") next to it. The PC with the
+printer refuses a request whose one-time PIN proof it has already accepted, so a recorded request cannot be sent
+again. The PIN window shows again why a PIN is not taken: in 0.5.8 its longer explanation left the message no room,
+so Save PIN seemed to do nothing. **Tested:** awaiting test.
+
 ## 0.5.8
 
 Security fixes from a review of the design.

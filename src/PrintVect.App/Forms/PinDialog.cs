@@ -11,7 +11,11 @@ namespace PrintVect.App.Forms
     /// </summary>
     internal sealed class PinDialog : Form
     {
-        public const int MinLength = 4;
+        /// <summary>
+        /// 8 since 0.5.9 (was 4): someone who records the network can try every short PIN on their own computer. A
+        /// shorter PIN saved before keeps working; Settings shows a note next to it (IsShort).
+        /// </summary>
+        public const int MinLength = 8;
         public const int MaxLength = 12;
 
         private readonly InputBox _pin;
@@ -37,7 +41,7 @@ namespace PrintVect.App.Forms
             var card = new Card { Dock = DockStyle.Fill, Margin = Ui.Pad(0) };
             outer.Controls.Add(card);
 
-            TableLayoutPanel column = Make.Column(0, 0, 0, 0, 0, 0, 100, 0);
+            TableLayoutPanel column = Make.Column(0, 0, 0, 0, 0, 0, 0, 100, 0);
             column.Controls.Add(Make.Label(hasPin ? Strings.PinChangeTitle : Strings.PinSetTitle, ThemeFonts.Heading, Palette.Text, Ui.Pad(0, 0, 0, 8)), 0, 0);
             Label explain = Make.Muted(Strings.PinExplain);
             explain.Margin = Ui.Pad(0, 0, 0, 14);
@@ -56,12 +60,20 @@ namespace PrintVect.App.Forms
             var cancel = new ThemedButton(Strings.CopiesCancel, ButtonKind.Secondary) { DialogResult = DialogResult.Cancel, Margin = Ui.Pad(0) };
             FlowLayoutPanel buttons = Make.Row(save, cancel);
             buttons.Margin = Ui.Pad(0, 12, 0, 0);
-            column.Controls.Add(buttons, 0, 7);
+            column.Controls.Add(buttons, 0, 8);
             card.Controls.Add(column);
             Controls.Add(outer);
 
             AcceptButton = save;
             CancelButton = cancel;
+
+            // As tall as the content with room for the longest message, which the empty row 7 gives back while there is
+            // none (0.5.9: with a fixed height a four-line explanation left the message no room, so a refused PIN
+            // showed nothing).
+            _problem.Text = Strings.PinMismatch;
+            int inner = ClientSize.Width - outer.Padding.Horizontal - card.Padding.Horizontal;
+            ClientSize = new Size(ClientSize.Width, outer.Padding.Vertical + card.Padding.Vertical + column.GetPreferredSize(new Size(inner, 0)).Height);
+            _problem.Text = "";
             Ui.Solidify(this);
         }
 
@@ -101,7 +113,13 @@ namespace PrintVect.App.Forms
             Close();
         }
 
-        /// <summary>Why the two entries cannot be saved, or null. The rule: 4 to 12 characters, no spaces at the ends, typed twice alike.</summary>
+        /// <summary>Why the two entries cannot be saved, or null. The rule: 8 to 12 characters (0.5.9; was 4), no spaces at the ends, typed twice alike.</summary>
+        /// <summary>A saved PIN shorter than new ones may be (set before 0.5.9).</summary>
+        internal static bool IsShort(string pin)
+        {
+            return !string.IsNullOrEmpty(pin) && pin.Length < MinLength;
+        }
+
         internal static string Check(string pin, string again)
         {
             pin = pin ?? "";
