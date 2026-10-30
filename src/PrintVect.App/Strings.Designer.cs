@@ -370,6 +370,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Sharing PIN is short.
+        /// </summary>
+        internal static string CheckPinShort {
+            get {
+                return ResourceManager.GetString("CheckPinShort", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} · running since {1}.
         /// </summary>
         internal static string CheckProgram {
@@ -1855,7 +1864,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Set. Other PCs need the same PIN to print here, and this PC sends it with every job..
+        ///   Looks up a localized string similar to Set. Other PCs need the same PIN to print here, and this PC proves it with every job..
         /// </summary>
         internal static string SettingsPinOn {
             get {
@@ -1914,6 +1923,24 @@ namespace PrintVect.App {
         internal static string SettingsPinSetPill {
             get {
                 return ResourceManager.GetString("SettingsPinSetPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PIN has {0} characters; new PINs need at least {1}, because a short one can be guessed. It keep [rest of string was truncated].
+        /// </summary>
+        internal static string SettingsPinShort {
+            get {
+                return ResourceManager.GetString("SettingsPinShort", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Short.
+        /// </summary>
+        internal static string SettingsPinShortPill {
+            get {
+                return ResourceManager.GetString("SettingsPinShortPill", resourceCulture);
             }
         }
 
@@ -2467,7 +2494,7 @@ namespace PrintVect.App {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Every PC that prints here needs the same PIN in its Settings. Use 4 to 12 characters (8 or more are  [rest of string was truncated].
+        ///   Looks up a localized string similar to Every PC that prints here needs the same PIN in its Settings. Use 8 to 12 characters. Leave it blank [rest of string was truncated].
         /// </summary>
         internal static string SharingDialogPinHelp {
             get {

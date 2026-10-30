@@ -105,7 +105,8 @@ report to copy.
   ports in Windows Firewall for PrintVect only, on private and domain networks only, never on public ones.
 - Without a sharing PIN, any PC on the same network can print to the shared printers; set the same PIN on every
   PC to limit that (Settings, Security). The PIN itself never crosses the network: each job carries a one-time
-  proof of it, and a PC that sends 5 wrong PINs has to wait. Longer PINs (8 or more characters) are harder to guess.
+  proof of it, and a PC that sends 5 wrong PINs has to wait. New PINs have at least 8 characters (0.5.9); a shorter
+  one set before keeps working, with a note in Settings.
   Print jobs are not encrypted on the network.
 - PrintVect runs as a normal user. Only its small helper, `PrintVect.Elevate.exe`, asks for administrator rights,
   for the few tasks that need them: adding or removing a printer, starting with Windows, making a network private.

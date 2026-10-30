@@ -58,6 +58,7 @@ namespace PrintVect.App.Client
             tracker.Changed += (s, record) => _history.QueueSave();
 
             var sender = new TcpJobSender();
+            sender.HostKeyLearned += (s, printer) => Post(() => TrySave());   // learned before a job (0.5.9)
             _service = new ClientService(paths, sender, tracker)
             {
                 Pin = config.Pin,

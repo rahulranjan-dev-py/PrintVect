@@ -71,6 +71,12 @@ namespace PrintVect.Core.Protocol
             return FixedTimeEquals(Compute(hostPin, header), header.Proof.ToLowerInvariant()) ? PinCheck.Accepted : PinCheck.Wrong;
         }
 
+        /// <summary>When a proof made at the header's time stops being accepted (UTC): its nonce need not be kept longer.</summary>
+        public static DateTime ExpiresUtc(RequestHeader header)
+        {
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(header.Time) + ClockTolerance;
+        }
+
         /// <summary>The header's time as the host's local clock reads it, for messages.</summary>
         public static DateTime TimeOf(RequestHeader header)
         {

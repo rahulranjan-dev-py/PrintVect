@@ -62,6 +62,10 @@ address with the remembered key; one that claims the host's name or printers wit
 says why. A printer with no key yet remembers the first one proven to it; a host before 0.5.8 (no key) is followed
 as before. The signed address stops a PC from passing on the real host's answer from elsewhere.
 
+Since 0.5.9 the client also checks the PC at the printer's saved address before it sends a job there: the same list
+request with a challenge, trusted for 5 minutes once passed. When it fails, nothing is sent; the client treats the
+host as not reachable at that address (it searches for it, then keeps the job for Retry with the reason).
+
 ## Job header
 
 ```json
@@ -91,6 +95,9 @@ without a proof with `retry:true`; a request with only the `pin` field of earlie
 refused with a message to update the sender. After 5 wrong proofs from one address the host refuses that address for
 15 minutes without checking, twice as long after each further 5 (at most 4 hours); a right PIN or a day without a
 wrong one starts afresh. A hello proves the PIN the same way (with `printerId`, `jobId` and `size` empty and 0).
+Since 0.5.9 the host remembers every `nonce` it accepted until its proof expires (`time` plus 24 hours) and refuses a
+request that brings one again (a copy of a recorded request); that also counts as a wrong try. Every real send,
+Retry included, makes a new nonce.
 
 `copies` (optional, default 1, at most 99) asks the host to print the document that many times; the client
 fills it from the XPS print ticket inside the file (`JobCopiesAllDocuments`), which Word and Excel set when the

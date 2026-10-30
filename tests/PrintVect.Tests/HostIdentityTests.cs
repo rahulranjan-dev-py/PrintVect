@@ -107,6 +107,71 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public async Task BeforeAJob_ThePcAtTheSavedAddressMustProveTheKey_AndAPassedCheckHoldsForAWhile()
+        {
+            using (var temp = new TempFolder())
+            {
+                var paths = new AppPaths(temp.Path);
+                paths.EnsureDirectories();
+                Log.Initialize(paths.LogsDir, "PrintVect");
+                var engine = new FakePrintEngine();
+                using (var host = new HostService(paths, engine, new FakePrinters(), new JobTracker()) { Identity = _real })
+                {
+                    host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+                    host.Start(0);
+                    string file = XpsPackages.Write(temp.File("job.xps"), false, "Checked", 2000);
+                    // No PC name: only the saved address is tried.
+                    var printer = new RemotePrinter { PrinterId = "abc123", HostIp = "127.0.0.1", Port = host.Port, HostKeyId = _real.KeyId };
+                    var sender = new TcpJobSender();
+
+                    JobReply first = await sender.SendAsync(printer, RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null), file, CancellationToken.None);
+                    Assert.IsTrue(first.Ok, first.Message);
+
+                    host.Identity = _impostor;   // another PC now answers at the saved address
+                    JobReply cached = await sender.SendAsync(printer, RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null), file, CancellationToken.None);
+                    Assert.IsTrue(cached.Ok, "a passed check is trusted for 5 minutes");
+
+                    sender.CheckPassedFor = TimeSpan.Zero;
+                    HostUnreachableException refused = await Assert.ThrowsExceptionAsync<HostUnreachableException>(
+                        () => sender.SendAsync(printer, RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null), file, CancellationToken.None));
+                    StringAssert.Contains(refused.Message, "Nothing was sent there");
+                    Assert.AreEqual(2, engine.Requests.Count, "the third job never reached the PC that could not prove the key");
+                    host.Stop();
+                }
+                Log.Shutdown();
+            }
+        }
+
+        [TestMethod]
+        public async Task BeforeAJob_APrinterWithoutAKeyLearnsIt()
+        {
+            using (var temp = new TempFolder())
+            {
+                var paths = new AppPaths(temp.Path);
+                paths.EnsureDirectories();
+                Log.Initialize(paths.LogsDir, "PrintVect");
+                using (var host = new HostService(paths, new FakePrintEngine(), new FakePrinters(), new JobTracker()) { Identity = _real })
+                {
+                    host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+                    host.Start(0);
+                    var printer = new RemotePrinter { PrinterId = "abc123", HostIp = "127.0.0.1", Port = host.Port };
+                    var sender = new TcpJobSender();
+                    RemotePrinter learned = null;
+                    sender.HostKeyLearned += (s, p) => learned = p;
+
+                    JobReply reply = await sender.SendAsync(printer, RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null),
+                        XpsPackages.Write(temp.File("job.xps"), false, "Learn", 2000), CancellationToken.None);
+
+                    Assert.IsTrue(reply.Ok, reply.Message);
+                    Assert.AreEqual(_real.KeyId, printer.HostKeyId);
+                    Assert.AreSame(printer, learned, "the app saves config.json");
+                    host.Stop();
+                }
+                Log.Shutdown();
+            }
+        }
+
+        [TestMethod]
         public void TheKeyIsKeptProtectedAndReadBack()
         {
             string saved;

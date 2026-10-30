@@ -20,14 +20,16 @@ These are known limits of the design, not vulnerabilities:
 - Without a sharing PIN, any PC on the same network can print to the shared printers. With a PIN (0.5.8), every job and
   hello carries a one-time proof of it (PBKDF2-SHA256 salted with that request), never the PIN or a plain hash of it,
   and a PC that sends 5 wrong PINs must wait 15 minutes, twice as long each further time. Someone who records the
-  network traffic can still try to guess a short PIN offline, so use 8 or more characters where that matters. Print
+  network traffic can still try to guess a short PIN offline, so new PINs have at least 8 characters (0.5.9). Each proof
+  is accepted once: the host remembers the one-time values it accepted until they expire and refuses a copy. Print
   jobs are not encrypted on the network.
 - config.json keeps the PIN and the PC's identity key protected with Windows DPAPI for that PC (0.5.8), so they do not
   show in the file or in a copy taken elsewhere. Any program running on that PC can still read them back, so the PIN
   protects against other PCs, not against other people who use the same PC.
 - A PC name and printer ids can be claimed by any PC on the network. Since 0.5.8 a printer follows its host to a new
   address only when the PC there proves, by signing a random challenge with the host's identity key, that it is the
-  PC the printer was added from. Someone who can intercept the network traffic itself (not just answer on it) is
+  PC the printer was added from. Since 0.5.9 the PC at the saved address must prove it too before a job goes there
+  (checked again every 5 minutes), in case another PC was given the host's old address. Someone who can intercept the network traffic itself (not just answer on it) is
   outside what PrintVect can stop.
 - Every user may write in `C:\ProgramData\PrintVect`. The administrator helper (`PrintVect.Elevate.exe`) checks that no
   folder it creates, gives rights on, deletes or writes its log and result in is a junction or symbolic link, and

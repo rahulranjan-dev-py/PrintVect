@@ -737,6 +737,20 @@ was committed although the README plays the copy uploaded to GitHub.
 | 1 | On a PC that had a PIN before the update, open `C:\ProgramData\PrintVect\config.json` in Notepad. | No `"Pin": "…"` line; a long `"PinProtected"` value instead. The log of the first start: "the sharing PIN was kept in plain text; config.json now keeps it protected for this PC." Printing with the PIN works as before. |
 | 2 | Settings, Security, Change PIN; then look at config.json again. | Still no PIN in plain text; the other PCs need the new PIN as before. |
 
+## 0.5.9: host key before every job, 8-character PINs, one-time proofs
+
+Three more fixes the owner asked for after 0.5.8 (2026-10-30). Use HOST (shares the printer) and CLIENT (prints), both
+on 0.5.9.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Install the 0.5.9 test version on HOST and CLIENT (docs/releasing.md: download the setup from the release page). | "Version 0.5.9" under the menu. |
+| 1 | Print a page from CLIENT, and another within 5 minutes. | Both print. CLIENT's log, first job only: "The PC at 192.168.… proved it is HOST (identity key checked; checked again after 5 minutes)." |
+| 2 | (Optional, needs a spare PC) switch HOST off, give the spare PC HOST's old address (on the router, or as a fixed address), share a printer on it, wait 5 minutes and print from CLIENT. | Nothing prints on the spare PC. The job waits: "… is not HOST, the PC this printer was added from … Nothing was sent there." |
+| 3 | On a PC whose PIN has fewer than 8 characters: Settings. | Sharing PIN shows an orange "Short" and the note "This PIN has 4 characters; new PINs need at least 8 …". Printing still works. Diagnostics: "Sharing PIN is short". |
+| 4 | Change PIN…, type 1234 twice. | "The PIN needs 8 to 12 characters." Type an 8-character PIN: saved, "Short" gone. Set the same PIN on the other PCs. |
+| 5 | Nothing to do for the one-time proofs: printing and Retry work as before. (A copied request would be refused with "its one-time PIN proof was already used"; the unit tests check that.) | |
+
 ## Later
 
 Phase 2 items (brief section 9): raw port-9100 relay, Hindi UI, optional service host, job counter per user.
