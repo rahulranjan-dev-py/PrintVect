@@ -29,7 +29,8 @@ These are known limits of the design, not vulnerabilities:
 - A PC name and printer ids can be claimed by any PC on the network. Since 0.5.8 a printer follows its host to a new
   address only when the PC there proves, by signing a random challenge with the host's identity key, that it is the
   PC the printer was added from. Since 0.5.9 the PC at the saved address must prove it too before a job goes there
-  (checked again every 5 minutes), in case another PC was given the host's old address. Someone who can intercept the network traffic itself (not just answer on it) is
+  (checked again every 5 minutes; hellos too since 0.5.10), in case another PC was given the host's old address. A PC
+  that proves a new key there (set up again) is trusted only after the person confirms it (Trust it again, 0.5.10). Someone who can intercept the network traffic itself (not just answer on it) is
   outside what PrintVect can stop.
 - Every user may write in `C:\ProgramData\PrintVect`. The administrator helper (`PrintVect.Elevate.exe`) checks that no
   folder it creates, gives rights on, deletes or writes its log and result in is a junction or symbolic link, and

@@ -238,12 +238,13 @@ namespace PrintVect.App.Forms
             try
             {
                 bool hasPin = !string.IsNullOrEmpty(_config.Pin);
-                bool shortPin = PinDialog.IsShort(_config.Pin);
-                _pinPill.Set(!hasPin ? Strings.SettingsPinNotSetPill : shortPin ? Strings.SettingsPinShortPill : Strings.SettingsPinSetPill,
-                    hasPin && !shortPin ? PillKind.Success : PillKind.Warning);
-                _pinText.Text = !hasPin ? Strings.SettingsPinOff
-                    : shortPin ? Strings.SettingsPinOn + " " + string.Format(CultureInfo.CurrentCulture, Strings.SettingsPinShort, _config.Pin.Length, PinDialog.MinLength)
-                    : Strings.SettingsPinOn;
+                string advice = PinAdvice(_config.Pin);
+                _pinPill.Set(!hasPin ? Strings.SettingsPinNotSetPill
+                        : PinDialog.IsShort(_config.Pin) ? Strings.SettingsPinShortPill
+                        : PinDialog.IsDigitsOnly(_config.Pin) ? Strings.SettingsPinDigitsPill
+                        : Strings.SettingsPinSetPill,
+                    hasPin && advice == null ? PillKind.Success : PillKind.Warning);
+                _pinText.Text = !hasPin ? Strings.SettingsPinOff : advice == null ? Strings.SettingsPinOn : Strings.SettingsPinOn + " " + advice;
                 _pinSet.Text = hasPin ? Strings.SettingsPinChange : Strings.SettingsPinSet;
                 _pinSet.Kind = hasPin ? ButtonKind.Secondary : ButtonKind.Primary;
                 _pinSet.Font = hasPin ? ThemeFonts.TextMedium : ThemeFonts.TextSemi;
@@ -259,6 +260,16 @@ namespace PrintVect.App.Forms
             {
                 _syncing = false;
             }
+        }
+
+        /// <summary>What to say about a saved PIN that is easy to guess (shorter than new ones may be, or digits only), or null.</summary>
+        private static string PinAdvice(string pin)
+        {
+            if (PinDialog.IsShort(pin))
+            {
+                return string.Format(CultureInfo.CurrentCulture, Strings.SettingsPinShort, pin.Length, PinDialog.MinLength);
+            }
+            return PinDialog.IsDigitsOnly(pin) ? Strings.SettingsPinDigitsOnly : null;
         }
 
         private void ChangeColours()
@@ -669,8 +680,10 @@ namespace PrintVect.App.Forms
             items.Add(string.IsNullOrEmpty(_config.Pin)
                 ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinOff, sharing ? Strings.CheckPinOffSharing : Strings.CheckPinOffText)
                 : PinDialog.IsShort(_config.Pin)
-                    ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinShort, string.Format(CultureInfo.CurrentCulture, Strings.SettingsPinShort, _config.Pin.Length, PinDialog.MinLength))
-                    : Tuple.Create(CheckLevel.Ok, Strings.CheckPinOn, Strings.CheckPinOnText));
+                    ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinShort, PinAdvice(_config.Pin))
+                    : PinDialog.IsDigitsOnly(_config.Pin)
+                        ? Tuple.Create(CheckLevel.Warning, Strings.CheckPinDigits, PinAdvice(_config.Pin))
+                        : Tuple.Create(CheckLevel.Ok, Strings.CheckPinOn, Strings.CheckPinOnText));
 
             int remote = _client.Printers.Count;
             items.Add(sharing

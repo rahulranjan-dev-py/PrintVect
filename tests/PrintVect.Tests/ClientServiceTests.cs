@@ -834,6 +834,37 @@ namespace PrintVect.Tests
         }
 
         [TestMethod]
+        public void AChangedHostKey_IsTheJobsMessage_AfterOneSearch()
+        {
+            using (var temp = new TempFolder())
+            {
+                const string reason = "The PC COUNTER1 at 192.168.10.20 proved a different identity key than COUNTER1 had when this printer was added. "
+                                      + "Nothing was sent there. If COUNTER1 was set up again, press Trust it again.";
+                var sender = new FakeJobSender { OnSend = h => { throw new HostIdentityException(reason, true); } };
+                int searches = 0;
+                using (ClientService service = Service(temp, sender, 0, 10, 10))
+                {
+                    service.FindHost = (p, ct) =>
+                    {
+                        Interlocked.Increment(ref searches);
+                        return Task.FromResult(HostSearchOutcome.NotFound);
+                    };
+                    var paths = new AppPaths(temp.Path);
+                    RemotePrinter printer = Printer();
+                    service.StartWatching(printer);
+
+                    ClientJobRecord record = DropAndWait(service, paths, printer, true, "Reinstalled host");
+
+                    Assert.AreEqual(ClientJobStates.Pending, record.State, "kept for Retry");
+                    StringAssert.StartsWith(record.Message, reason);
+                    Assert.IsFalse(record.Message.Contains("did not answer"), record.Message);
+                    Assert.AreEqual(1, searches);
+                    Assert.AreEqual(1, sender.Sent.Count, "trying again does not change who answers there");
+                }
+            }
+        }
+
+        [TestMethod]
         public void APcThatCannotProveItIsTheHostGetsNothing_AndTheJobSaysWhy()
         {
             using (var temp = new TempFolder())

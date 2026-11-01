@@ -746,10 +746,26 @@ on 0.5.9.
 |---|---------|-------------|
 | 0 | Install the 0.5.9 test version on HOST and CLIENT (docs/releasing.md: download the setup from the release page). | "Version 0.5.9" under the menu. |
 | 1 | Print a page from CLIENT, and another within 5 minutes. | Both print. CLIENT's log, first job only: "The PC at 192.168.… proved it is HOST (identity key checked; checked again after 5 minutes)." |
-| 2 | (Optional, needs a spare PC) switch HOST off, give the spare PC HOST's old address (on the router, or as a fixed address), share a printer on it, wait 5 minutes and print from CLIENT. | Nothing prints on the spare PC. The job waits: "… is not HOST, the PC this printer was added from … Nothing was sent there." |
+| 2 | (Optional, needs a spare PC) switch HOST off, give the spare PC HOST's old address (on the router, or as a fixed address), share a printer on it, wait 5 minutes and print from CLIENT. | Nothing prints on the spare PC. In 0.5.9 the job waits with the result of the PC-name try that comes after the refusal: "HOST did not answer (3 tries). HOST did not answer at 192.168.…, and its name leads nowhere (…)" (or "… leads to no other address."). The spare PC's own refusal is only in CLIENT's log: "Not sending to 192.168.…: A PC calling itself … but it is not HOST …". From 0.5.10 the job keeps that reason as its message (section 0.5.10, step 2). |
 | 3 | On a PC whose PIN has fewer than 8 characters: Settings. | Sharing PIN shows an orange "Short" and the note "This PIN has 4 characters; new PINs need at least 8 …". Printing still works. Diagnostics: "Sharing PIN is short". |
 | 4 | Change PIN…, type 1234 twice. | "The PIN needs 8 to 12 characters." Type an 8-character PIN: saved, "Short" gone. Set the same PIN on the other PCs. |
 | 5 | Nothing to do for the one-time proofs: printing and Retry work as before. (A copied request would be refused with "its one-time PIN proof was already used"; the unit tests check that.) | |
+
+## 0.5.10: a changed host key says so, Trust it again, hellos checked, digits-only PINs
+
+From the owner (2026-11-01). In 0.5.9 a PC that proved a different identity key at the saved address (PrintVect or
+Windows installed again there) refused the job, but the PC-name try after it replaced that reason with "did not
+answer". Now the reason stays, and Printers on other PCs offers **Trust it again**. Hellos get the same check as jobs.
+Use HOST (shares the printer) and CLIENT (prints), both on 0.5.10.
+
+| # | Do this | Expect this |
+|---|---------|-------------|
+| 0 | Install the 0.5.10 test version on HOST and CLIENT (docs/releasing.md). | "Version 0.5.10" under the menu. Printing works as before. |
+| 1 | On HOST: uninstall PrintVect (Windows Settings, Apps) and install 0.5.10 again; share the printer again and set the same sharing PIN. On CLIENT: print a page. | Nothing prints. The job waits: "The PC HOST at 192.168.… proved a different identity key than HOST had when this printer was added: PrintVect or Windows was installed again there, or it is another PC. Nothing was sent there. If HOST was set up again, press Trust it again …". Not "did not answer". |
+| 2 | On CLIENT: Printers on other PCs. | HOST's printer shows an orange "Identity changed" and a **Trust it again** button in place of Test page. CLIENT's log: "… proved a different identity key than HOST had …; nothing is sent there until it is trusted again". Within 5 minutes also "Presence: HOST did not take the hello (…)": no hello went there. |
+| 3 | Press **Trust it again**. | A question: "The PC at 192.168.…, which calls itself HOST, now proves a different identity key … Trust this PC as HOST from now on?" (No is the default). Press **No**: "Nothing changed …". Press Trust it again once more and **Yes**: "HOST is trusted again with its new identity key." The pill shows the printer status again. |
+| 4 | Press **Retry waiting**. | The page prints. CLIENT's log: "Trust it again: the person confirmed the new identity key …", then "The PC at … proved it is HOST". |
+| 5 | Settings on a PC whose PIN is 8 digits (for example 12345678). | Sharing PIN shows an orange "Digits only" and the note "This PIN has only digits, which anyone guessing tries first …". Diagnostics: "Sharing PIN is digits only". A PIN with letters and digits: "Set", no note. |
 
 ## Later
 

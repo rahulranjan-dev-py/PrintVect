@@ -35,6 +35,35 @@ namespace PrintVect.Core.Client
     {
         public string Problem { get; set; }
         public string KeyId { get; set; }
+
+        /// <summary>The PC there did not answer the check at all (switched off, moved): not a matter of identity.</summary>
+        public bool Unreachable { get; set; }
+
+        /// <summary>
+        /// 0.5.10: the PC there proved, with a valid signature for that address, a key other than the remembered one:
+        /// PrintVect or Windows was installed again there, or another PC got the address. NewKeyId is that key.
+        /// </summary>
+        public bool KeyChanged { get; set; }
+
+        public string NewKeyId { get; set; }
+
+        /// <summary>The PC name the PC there gave, for messages ("which calls itself …").</summary>
+        public string AnsweredName { get; set; }
+    }
+
+    /// <summary>
+    /// The PC at a printer's address answered but did not prove it is the PC the printer was added from (0.5.10). Unlike
+    /// HostUnreachableException, its message is the reason itself and must reach the person as it is.
+    /// </summary>
+    public sealed class HostIdentityException : Exception
+    {
+        public HostIdentityException(string message, bool keyChanged) : base(message)
+        {
+            KeyChanged = keyChanged;
+        }
+
+        /// <summary>A different key was proven (Trust it again can take it), not just no proof.</summary>
+        public bool KeyChanged { get; }
     }
 
     /// <summary>
@@ -66,40 +95,57 @@ namespace PrintVect.Core.Client
             }
             catch (Exception ex)
             {
-                return new MovedHostVerdict { Problem = "the PC at " + address + " did not answer the identity check (" + ex.Message + ")." };
+                return new MovedHostVerdict
+                {
+                    Problem = "the PC at " + address + " did not answer the identity check (" + ex.Message + ").",
+                    Unreachable = true
+                };
             }
-            string keyId;
-            string problem = Judge(printer, address, challenge, reply, out keyId);
-            return new MovedHostVerdict { Problem = problem, KeyId = keyId };
+            return Judge(printer, address, challenge, reply);
         }
 
-        /// <summary>The decision itself, for a reply already received. Null: follow.</summary>
-        public static string Judge(RemotePrinter printer, string address, string challenge, ListReply reply, out string keyId)
+        /// <summary>The decision itself, for a reply already received. Problem null: follow.</summary>
+        public static MovedHostVerdict Judge(RemotePrinter printer, string address, string challenge, ListReply reply)
         {
-            keyId = null;
             string host = string.IsNullOrWhiteSpace(printer.HostName) ? "the PC with this printer" : printer.HostName;
-            string claimed = reply == null || string.IsNullOrWhiteSpace(reply.Host) ? "A PC" : "A PC calling itself " + reply.Host.Trim();
+            string answered = reply == null || string.IsNullOrWhiteSpace(reply.Host) ? null : reply.Host.Trim();
+            string claimed = answered == null ? "A PC" : "A PC calling itself " + answered;
+            var verdict = new MovedHostVerdict { AnsweredName = answered };
             if (reply == null || !reply.Ok)
             {
-                return "the PC at " + address + " refused the identity check" + (reply == null || string.IsNullOrEmpty(reply.Message) ? "." : ": " + reply.Message);
+                verdict.Problem = "the PC at " + address + " refused the identity check" + (reply == null || string.IsNullOrEmpty(reply.Message) ? "." : ": " + reply.Message);
+                return verdict;
             }
             if (string.IsNullOrEmpty(reply.HostKey))
             {
-                return string.IsNullOrEmpty(printer.HostKeyId)
+                verdict.Problem = string.IsNullOrEmpty(printer.HostKeyId)
                     ? null   // a host before 0.5.8 and a printer that never learned a key: as before
                     : claimed + " answers at " + address + " but cannot prove it is " + host + ", the PC this printer was added from.";
+                return verdict;
             }
             string offered = HostKeys.KeyIdOf(reply.HostKey);
+            bool signed = HostKeys.Verify(reply.HostKey, challenge, reply.Host, address, reply.HostSig);
             if (!string.IsNullOrEmpty(printer.HostKeyId) && !string.Equals(offered, printer.HostKeyId, StringComparison.OrdinalIgnoreCase))
             {
-                return claimed + " answers at " + address + ", but it is not " + host + ", the PC this printer was added from (its identity key differs).";
+                if (signed)
+                {
+                    // A real key, properly proven for this address, just not the one remembered (0.5.10).
+                    verdict.KeyChanged = true;
+                    verdict.NewKeyId = offered;
+                    verdict.Problem = (answered == null ? "The PC" : "The PC " + answered) + " at " + address + " proved a different identity key than "
+                                      + host + " had when this printer was added: PrintVect or Windows was installed again there, or it is another PC.";
+                    return verdict;
+                }
+                verdict.Problem = claimed + " answers at " + address + ", but it is not " + host + ", the PC this printer was added from (its identity key differs).";
+                return verdict;
             }
-            if (!HostKeys.Verify(reply.HostKey, challenge, reply.Host, address, reply.HostSig))
+            if (!signed)
             {
-                return claimed + " answers at " + address + " but did not prove it is " + host + " (its identity check failed).";
+                verdict.Problem = claimed + " answers at " + address + " but did not prove it is " + host + " (its identity check failed).";
+                return verdict;
             }
-            keyId = offered;
-            return null;
+            verdict.KeyId = offered;
+            return verdict;
         }
     }
 }

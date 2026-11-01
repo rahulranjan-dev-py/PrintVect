@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Windows.Forms;
 using PrintVect.App.Theme;
@@ -113,13 +114,19 @@ namespace PrintVect.App.Forms
             Close();
         }
 
-        /// <summary>Why the two entries cannot be saved, or null. The rule: 8 to 12 characters (0.5.9; was 4), no spaces at the ends, typed twice alike.</summary>
         /// <summary>A saved PIN shorter than new ones may be (set before 0.5.9).</summary>
         internal static bool IsShort(string pin)
         {
             return !string.IsNullOrEmpty(pin) && pin.Length < MinLength;
         }
 
+        /// <summary>A PIN of digits only (0.5.10: Settings warns): those are tried first by anyone guessing.</summary>
+        internal static bool IsDigitsOnly(string pin)
+        {
+            return !string.IsNullOrEmpty(pin) && pin.All(c => c >= '0' && c <= '9');
+        }
+
+        /// <summary>Why the two entries cannot be saved, or null. The rule: 8 to 12 characters (0.5.9; was 4), no spaces at the ends, typed twice alike.</summary>
         internal static string Check(string pin, string again)
         {
             pin = pin ?? "";

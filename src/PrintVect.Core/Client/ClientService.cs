@@ -478,6 +478,7 @@ namespace PrintVect.Core.Client
             string jobId = record.JobId;
             string lastError = null;
             string refusal = null;
+            string identity = null;
             TimeSpan[] delays = RetryDelays == null || RetryDelays.Length == 0 ? new[] { TimeSpan.Zero } : RetryDelays;
             bool searched = false;
             bool foundAgain = false;
@@ -510,6 +511,13 @@ namespace PrintVect.Core.Client
                     Log.Info(jobId, "Sending stopped because PrintVect is closing; the file stays in " + record.FilePath + ".");
                     return;
                 }
+                catch (HostIdentityException ex)
+                {
+                    // 0.5.10: a PC answered at the printer's address but is not proven the host. Trying again does not change
+                    // that; one search may still find the host elsewhere, and otherwise the reason itself is the message.
+                    identity = ex.Message;
+                    Log.Warn(jobId, "Try " + (attempt + 1) + " of " + delays.Length + " refused: " + ex.Message);
+                }
                 catch (Exception ex) when (IsReachabilityProblem(ex))
                 {
                     lastError = ex.Message;
@@ -519,6 +527,32 @@ namespace PrintVect.Core.Client
                 {
                     Log.Error(jobId, "The job could not be sent.", ex);
                     Finish(record, ClientJobStates.Error, "The job could not be sent: " + ex.Message, ClientPrinterNames.FailedFolderName);
+                    return;
+                }
+
+                if (identity != null)
+                {
+                    if (!searched && FindHost != null && attempt + 1 < delays.Length)
+                    {
+                        searched = true;
+                        try
+                        {
+                            HostSearchOutcome found = await SearchForHostAsync(printer, record, ct).ConfigureAwait(false);
+                            if (found.Moved)
+                            {
+                                foundAgain = true;
+                                identity = null;
+                                continue;   // the real host answers elsewhere: try there at once
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Log.Info(jobId, "Sending stopped because PrintVect is closing; the file stays in " + record.FilePath + ".");
+                            return;
+                        }
+                    }
+                    Finish(record, ClientJobStates.Pending, identity + " The document is kept on this PC; press Retry waiting once that is sorted out.",
+                        ClientPrinterNames.PendingFolderName);
                     return;
                 }
 

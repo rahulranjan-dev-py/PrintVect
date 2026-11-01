@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -47,37 +48,48 @@ namespace PrintVect.Tests
         public void APrinterFollowsOnlyTheHostWhoseKeyItRemembers()
         {
             string challenge = HostKeys.NewChallenge();
-            string keyId;
 
-            Assert.IsNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.31", challenge, Answer(_real, challenge, "COUNTER1", "192.168.10.31"), out keyId));
-            Assert.AreEqual(_real.KeyId, keyId);
+            MovedHostVerdict real = MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.31", challenge, Answer(_real, challenge, "COUNTER1", "192.168.10.31"));
+            Assert.IsNull(real.Problem);
+            Assert.AreEqual(_real.KeyId, real.KeyId);
 
-            string impostor = MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, Answer(_impostor, challenge, "COUNTER1", "192.168.10.66"), out keyId);
-            StringAssert.Contains(impostor, "not COUNTER1");
+            // Another PC with its own key, properly signed: PrintVect installed again there, or another PC (0.5.10).
+            MovedHostVerdict other = MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, Answer(_impostor, challenge, "COUNTER1", "192.168.10.66"));
+            StringAssert.Contains(other.Problem, "proved a different identity key");
+            Assert.IsTrue(other.KeyChanged);
+            Assert.AreEqual(_impostor.KeyId, other.NewKeyId, "what Trust it again would take after the person confirms");
+            Assert.IsNull(other.KeyId, "but nothing is followed");
 
             ListReply claimsTheRealKey = Answer(_impostor, challenge, "COUNTER1", "192.168.10.66");
             claimsTheRealKey.HostKey = _real.PublicKey;   // copied from the real host's discovery reply, but it cannot sign with it
-            Assert.IsNotNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, claimsTheRealKey, out keyId));
+            MovedHostVerdict copied = MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, claimsTheRealKey);
+            Assert.IsNotNull(copied.Problem);
+            Assert.IsFalse(copied.KeyChanged);
 
             ListReply relayed = Answer(_real, challenge, "COUNTER1", "192.168.10.31");   // the real host's answer, passed on from another address
-            Assert.IsNotNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, relayed, out keyId));
+            Assert.IsNotNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, relayed).Problem);
+
+            ListReply foreignRelayed = Answer(_impostor, challenge, "OTHER", "192.168.10.31");   // another key, signed for another address
+            MovedHostVerdict notHere = MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, foreignRelayed);
+            Assert.IsNotNull(notHere.Problem);
+            Assert.IsFalse(notHere.KeyChanged, "a key not proven for this address is never offered for trust");
 
             ListReply noKey = new ListReply { Host = "COUNTER1", Ip = "192.168.10.66", Port = 9151 };
-            Assert.IsNotNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, noKey, out keyId), "a remembered key is never given up");
+            Assert.IsNotNull(MovedHostCheck.Judge(Printer(_real.KeyId), "192.168.10.66", challenge, noKey).Problem, "a remembered key is never given up");
         }
 
         [TestMethod]
         public void APrinterWithoutAKeyLearnsTheFirstProvenOne_AndFollowsAnOlderHostAsBefore()
         {
             string challenge = HostKeys.NewChallenge();
-            string keyId;
 
-            Assert.IsNull(MovedHostCheck.Judge(Printer(null), "192.168.10.31", challenge, Answer(_real, challenge, "COUNTER1", "192.168.10.31"), out keyId));
-            Assert.AreEqual(_real.KeyId, keyId);
+            MovedHostVerdict learned = MovedHostCheck.Judge(Printer(null), "192.168.10.31", challenge, Answer(_real, challenge, "COUNTER1", "192.168.10.31"));
+            Assert.IsNull(learned.Problem);
+            Assert.AreEqual(_real.KeyId, learned.KeyId);
 
-            Assert.IsNull(MovedHostCheck.Judge(Printer(null), "192.168.10.31", challenge, new ListReply { Host = "COUNTER1", Port = 9151 }, out keyId),
-                "a host before 0.5.8 has no key");
-            Assert.IsNull(keyId);
+            MovedHostVerdict older = MovedHostCheck.Judge(Printer(null), "192.168.10.31", challenge, new ListReply { Host = "COUNTER1", Port = 9151 });
+            Assert.IsNull(older.Problem, "a host before 0.5.8 has no key");
+            Assert.IsNull(older.KeyId);
         }
 
         [TestMethod]
@@ -132,10 +144,72 @@ namespace PrintVect.Tests
                     Assert.IsTrue(cached.Ok, "a passed check is trusted for 5 minutes");
 
                     sender.CheckPassedFor = TimeSpan.Zero;
-                    HostUnreachableException refused = await Assert.ThrowsExceptionAsync<HostUnreachableException>(
+                    RemotePrinter changed = null;
+                    sender.HostKeyChanged += (s, p) => changed = p;
+                    HostIdentityException refused = await Assert.ThrowsExceptionAsync<HostIdentityException>(
                         () => sender.SendAsync(printer, RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null), file, CancellationToken.None));
                     StringAssert.Contains(refused.Message, "Nothing was sent there");
+                    StringAssert.Contains(refused.Message, "Trust it again");
+                    Assert.IsTrue(refused.KeyChanged);
+                    Assert.AreSame(printer, changed, "the page offers Trust it again");
                     Assert.AreEqual(2, engine.Requests.Count, "the third job never reached the PC that could not prove the key");
+                    host.Stop();
+                }
+                Log.Shutdown();
+            }
+        }
+
+        [TestMethod]
+        public async Task AChangedKey_StaysTheReason_WhenThePcNameLeadsNowhereBetter()
+        {
+            using (var temp = new TempFolder())
+            {
+                var paths = new AppPaths(temp.Path);
+                paths.EnsureDirectories();
+                Log.Initialize(paths.LogsDir, "PrintVect");
+                var engine = new FakePrintEngine();
+                using (var host = new HostService(paths, engine, new FakePrinters(), new JobTracker()) { Identity = _impostor })
+                {
+                    host.UpdateSharedPrinters(new[] { new SharedPrinter { Id = "abc123", LocalName = "Fake Printer", FriendlyName = "Counter 1 Laser" } });
+                    host.Start(0);
+                    // PrintVect installed again there: a new key. The PC name leads only to the same address.
+                    var printer = new RemotePrinter { PrinterId = "abc123", HostName = "localhost", HostIp = "127.0.0.1", Port = host.Port, HostKeyId = _real.KeyId };
+
+                    HostIdentityException refused = await Assert.ThrowsExceptionAsync<HostIdentityException>(() => new TcpJobSender().SendAsync(printer,
+                        RequestHeader.ForJob("abc123", "a.xps", "xps", 0, "", null), XpsPackages.Write(temp.File("job.xps"), false, "Kept", 2000), CancellationToken.None));
+
+                    StringAssert.Contains(refused.Message, "proved a different identity key");
+                    Assert.IsFalse(refused.Message.Contains("did not answer"), refused.Message);
+                    Assert.AreEqual(0, engine.Requests.Count);
+                    host.Stop();
+                }
+                Log.Shutdown();
+            }
+        }
+
+        [TestMethod]
+        public async Task AHelloGoesOnlyToAPcThatProvesTheKey()
+        {
+            using (var temp = new TempFolder())
+            {
+                var paths = new AppPaths(temp.Path);
+                paths.EnsureDirectories();
+                Log.Initialize(paths.LogsDir, "PrintVect");
+                using (var host = new HostService(paths, new FakePrintEngine(), new FakePrinters(), new JobTracker()) { Identity = _impostor })
+                {
+                    host.Start(0);
+                    var printer = new RemotePrinter { PrinterId = "abc123", HostIp = "127.0.0.1", Port = host.Port, HostKeyId = _real.KeyId };
+                    var sender = new TcpJobSender();
+                    RequestHeader hello = RequestHeader.ForHello("Windows 11 Pro", "0.5.10", new[] { "abc123" });
+                    hello.Client = "COUNTER3";
+
+                    await Assert.ThrowsExceptionAsync<HostIdentityException>(() => sender.HelloAsync(printer, hello, CancellationToken.None));
+                    Assert.AreEqual(0, host.Presence.All().Count, "the hello was not sent");
+
+                    host.Identity = _real;
+                    JobReply welcomed = await sender.HelloAsync(printer, hello, CancellationToken.None);
+                    Assert.IsTrue(welcomed.Ok, welcomed.Message);
+                    Assert.AreEqual("COUNTER3", host.Presence.All().Single().Name);
                     host.Stop();
                 }
                 Log.Shutdown();
