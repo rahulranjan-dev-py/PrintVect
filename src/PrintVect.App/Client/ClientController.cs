@@ -40,6 +40,7 @@ namespace PrintVect.App.Client
         private readonly PresenceAnnouncer _presence;
         private readonly HashSet<string> _checking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _refusedMoves = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _keyChanged = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public ClientController(AppPaths paths, ConfigStore store, AppConfig config, SynchronizationContext ui)
         {
@@ -58,7 +59,8 @@ namespace PrintVect.App.Client
             tracker.Changed += (s, record) => _history.QueueSave();
 
             var sender = new TcpJobSender();
-            sender.HostKeyLearned += (s, printer) => Post(() => TrySave());   // learned before a job (0.5.9)
+            sender.HostKeyLearned += (s, printer) => Post(() => TrySave());   // learned before a job or hello (0.5.9)
+            sender.HostKeyChanged += (s, printer) => Post(() => MarkKeyChanged(printer));   // 0.5.10: Trust it again
             _service = new ClientService(paths, sender, tracker)
             {
                 Pin = config.Pin,
@@ -75,7 +77,6 @@ namespace PrintVect.App.Client
             _service.JobFinished += (s, record) => Post(() => Raise(JobFinished, record));
 
             _presence = new PresenceAnnouncer(sender, () => _service.WatchedPrinters) { Pin = config.Pin };
-            _presence.HostAnswered += (s, printer) => Post(() => LearnHostKey(printer));
 
             _discovery = new DiscoveryClient(config.DiscoveryPort);
             _discovery.HostsChanged += (s, e) => Post(OnHostsChanged);
@@ -251,56 +252,60 @@ namespace PrintVect.App.Client
         }
 
         /// <summary>
-        /// On the UI thread: the host of <paramref name="answered"/> took a hello. Printers of that host added before
-        /// 0.5.8 have no identity key remembered yet; ask the host to prove one at the printer's own address and keep it.
+        /// The PC at this printer's address proved a different identity key before a job or hello (0.5.10): the page offers
+        /// Trust it again. Kept until a check passes or the person trusts the new key; not saved.
         /// </summary>
-        private void LearnHostKey(RemotePrinter answered)
+        public bool HostKeyChanged(RemotePrinter printer)
         {
-            List<RemotePrinter> unknown = _config.RemotePrinters
-                .Where(p => string.IsNullOrEmpty(p.HostKeyId) && string.Equals(p.HostIp, answered.HostIp, StringComparison.OrdinalIgnoreCase)
-                            && p.Port == answered.Port)
-                .ToList();
-            string key = "learn|" + answered.HostIp + ":" + answered.Port;
-            if (unknown.Count == 0 || !_checking.Add(key))
+            return printer != null && _keyChanged.Contains(printer.PrinterId);
+        }
+
+        private void MarkKeyChanged(RemotePrinter printer)
+        {
+            if (_keyChanged.Add(printer.PrinterId))
             {
-                return;
+                Log.Warn("The PC at " + printer.HostIp + " proved a different identity key than " + printer.HostName + " had for \""
+                         + printer.LocalPrinterName + "\"; nothing is sent there until it is trusted again (Printers on other PCs).");
+                Raise(PrintersChanged);
             }
-            RemotePrinter first = unknown[0];
-            Task.Run(async () =>
+        }
+
+        /// <summary>Trust it again, step 1 (0.5.10): checks the PC at the printer's saved address once more.</summary>
+        public async Task<MovedHostVerdict> RecheckHostAsync(RemotePrinter printer)
+        {
+            if (printer == null) throw new ArgumentNullException(nameof(printer));
+            MovedHostVerdict verdict = await MovedHostCheck.CheckAsync(printer, printer.HostIp, printer.Port, CancellationToken.None).ConfigureAwait(true);
+            Log.Info("Trust it again: " + printer.HostName + " at " + printer.HostIp + " checked: "
+                     + (verdict.Problem == null ? "the known identity key." : verdict.Problem));
+            if (verdict.Problem == null && _keyChanged.Remove(printer.PrinterId))
             {
-                MovedHostVerdict verdict;
-                try
-                {
-                    verdict = await MovedHostCheck.CheckAsync(first, first.HostIp, first.Port, CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    verdict = new MovedHostVerdict { Problem = ex.Message };
-                }
-                Post(() =>
-                {
-                    _checking.Remove(key);
-                    if (verdict.Problem != null)
-                    {
-                        if (_refusedMoves.Add(key))
-                        {
-                            Log.Warn("The identity key of " + first.HostName + " could not be learned: " + verdict.Problem);
-                        }
-                        return;
-                    }
-                    if (verdict.KeyId == null)
-                    {
-                        return;   // a host before 0.5.8: nothing to learn yet
-                    }
-                    foreach (RemotePrinter printer in unknown.Where(p => string.IsNullOrEmpty(p.HostKeyId)))
-                    {
-                        printer.HostKeyId = verdict.KeyId;
-                    }
-                    Log.Info("Remembered the identity key of " + first.HostName + " (" + verdict.KeyId.Substring(0, 16) + "…) for "
-                             + unknown.Count + " printer(s); jobs follow it to a new address only when it proves this key.");
-                    TrySave();
-                });
-            });
+                Raise(PrintersChanged);
+            }
+            return verdict;
+        }
+
+        /// <summary>
+        /// Trust it again, step 2, after the person confirmed: every printer of that PC with the old key takes the new one,
+        /// which the PC there has just proven for its address. Jobs then go there again.
+        /// </summary>
+        public void TrustNewKey(RemotePrinter printer, string newKeyId)
+        {
+            if (printer == null) throw new ArgumentNullException(nameof(printer));
+            if (string.IsNullOrEmpty(newKeyId)) throw new ArgumentException("A key fingerprint is required.", nameof(newKeyId));
+            string old = printer.HostKeyId ?? "";
+            List<RemotePrinter> sameHost = _config.RemotePrinters
+                .Where(p => string.Equals(p.HostIp, printer.HostIp, StringComparison.OrdinalIgnoreCase) && p.Port == printer.Port
+                            && string.Equals(p.HostKeyId ?? "", old, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            foreach (RemotePrinter p in sameHost)
+            {
+                p.HostKeyId = newKeyId;
+                _keyChanged.Remove(p.PrinterId);
+            }
+            Log.Warn("Trust it again: the person confirmed the new identity key " + newKeyId.Substring(0, 16) + "… of " + printer.HostName + " at "
+                     + printer.HostIp + " (was " + (old.Length >= 16 ? old.Substring(0, 16) + "…" : "none") + ") for " + sameHost.Count + " printer(s).");
+            TrySave();
+            Raise(PrintersChanged);
         }
 
         /// <summary>Whether a job printed on this PC first asks how many copies (Settings, and "Don't ask again").</summary>

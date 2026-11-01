@@ -52,7 +52,7 @@ polling, re-checks within 0.5 s; taken when exclusively openable and size stable
 (XpsFormatSniffer looks inside: namespace openxps.org = oxps; it also reads the docProps title; the v4 writer stores
 none, so the document name comes from EnumJobs on the virtual printer while the port writes) -> ClientService sends
 (3 tries, each IP then PC name; after the first failure one 3 s discovery search follows a host that moved (0.5.0); a new address or the name's
-address is used only once it signs a challenge with the host key remembered for the printer (0.5.8, HostIdentity, MovedHostCheck; 0.5.9: the saved address too, before each job, passed checks kept 5 min in TcpJobSender); then pending\
+address is used only once it signs a challenge with the host key remembered for the printer (0.5.8, HostIdentity, MovedHostCheck; 0.5.9: the saved address too, before each job, passed checks kept 5 min in TcpJobSender; 0.5.10: hellos too, HostIdentityException keeps the reason, Trust it again takes a re-proven new key after confirmation); then pending\
 and Retry resends under the same job id; sent\ kept 1 h, failed\ last 20) and polls status.
 Host: receive into spool\incoming\ -> verify size, sniff the real format -> HostPrintEngine -> reply JSON -> watch the
 job (up to 60 s before replying). One job at a time per printer, arrival order, on that printer's worker thread (never
@@ -75,7 +75,7 @@ unit-tested with fakes over loopback TCP (tests never load System.Printing, whic
 - One milestone at a time (M0..M6 in the brief, section 9). Finish, build, hand over test steps,
   then wait for the owner's result before starting the next one. M4 (Windows 7 pass) is skipped:
   the office has no Windows 7 PC (owner, 2026-10-06); keep Windows 7 paths only where they cost nothing. M6: M6a
-  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window), 0.5.8 (security review: PIN proof, host identity, Elevate link guard, host flood limits, strict updates, test releases), 0.5.9 (host key before each job, 8-character PINs, nonce memory).
+  updates, M6b-1 new look, M6b-2 hardening; then 0.4.1 (jobs menu), 0.5.0 (redesign, colours, hotspot), 0.5.1-0.5.3 (look fixes), 0.5.4, 0.5.5 (no office words: homes too), 0.5.6 (menu fits), 0.5.7 (copies window), 0.5.8 (security review: PIN proof, host identity, Elevate link guard, host flood limits, strict updates, test releases), 0.5.9 (host key before each job, 8-character PINs, nonce memory), 0.5.10 (changed key kept as reason, Trust it again, hello check, digits-only PIN warning).
 - Build: `msbuild PrintVect.sln /p:Configuration=Release` (VS 2022 Build Tools + .NET Framework 4.8 targeting pack); `dotnet build PrintVect.sln -c Release` (.NET 8 SDK) too.
 - Tests: `dotnet test tests/PrintVect.Tests/PrintVect.Tests.csproj -c Release`. CI: .github/workflows/build.yml (windows-latest) builds, tests, makes the setup program;
   release.yml publishes a TEST version (pre-release, never "latest", so PCs skip it; text = CHANGELOG section via tools/release_notes.py); promote.yml makes it the latest release for every PC (0.5.8).

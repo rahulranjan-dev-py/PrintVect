@@ -62,9 +62,12 @@ address with the remembered key; one that claims the host's name or printers wit
 says why. A printer with no key yet remembers the first one proven to it; a host before 0.5.8 (no key) is followed
 as before. The signed address stops a PC from passing on the real host's answer from elsewhere.
 
-Since 0.5.9 the client also checks the PC at the printer's saved address before it sends a job there: the same list
-request with a challenge, trusted for 5 minutes once passed. When it fails, nothing is sent; the client treats the
-host as not reachable at that address (it searches for it, then keeps the job for Retry with the reason).
+Since 0.5.9 the client also checks the PC at the printer's saved address before it sends a job there (0.5.10: before
+a hello too): the same list request with a challenge, trusted for 5 minutes once passed. When the PC there does not
+answer, the client treats the host as not reachable at that address. When it answers but does not prove the key,
+nothing is sent; the client searches for the host once and otherwise keeps the job for Retry with that reason as its
+message (0.5.10). When it proves a different key with a valid signature for that address (set up again), the person
+can take that key with **Trust it again** on Printers on other PCs, after a fresh check and a confirmation.
 
 ## Job header
 

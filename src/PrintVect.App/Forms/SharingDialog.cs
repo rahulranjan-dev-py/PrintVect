@@ -12,9 +12,9 @@ using PrintVect.Core.Printing;
 namespace PrintVect.App.Forms
 {
     /// <summary>
-    /// "Share printers with the office?" (0.5.0, from the owner's redesign): which printers to share and, when this PC has
-    /// none yet, the office PIN, in one step before sharing is turned on. The same PIN rule as Settings: 4 to 12
-    /// characters, typed twice, the same on every PC; blank shares without a PIN.
+    /// "Share printers with other PCs?" (0.5.0, from the owner's redesign): which printers to share and, when this PC has
+    /// none yet, the sharing PIN, in one step before sharing is turned on. The same PIN rule as Settings (PinDialog.Check):
+    /// 8 to 12 characters since 0.5.9, typed twice, the same on every PC; blank shares without a PIN.
     /// </summary>
     internal sealed class SharingDialog : Form
     {

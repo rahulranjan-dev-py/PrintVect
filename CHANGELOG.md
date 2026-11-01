@@ -4,6 +4,15 @@ Newest first. Each version is a [release](https://github.com/rahulranjan-dev-py/
 program; PCs that run PrintVect offer the newest one by themselves (Settings, Updates). **Tested** says how far the
 version was tried on the office's PCs (Windows 10 and 11).
 
+## 0.5.10
+
+When the PC with a printer was set up again (PrintVect or Windows installed again), it proves a new identity key and
+jobs are refused until the person decides: the waiting job now says exactly that, instead of the "did not answer" of the
+PC-name try that came after it, and Printers on other PCs shows **Trust it again** next to that printer. It checks the PC
+once more and, after the person confirms, takes its new key. Hellos (the "PCs that use this PC" list) are now sent only
+to a PC that passed the same identity check as jobs. Settings warns when the sharing PIN is digits only. **Tested:**
+awaiting test.
+
 ## 0.5.9
 
 Three more security fixes. Before a job leaves, the PC at the printer's saved address must prove it is the PC the

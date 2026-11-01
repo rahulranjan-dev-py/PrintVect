@@ -188,6 +188,10 @@ namespace PrintVect.App.Forms
         /// <summary>A printer's pill: its status as its PC answered, "Looking…" while the search is young, else "Not answering".</summary>
         private Tuple<string, PillKind> PillOf(RemotePrinter printer, IList<DiscoveredHost> found)
         {
+            if (_controller.HostKeyChanged(printer))
+            {
+                return Tuple.Create(Strings.OfficeKeyChangedPill, PillKind.Warning);   // 0.5.10: nothing is sent there until trusted again
+            }
             PrinterInfo seen = found.SelectMany(h => h.Printers).FirstOrDefault(p => string.Equals(p.Id, printer.PrinterId, StringComparison.OrdinalIgnoreCase));
             if (seen != null)
             {
@@ -215,8 +219,19 @@ namespace PrintVect.App.Forms
             Control inWindows = Mixed(Strings.OfficeInPrintWindows, printer.LocalPrinterName, Palette.Faint, Palette.Faint);
             TableLayoutPanel text = Make.Stack(4, top, by, inWindows);
 
-            var test = new ThemedButton(Strings.OfficeTestPage, ButtonKind.Secondary, Glyph.Page);
-            test.Click += (s, e) => SendTestPage(printer);
+            ThemedButton test;
+            if (_controller.HostKeyChanged(printer))
+            {
+                // The PC there proved a different identity key (0.5.10): checking it again comes before any test page.
+                test = new ThemedButton(Strings.OfficeTrustAgain, ButtonKind.Primary, Glyph.Lock) { Enabled = !_busy };
+                test.AccessibleName = string.Format(Strings.OfficeTrustAgainAccessible, name);
+                test.Click += (s, e) => TrustAgain(printer);
+            }
+            else
+            {
+                test = new ThemedButton(Strings.OfficeTestPage, ButtonKind.Secondary, Glyph.Page);
+                test.Click += (s, e) => SendTestPage(printer);
+            }
             var retry = new ThemedButton(Strings.OfficeRetry, ButtonKind.Secondary, Glyph.Retry) { Enabled = waiting > 0 };
             retry.Click += (s, e) => Retry(printer);
             var remove = new ThemedButton(Strings.UseRemove, ButtonKind.Danger, Glyph.Trash) { Margin = Ui.Pad(0) };
@@ -253,6 +268,60 @@ namespace PrintVect.App.Forms
             {
                 Log.Error("The test page could not be handed over.", ex);
                 _shell.Say(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Trust it again (0.5.10): checks the PC at the printer's address once more and, when it proves a new identity key
+        /// for that address, takes it only after the person confirms they know that PC was set up again.
+        /// </summary>
+        private async void TrustAgain(RemotePrinter printer)
+        {
+            if (_busy) return;
+            SetBusy(true);
+            try
+            {
+                MovedHostVerdict verdict = await _controller.RecheckHostAsync(printer);
+                if (IsDisposed) return;
+                if (verdict.Problem == null)
+                {
+                    _shell.Say(string.Format(Strings.OfficeTrustSame, printer.HostName));
+                    return;
+                }
+                if (!verdict.KeyChanged)
+                {
+                    MessageBox.Show(FindForm(), string.Format(Strings.OfficeTrustNotPossible, verdict.Problem), Strings.AppName,
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                string answered = verdict.AnsweredName ?? "?";
+                string question = string.Format(Strings.OfficeTrustConfirm, printer.HostIp, answered, printer.HostName, verdict.NewKeyId.Substring(0, 16));
+                if (!string.Equals(answered, printer.HostName, StringComparison.OrdinalIgnoreCase))
+                {
+                    question += "\n\n" + string.Format(Strings.OfficeTrustOtherName, answered, printer.HostName);
+                }
+                if (MessageBox.Show(FindForm(), question, Strings.AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
+                        MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                {
+                    Log.Info("Trust it again: the person kept the old identity key of " + printer.HostName + ".");
+                    _shell.Say(Strings.OfficeTrustKept);
+                    return;
+                }
+                _controller.TrustNewKey(printer, verdict.NewKeyId);
+                _shell.Say(string.Format(Strings.OfficeTrustDone, printer.HostName));
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Trust it again failed for " + printer.HostName + ".", ex);
+                if (!IsDisposed) _shell.Say(string.Format(Strings.OfficeTrustNotPossible, ex.Message));
+            }
+            finally
+            {
+                if (!IsDisposed)
+                {
+                    SetBusy(false);
+                    FillMine();
+                }
             }
         }
 

@@ -219,7 +219,7 @@ pvct-send status 192.168.1.5 <job id>
 `192.168.1.5` is the host PC's address (shown on its Share my printers page, and under Network in Settings, Diagnostics); a PC
 name works too. `PrintVect-test-page.xps` is a ready-made one-page test file. Any other
 `.xps` file works: print a document to "Microsoft XPS Document Writer" to make one. Options:
-`/pin 1234` when the host has a PIN, `/doc "title"`, `/port 9151`, `/nowait`.
+`/pin <the sharing PIN>` when the host has a PIN, `/doc "title"`, `/port 9151`, `/nowait`.
 
 If another PC cannot reach the host, the Windows Firewall on the host is blocking port 9151 (on a phone
 hotspot: see Troubleshooting). Without the installer, run this once on the host as administrator:
@@ -263,7 +263,7 @@ netsh advfirewall firewall add rule name="PrintVect Discovery (UDP-In)" dir=in a
 | After an update PrintVect did not come back | Start it from the Start menu; the update itself is complete. Tell the person who supports PrintVect which version the window shows. |
 | A job waits with "asks for the sharing PIN" | The two PCs have different sharing PINs (or one has none). Set the same PIN in Settings on both, then press **Retry waiting** (Printers on other PCs) on the PC that printed. |
 | A job waits with "Too many wrong sharing PINs" | That PC sent 5 wrong PINs, so the PC with the printer ignores it for the minutes the message names (longer each time). Set the same PIN on both PCs, wait, then press **Retry waiting**. |
-| A job waits with "it is not ..., the PC this printer was added from" | A PC answered with the name of the PC that has the printer but could not prove it is that PC, so nothing was sent to it. If the PC with the printer was set up again (new Windows, or PrintVect removed and installed again), remove its printer on this PC and add it again (Printers on other PCs). |
+| A job waits with "proved a different identity key" or "it is not ..., the PC this printer was added from" | The PC at the printer's address could not prove it is the PC the printer was added from, so nothing was sent to it. If that PC was set up again (new Windows, or PrintVect removed and installed again), press **Trust it again** next to the printer on Printers on other PCs and confirm, or remove the printer and add it again; then press **Retry waiting**. If it was not set up again, find out which PC now has that address before trusting it. |
 | A job waits with "runs a PrintVect older than 0.5.8" | The PC with the printer has a sharing PIN and the PC that printed has an old PrintVect. Update it (Settings, Updates, Check now), then press **Retry waiting**. |
 | A job waits with "already holds ... of documents waiting to print" or "is nearly full" | The PC with the printer has 1 GB of documents waiting (a paused printer?) or little disk space left. Resume the printer or free some space on that PC, then press **Retry waiting**. |
 | A job waits with "is paused there" | Someone pressed **Pause** on the PC that has the printer. Press **Resume** there (Share my printers). |

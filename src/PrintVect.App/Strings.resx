@@ -460,6 +460,15 @@ Details: {0}</value>
   <data name="SettingsPinShort" xml:space="preserve">
     <value>This PIN has {0} characters; new PINs need at least {1}, because a short one can be guessed. It keeps working: Change PIN… sets a longer one (on every PC).</value>
   </data>
+  <data name="SettingsPinDigitsOnly" xml:space="preserve">
+    <value>This PIN has only digits, which anyone guessing tries first. It keeps working: Change PIN… and mix in letters (on every PC).</value>
+  </data>
+  <data name="SettingsPinDigitsPill" xml:space="preserve">
+    <value>Digits only</value>
+  </data>
+  <data name="CheckPinDigits" xml:space="preserve">
+    <value>Sharing PIN is digits only</value>
+  </data>
   <data name="SettingsPinShortPill" xml:space="preserve">
     <value>Short</value>
   </data>
@@ -840,6 +849,37 @@ Jobs that are still waiting or printing stay. Nothing is printed, cancelled or d
   </data>
   <data name="OfficeShares" xml:space="preserve">
     <value>shares {0} printer(s)</value>
+  </data>
+  <data name="OfficeKeyChangedPill" xml:space="preserve">
+    <value>Identity changed</value>
+  </data>
+  <data name="OfficeTrustAgain" xml:space="preserve">
+    <value>Trust it again</value>
+  </data>
+  <data name="OfficeTrustAgainAccessible" xml:space="preserve">
+    <value>Trust the PC of {0} again</value>
+  </data>
+  <data name="OfficeTrustSame" xml:space="preserve">
+    <value>{0} proved the identity this PC knows: nothing to change. Press Retry waiting to send what waits.</value>
+  </data>
+  <data name="OfficeTrustNotPossible" xml:space="preserve">
+    <value>The PC could not be trusted again: {0}</value>
+  </data>
+  <data name="OfficeTrustConfirm" xml:space="preserve">
+    <value>The PC at {0}, which calls itself {1}, now proves a different identity key than {2} had when this printer was added (new key {3}…).
+
+That is expected after PrintVect or Windows was installed again on {2}. Trust it only if you know that happened; if you are not sure, ask someone at {2} first.
+
+Trust this PC as {2} from now on?</value>
+  </data>
+  <data name="OfficeTrustOtherName" xml:space="preserve">
+    <value>Careful: this PC calls itself {0}, not {1}. It may be a different PC that was given {1}'s address.</value>
+  </data>
+  <data name="OfficeTrustKept" xml:space="preserve">
+    <value>Nothing changed: jobs still go only to the PC with the identity this PC knows.</value>
+  </data>
+  <data name="OfficeTrustDone" xml:space="preserve">
+    <value>{0} is trusted again with its new identity key. Press Retry waiting to send what waits.</value>
   </data>
   <data name="OfficeTestPage" xml:space="preserve">
     <value>Test page</value>

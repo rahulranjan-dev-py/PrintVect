@@ -23,9 +23,11 @@ namespace PrintVect.Core.Client
     /// The real sender: TCP to the host's IP address first and, when that fails and a PC name is
     /// known, to the name (DHCP may have moved the host; brief 11.5). Any PC can answer to a name, so for a printer
     /// whose host key is remembered (0.5.8) the name is looked up and only an address that proves that key is used.
-    /// Before a job leaves, the PC at the saved address must prove that key too (0.5.9): another PC may have been given
-    /// the host's old address. A passed check holds for 5 minutes; a failed one counts as "not reachable there", so
-    /// the job searches for the host and then waits for Retry, saying why.
+    /// Before a job or hello leaves (0.5.9, hellos 0.5.10), the PC at the saved address must prove that key too: another
+    /// PC may have been given the host's old address, or PrintVect may have been installed again there. A passed check
+    /// holds for 5 minutes. A PC that does not answer counts as "not reachable there" (HostUnreachableException: the
+    /// PC name is tried next); one that answers without proving the key raises HostIdentityException, whose reason the
+    /// job keeps even when the PC name leads nowhere better (0.5.10).
     /// </summary>
     public sealed class TcpJobSender : IJobSender
     {
@@ -38,6 +40,9 @@ namespace PrintVect.Core.Client
 
         /// <summary>Raised on the sending thread when a printer added before 0.5.8 learned its host's key before a job (save config.json).</summary>
         public event EventHandler<RemotePrinter> HostKeyLearned;
+
+        /// <summary>Raised on the sending thread when the PC at a printer's address proved a different key (0.5.10: offer Trust it again).</summary>
+        public event EventHandler<RemotePrinter> HostKeyChanged;
 
         public async Task<JobReply> SendAsync(RemotePrinter printer, RequestHeader header, string filePath, CancellationToken ct)
         {
@@ -55,6 +60,22 @@ namespace PrintVect.Core.Client
             {
                 Log.Warn(header.JobId, first + " did not answer (" + ex.Message + "); trying the PC name " + second + ".");
                 string checkedAddress = await CheckedAsync(printer, second, ct).ConfigureAwait(false);
+                return await Client(checkedAddress, printer).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
+            }
+            catch (HostIdentityException identity) when (second != null)
+            {
+                // The host may have moved and another PC got its address: the name may lead to it. If not, the reason stays.
+                Log.Warn(header.JobId, identity.Message + " Trying the PC name " + second + ".");
+                string checkedAddress;
+                try
+                {
+                    checkedAddress = await CheckedAsync(printer, second, ct).ConfigureAwait(false);
+                }
+                catch (HostUnreachableException fallback)
+                {
+                    Log.Warn(header.JobId, "The PC name " + second + " leads nowhere better (" + fallback.Message + ").");
+                    throw identity;
+                }
                 return await Client(checkedAddress, printer).SendJobAsync(header, filePath, null, ct).ConfigureAwait(false);
             }
         }
@@ -82,7 +103,12 @@ namespace PrintVect.Core.Client
             Addresses(printer, out first, out second);
             try
             {
-                return await Client(first, printer).SendHelloAsync(header, ct).ConfigureAwait(false);
+                // The hello proves the PIN and names this PC: only to a PC that proved it is the host (0.5.10). A failed
+                // check throws, and PresenceAnnouncer skips this host until the next round.
+                IPAddress literal;
+                string target = IPAddress.TryParse(first, out literal) ? first : await CheckedAsync(printer, first, ct).ConfigureAwait(false);
+                await EnsureHostAsync(printer, target, null, ct).ConfigureAwait(false);
+                return await Client(target, printer).SendHelloAsync(header, ct).ConfigureAwait(false);
             }
             catch (HostUnreachableException) when (second != null)
             {
@@ -92,9 +118,10 @@ namespace PrintVect.Core.Client
         }
 
         /// <summary>
-        /// Makes sure the PC at <paramref name="address"/> is the printer's host before a job goes there (0.5.9): it must
-        /// sign a challenge with the remembered key. A printer without one learns it here. Throws HostUnreachableException
-        /// (with the reason) when the PC there does not answer or is not the host. Passed checks are trusted for a while.
+        /// Makes sure the PC at <paramref name="address"/> is the printer's host before a job or hello goes there (0.5.9):
+        /// it must sign a challenge with the remembered key. A printer without one learns it here. Throws
+        /// HostUnreachableException when the PC there does not answer, HostIdentityException (0.5.10) when it answers but
+        /// is not proven the host. Passed checks are trusted for a while.
         /// </summary>
         private async Task EnsureHostAsync(RemotePrinter printer, string address, string jobId, CancellationToken ct)
         {
@@ -112,7 +139,18 @@ namespace PrintVect.Core.Client
             if (verdict.Problem != null)
             {
                 Log.Warn(jobId, "Not sending to " + address + ": " + verdict.Problem);
-                throw new HostUnreachableException(verdict.Problem + " Nothing was sent there.");
+                if (verdict.Unreachable)
+                {
+                    throw new HostUnreachableException(verdict.Problem + " Nothing was sent there.");
+                }
+                string host = string.IsNullOrWhiteSpace(printer.HostName) ? "that PC" : printer.HostName;
+                if (verdict.KeyChanged)
+                {
+                    RaiseHostKeyChanged(printer);
+                    throw new HostIdentityException(verdict.Problem + " Nothing was sent there. If " + host + " was set up again, press Trust it "
+                                                    + "again next to this printer on Printers on other PCs, or remove the printer and add it again.", true);
+                }
+                throw new HostIdentityException(verdict.Problem + " Nothing was sent there.", false);
             }
             if (string.IsNullOrEmpty(printer.HostKeyId) && verdict.KeyId != null)
             {
@@ -135,6 +173,14 @@ namespace PrintVect.Core.Client
                 Log.Info(jobId, "The PC at " + address + " proved it is " + printer.HostName + " (identity key checked; checked again after "
                                 + CheckPassedFor.TotalMinutes + " minutes).");
             }
+        }
+
+        private void RaiseHostKeyChanged(RemotePrinter printer)
+        {
+            EventHandler<RemotePrinter> handler = HostKeyChanged;
+            if (handler == null) return;
+            try { handler(this, printer); }
+            catch (Exception ex) { Log.Error("Noting the changed identity key of " + printer.HostName + " failed.", ex); }
         }
 
         private void RaiseHostKeyLearned(RemotePrinter printer)

@@ -325,6 +325,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Sharing PIN is digits only.
+        /// </summary>
+        internal static string CheckPinDigits {
+            get {
+                return ResourceManager.GetString("CheckPinDigits", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Sharing PIN not set.
         /// </summary>
         internal static string CheckPinOff {
@@ -1333,6 +1342,15 @@ namespace PrintVect.App {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Identity changed.
+        /// </summary>
+        internal static string OfficeKeyChangedPill {
+            get {
+                return ResourceManager.GetString("OfficeKeyChangedPill", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Last checked {0}.
         /// </summary>
         internal static string OfficeLastChecked {
@@ -1446,6 +1464,78 @@ namespace PrintVect.App {
         internal static string OfficeTestPage {
             get {
                 return ResourceManager.GetString("OfficeTestPage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Trust it again.
+        /// </summary>
+        internal static string OfficeTrustAgain {
+            get {
+                return ResourceManager.GetString("OfficeTrustAgain", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Trust the PC of {0} again.
+        /// </summary>
+        internal static string OfficeTrustAgainAccessible {
+            get {
+                return ResourceManager.GetString("OfficeTrustAgainAccessible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The PC at {0}, which calls itself {1}, now proves a different identity key than {2} had when this pr [rest of string was truncated].
+        /// </summary>
+        internal static string OfficeTrustConfirm {
+            get {
+                return ResourceManager.GetString("OfficeTrustConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} is trusted again with its new identity key. Press Retry waiting to send what waits..
+        /// </summary>
+        internal static string OfficeTrustDone {
+            get {
+                return ResourceManager.GetString("OfficeTrustDone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing changed: jobs still go only to the PC with the identity this PC knows..
+        /// </summary>
+        internal static string OfficeTrustKept {
+            get {
+                return ResourceManager.GetString("OfficeTrustKept", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The PC could not be trusted again: {0}.
+        /// </summary>
+        internal static string OfficeTrustNotPossible {
+            get {
+                return ResourceManager.GetString("OfficeTrustNotPossible", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Careful: this PC calls itself {0}, not {1}. It may be a different PC that was given {1}'s address..
+        /// </summary>
+        internal static string OfficeTrustOtherName {
+            get {
+                return ResourceManager.GetString("OfficeTrustOtherName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} proved the identity this PC knows: nothing to change. Press Retry waiting to send what waits..
+        /// </summary>
+        internal static string OfficeTrustSame {
+            get {
+                return ResourceManager.GetString("OfficeTrustSame", resourceCulture);
             }
         }
 
@@ -1842,6 +1932,24 @@ namespace PrintVect.App {
         internal static string SettingsPinChange {
             get {
                 return ResourceManager.GetString("SettingsPinChange", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This PIN has only digits, which anyone guessing tries first. It keeps working: Change PIN… and mix i [rest of string was truncated].
+        /// </summary>
+        internal static string SettingsPinDigitsOnly {
+            get {
+                return ResourceManager.GetString("SettingsPinDigitsOnly", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Digits only.
+        /// </summary>
+        internal static string SettingsPinDigitsPill {
+            get {
+                return ResourceManager.GetString("SettingsPinDigitsPill", resourceCulture);
             }
         }
 
